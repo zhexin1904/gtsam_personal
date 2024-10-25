@@ -102,7 +102,7 @@ class TransferFactor : public NoiseModelFactorN<F, F> {
       auto [Fca, Fcb] = getMatrices(F1, F2);
       for (const auto& tuple : triplets_) {
         const auto& [pa, pb, pc] = tuple;
-        Point2 transferredPoint = Transfer(Fca, pa, Fcb, pb);
+        Point2 transferredPoint = EpipolarTransfer(Fca, pa, Fcb, pb);
         Vector2 error = transferredPoint - pc;
         errors.segment<2>(idx) = error;
         idx += 2;
