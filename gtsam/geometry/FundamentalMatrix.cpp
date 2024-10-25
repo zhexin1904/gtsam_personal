@@ -10,8 +10,8 @@
 namespace gtsam {
 
 //*************************************************************************
-Point2 Transfer(const Matrix3& Fca, const Point2& pa,  //
-                const Matrix3& Fcb, const Point2& pb) {
+Point2 EpipolarTransfer(const Matrix3& Fca, const Point2& pa,  //
+                        const Matrix3& Fcb, const Point2& pb) {
   // Create lines in camera a from projections of the other two cameras
   Vector3 line_a = Fca * Vector3(pa.x(), pa.y(), 1);
   Vector3 line_b = Fcb * Vector3(pb.x(), pb.y(), 1);
@@ -24,6 +24,7 @@ Point2 Transfer(const Matrix3& Fca, const Point2& pa,  //
 
   return intersectionPoint.head<2>();  // Return the 2D point
 }
+
 //*************************************************************************
 FundamentalMatrix::FundamentalMatrix(const Matrix3& F) {
   // Perform SVD

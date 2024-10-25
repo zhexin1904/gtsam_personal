@@ -147,8 +147,8 @@ class GTSAM_EXPORT SimpleFundamentalMatrix {
  * Take two fundamental matrices Fca and Fcb, and two points pa and pb, and
  * returns the 2D point in view (c) where the epipolar lines intersect.
  */
-GTSAM_EXPORT Point2 Transfer(const Matrix3& Fca, const Point2& pa,
-                             const Matrix3& Fcb, const Point2& pb);
+GTSAM_EXPORT Point2 EpipolarTransfer(const Matrix3& Fca, const Point2& pa,
+                                     const Matrix3& Fcb, const Point2& pb);
 
 /// Represents a set of three fundamental matrices for transferring points
 /// between three cameras.
@@ -158,17 +158,17 @@ struct TripleF {
 
   /// Transfers a point from cameras b,c to camera a.
   Point2 transferToA(const Point2& pb, const Point2& pc) {
-    return Transfer(Fab.matrix(), pb, Fca.matrix().transpose(), pc);
+    return EpipolarTransfer(Fab.matrix(), pb, Fca.matrix().transpose(), pc);
   }
 
   /// Transfers a point from camera a,c to camera b.
   Point2 transferToB(const Point2& pa, const Point2& pc) {
-    return Transfer(Fab.matrix().transpose(), pa, Fbc.matrix(), pc);
+    return EpipolarTransfer(Fab.matrix().transpose(), pa, Fbc.matrix(), pc);
   }
 
   /// Transfers a point from cameras a,b to camera c.
   Point2 transferToC(const Point2& pa, const Point2& pb) {
-    return Transfer(Fca.matrix(), pa, Fbc.matrix().transpose(), pb);
+    return EpipolarTransfer(Fca.matrix(), pa, Fbc.matrix().transpose(), pb);
   }
 };
 
