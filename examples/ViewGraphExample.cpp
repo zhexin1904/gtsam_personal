@@ -13,7 +13,7 @@
  * @file    ViewGraphExample.cpp
  * @brief   View-graph calibration on a simulated dataset, a la Sweeney 2015
  * @author  Frank Dellaert
- * @author  October 2024
+ * @date    October 2024
  */
 
 #include <gtsam/geometry/Cal3_S2.h>
@@ -68,21 +68,28 @@ int main(int argc, char* argv[]) {
   // In this version, we only include triplets between 3 successive cameras.
   NonlinearFactorGraph graph;
   using Factor = TransferFactor<FundamentalMatrix>;
+
   for (size_t a = 0; a < 4; ++a) {
     size_t b = (a + 1) % 4;  // Next camera
     size_t c = (a + 2) % 4;  // Camera after next
-    for (size_t j = 0; j < 4; ++j) {
-      // Add transfer factors between views a, b, and c. Note that the EdgeKeys
-      // are crucial in performing the transfer in the right direction. We use
-      // exactly 8 unique EdgeKeys, corresponding to 8 unknown fundamental
-      // matrices we will optimize for.
-      graph.emplace_shared<Factor>(EdgeKey(a, c), EdgeKey(b, c), p[a][j],
-                                   p[b][j], p[c][j]);
-      graph.emplace_shared<Factor>(EdgeKey(a, b), EdgeKey(b, c), p[a][j],
-                                   p[c][j], p[b][j]);
-      graph.emplace_shared<Factor>(EdgeKey(a, c), EdgeKey(a, b), p[c][j],
-                                   p[b][j], p[a][j]);
+
+    // Vectors to collect tuples for each factor
+    std::vector<std::tuple<Point2, Point2, Point2>> tuples1, tuples2, tuples3;
+
+    // Collect data for the three factors
+    for (size_t j = 0; j < 8; ++j) {
+      tuples1.emplace_back(p[a][j], p[b][j], p[c][j]);
+      tuples2.emplace_back(p[a][j], p[c][j], p[b][j]);
+      tuples3.emplace_back(p[c][j], p[b][j], p[a][j]);
     }
+
+    // Add transfer factors between views a, b, and c. Note that the EdgeKeys
+    // are crucial in performing the transfer in the right direction. We use
+    // exactly 8 unique EdgeKeys, corresponding to 8 unknown fundamental
+    // matrices we will optimize for.
+    graph.emplace_shared<Factor>(EdgeKey(a, c), EdgeKey(b, c), tuples1);
+    graph.emplace_shared<Factor>(EdgeKey(a, b), EdgeKey(b, c), tuples2);
+    graph.emplace_shared<Factor>(EdgeKey(a, c), EdgeKey(a, b), tuples3);
   }
 
   auto formatter = [](Key key) {
@@ -96,7 +103,7 @@ int main(int argc, char* argv[]) {
   // We can't really go far before convergence becomes problematic :-(
   Vector7 delta;
   delta << 1, 2, 3, 4, 5, 6, 7;
-  delta *= 5e-5;
+  delta *= 1e-5;
 
   // Create the data structure to hold the initial estimate to the solution
   Values initialEstimate;
@@ -107,7 +114,7 @@ int main(int argc, char* argv[]) {
     initialEstimate.insert(EdgeKey(a, c), F2.retract(delta));
   }
   initialEstimate.print("Initial Estimates:\n", formatter);
-  //   graph.printErrors(initialEstimate, "errors: ", formatter);
+    graph.printErrors(initialEstimate, "errors: ", formatter);
 
   /* Optimize the graph and print results */
   LevenbergMarquardtParams params;

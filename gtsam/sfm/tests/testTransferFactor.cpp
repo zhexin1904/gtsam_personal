@@ -90,6 +90,64 @@ TEST(TransferFactor, Jacobians) {
 }
 
 //*************************************************************************
+// Test for TransferFactor with multiple tuples
+TEST(TransferFactor, MultipleTuples) {
+  // Generate cameras on a circle
+  std::array<Pose3, 3> cameraPoses = generateCameraPoses();
+  auto triplet = generateTripleF(cameraPoses);
+
+  // Now project multiple points into the three cameras
+  const size_t numPoints = 5;  // Number of points to test
+  std::vector<Point3> points3D;
+  std::vector<std::array<Point2, 3>> projectedPoints;
+
+  const Cal3_S2 K(focalLength, focalLength, 0.0,  //
+                  principalPoint.x(), principalPoint.y());
+
+  // Generate random 3D points and project them
+  for (size_t n = 0; n < numPoints; ++n) {
+    Point3 P(0.1 * n, 0.2 * n, 0.3 + 0.1 * n);
+    points3D.push_back(P);
+
+    std::array<Point2, 3> p;
+    for (size_t i = 0; i < 3; ++i) {
+      // Project the point into each camera
+      PinholeCameraCal3_S2 camera(cameraPoses[i], K);
+      p[i] = camera.project(P);
+    }
+    projectedPoints.push_back(p);
+  }
+
+  // Create a vector of tuples for the TransferFactor
+  EdgeKey key01(0, 1), key12(1, 2), key20(2, 0);
+  std::vector<std::tuple<Point2, Point2, Point2>> tuples0, tuples1, tuples2;
+
+  for (size_t n = 0; n < numPoints; ++n) {
+    const auto& p = projectedPoints[n];
+    tuples0.emplace_back(p[1], p[2], p[0]);
+  }
+
+  // Create TransferFactors using the new constructor
+  TransferFactor<SimpleFundamentalMatrix> factor{key01, key20, tuples0};
+
+  // Create Values with edge keys
+  Values values;
+  values.insert(key01, triplet.Fab);
+  values.insert(key12, triplet.Fbc);
+  values.insert(key20, triplet.Fca);
+
+  // Check error and Jacobians for multiple tuples
+  Vector error = factor.unwhitenedError(values);
+  // The error vector should be of size 2 * numPoints
+  EXPECT_LONGS_EQUAL(2 * numPoints, error.size());
+  // Since the points are perfectly matched, the error should be zero
+  EXPECT(assert_equal<Vector>(Vector::Zero(2 * numPoints), error, 1e-9));
+
+  // Check the Jacobians
+  EXPECT_CORRECT_FACTOR_JACOBIANS(factor, values, 1e-5, 1e-7);
+}
+
+//*************************************************************************
 int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);

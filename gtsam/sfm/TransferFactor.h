@@ -32,22 +32,14 @@ namespace gtsam {
 template <typename F>
 class TransferFactor : public NoiseModelFactorN<F, F> {
   EdgeKey key1_, key2_;  ///< the two EdgeKeys
-  Point2 pa, pb, pc;     ///< The points in the three views
+  std::vector<std::tuple<Point2, Point2, Point2>>
+      triplets_;  ///< Point triplets
 
  public:
   /**
-   * @brief Constructor for the TransferFactor class.
+   * @brief Constructor for a single triplet of points
    *
-   * Uses EdgeKeys to determine how to use the two fundamental matrix unknowns
-   * F1 and F2, to transfer points pa and pb to the third view, and minimize the
-   * difference with pc.
-   *
-   * The edge keys must represent valid edges for the transfer operation,
-   * specifically one of the following configurations:
-   * - (a, c) and (b, c)
-   * - (a, c) and (c, b)
-   * - (c, a) and (b, c)
-   * - (c, a) and (c, b)
+   * @note: batching all points for the same transfer will be much faster.
    *
    * @param key1 First EdgeKey specifying F1: (a, c) or (c, a).
    * @param key2 Second EdgeKey specifying F2: (b, c) or (c, b).
@@ -62,9 +54,25 @@ class TransferFactor : public NoiseModelFactorN<F, F> {
       : NoiseModelFactorN<F, F>(model, key1, key2),
         key1_(key1),
         key2_(key2),
-        pa(pa),
-        pb(pb),
-        pc(pc) {}
+        triplets_({std::make_tuple(pa, pb, pc)}) {}
+
+  /**
+   * @brief Constructor that accepts a vector of point triplets.
+   *
+   * @param key1 First EdgeKey specifying F1: (a, c) or (c, a).
+   * @param key2 Second EdgeKey specifying F2: (b, c) or (c, b).
+   * @param triplets A vector of triplets containing (pa, pb, pc).
+   * @param model An optional SharedNoiseModel that defines the noise model
+   *              for this factor. Defaults to nullptr.
+   */
+  TransferFactor(
+      EdgeKey key1, EdgeKey key2,
+      const std::vector<std::tuple<Point2, Point2, Point2>>& triplets,
+      const SharedNoiseModel& model = nullptr)
+      : NoiseModelFactorN<F, F>(model, key1, key2),
+        key1_(key1),
+        key2_(key2),
+        triplets_(triplets) {}
 
   // Create Matrix3 objects based on EdgeKey configurations
   std::pair<Matrix3, Matrix3> getMatrices(const F& F1, const F& F2) const {
@@ -83,17 +91,27 @@ class TransferFactor : public NoiseModelFactorN<F, F> {
     }
   }
 
-  /// vector of errors returns 2D vector
+  /// vector of errors returns 2*N vector
   Vector evaluateError(const F& F1, const F& F2,
                        OptionalMatrixType H1 = nullptr,
                        OptionalMatrixType H2 = nullptr) const override {
-    std::function<Point2(F, F)> transfer = [&](const F& F1, const F& F2) {
+    std::function<Vector(const F&, const F&)> transfer = [&](const F& F1,
+                                                             const F& F2) {
+      Vector errors(2 * triplets_.size());
+      size_t idx = 0;
       auto [Fca, Fcb] = getMatrices(F1, F2);
-      return Transfer(Fca, pa, Fcb, pb);
+      for (const auto& tuple : triplets_) {
+        const auto& [pa, pb, pc] = tuple;
+        Point2 transferredPoint = Transfer(Fca, pa, Fcb, pb);
+        Vector2 error = transferredPoint - pc;
+        errors.segment<2>(idx) = error;
+        idx += 2;
+      }
+      return errors;
     };
-    if (H1) *H1 = numericalDerivative21<Point2, F, F>(transfer, F1, F2);
-    if (H2) *H2 = numericalDerivative22<Point2, F, F>(transfer, F1, F2);
-    return transfer(F1, F2) - pc;
+    if (H1) *H1 = numericalDerivative21<Vector, F, F>(transfer, F1, F2);
+    if (H2) *H2 = numericalDerivative22<Vector, F, F>(transfer, F1, F2);
+    return transfer(F1, F2);
   }
 };
 
