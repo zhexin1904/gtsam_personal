@@ -11,8 +11,8 @@
 """
 
 """
-Python version of EssentialViewGraphExample.cpp
-View-graph calibration with essential matrices.
+Python version of ViewGraphExample.cpp
+View-graph calibration on a simulated dataset, a la Sweeney 2015
 Author: Frank Dellaert
 Date: October 2024
 """
@@ -20,29 +20,22 @@ Date: October 2024
 import numpy as np
 from gtsam.examples import SFMdata
 
-import gtsam
-from gtsam import Cal3_S2, EdgeKey, EssentialMatrix
-from gtsam import EssentialTransferFactorCal3_S2 as Factor
-from gtsam import (LevenbergMarquardtOptimizer, LevenbergMarquardtParams,
-                   NonlinearFactorGraph, PinholeCameraCal3_S2, Values)
-
-# For symbol shorthand (e.g., X(0), L(1))
-K = gtsam.symbol_shorthand.K
+from gtsam import (Cal3_S2, EdgeKey, FundamentalMatrix,
+                   LevenbergMarquardtOptimizer, LevenbergMarquardtParams,
+                   NonlinearFactorGraph, PinholeCameraCal3_S2)
+from gtsam import TransferFactorFundamentalMatrix as Factor
+from gtsam import Values
 
 
 # Formatter function for printing keys
 def formatter(key):
-    sym = gtsam.Symbol(key)
-    if sym.chr() == ord("k"):
-        return f"k{sym.index()}"
-    else:
-        edge = EdgeKey(key)
-        return f"({edge.i()},{edge.j()})"
+    edge = EdgeKey(key)
+    return f"({edge.i()},{edge.j()})"
 
 
 def main():
     # Define the camera calibration parameters
-    K_initial = Cal3_S2(50.0, 50.0, 0.0, 50.0, 50.0)
+    K = Cal3_S2(50.0, 50.0, 0.0, 50.0, 50.0)
 
     # Create the set of 8 ground-truth landmarks
     points = SFMdata.createPoints()
@@ -50,14 +43,14 @@ def main():
     # Create the set of 4 ground-truth poses
     poses = SFMdata.posesOnCircle(4, 30)
 
-    # Calculate ground truth essential matrices, 1 and 2 poses apart
-    E1 = EssentialMatrix.FromPose3(poses[0].between(poses[1]))
-    E2 = EssentialMatrix.FromPose3(poses[0].between(poses[2]))
+    # Calculate ground truth fundamental matrices, 1 and 2 poses apart
+    F1 = FundamentalMatrix(K, poses[0].between(poses[1]), K)
+    F2 = FundamentalMatrix(K, poses[0].between(poses[2]), K)
 
     # Simulate measurements from each camera pose
     p = [[None for _ in range(8)] for _ in range(4)]
     for i in range(4):
-        camera = PinholeCameraCal3_S2(poses[i], K_initial)
+        camera = PinholeCameraCal3_S2(poses[i], K)
         for j in range(8):
             p[i][j] = camera.project(points[j])
 
@@ -68,11 +61,12 @@ def main():
         b = (a + 1) % 4  # Next camera
         c = (a + 2) % 4  # Camera after next
 
-        # Collect data for the three factors
+        # Vectors to collect tuples for each factor
         tuples1 = []
         tuples2 = []
         tuples3 = []
 
+        # Collect data for the three factors
         for j in range(8):
             tuples1.append((p[a][j], p[b][j], p[c][j]))
             tuples2.append((p[a][j], p[c][j], p[b][j]))
@@ -83,40 +77,37 @@ def main():
         graph.add(Factor(EdgeKey(a, b), EdgeKey(b, c), tuples2))
         graph.add(Factor(EdgeKey(a, c), EdgeKey(a, b), tuples3))
 
-    graph.print("graph", formatter)
+    # Print the factor graph
+    graph.print("Factor Graph:\n", formatter)
 
-    # Create a delta vector to perturb the ground truth (small perturbation)
-    delta = np.ones(5) * 1e-2
+    # Create a delta vector to perturb the ground truth
+    delta = np.array([1, 2, 3, 4, 5, 6, 7]) * 1e-5
 
-    # Create the initial estimate for essential matrices
+    # Create the data structure to hold the initial estimate to the solution
     initialEstimate = Values()
     for a in range(4):
         b = (a + 1) % 4  # Next camera
         c = (a + 2) % 4  # Camera after next
-        initialEstimate.insert(EdgeKey(a, b).key(), E1.retract(delta))
-        initialEstimate.insert(EdgeKey(a, c).key(), E2.retract(delta))
+        initialEstimate.insert(EdgeKey(a, b).key(), F1.retract(delta))
+        initialEstimate.insert(EdgeKey(a, c).key(), F2.retract(delta))
 
-    # Insert initial calibrations
-    for i in range(4):
-        initialEstimate.insert(K(i), K_initial)
+    initialEstimate.print("Initial Estimates:\n", formatter)
+    graph.printErrors(initialEstimate, "Initial Errors:\n", formatter)
 
     # Optimize the graph and print results
     params = LevenbergMarquardtParams()
-    params.setlambdaInitial(1000.0)  # Initialize lambda to a high value
+    params.setLambdaInitial(1000.0)  # Initialize lambda to a high value
     params.setVerbosityLM("SUMMARY")
     optimizer = LevenbergMarquardtOptimizer(graph, initialEstimate, params)
     result = optimizer.optimize()
 
-    print("Initial error = ", graph.error(initialEstimate))
-    print("Final error = ", graph.error(result))
+    print(f"Initial error = {graph.error(initialEstimate)}")
+    print(f"Final error = {graph.error(result)}")
 
-    # Print final results
-    print("Final Results:")
-    result.print("", formatter)
+    result.print("Final Results:\n", formatter)
 
-    # Print ground truth essential matrices
-    print("Ground Truth E1:\n", E1)
-    print("Ground Truth E2:\n", E2)
+    print("Ground Truth F1:\n", F1.matrix())
+    print("Ground Truth F2:\n", F2.matrix())
 
 
 if __name__ == "__main__":
