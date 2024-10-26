@@ -5,9 +5,6 @@
   Authors: Frank Dellaert, et al. (see THANKS for the full author list)
 
   See LICENSE for the license information
-
-  Solve a structure-from-motion problem from a "Bundle Adjustment in the Large" file
-  Author: Frank Dellaert (Python: Akshay Krishnan, John Lambert, Varun Agrawal)
 """
 
 """
@@ -96,7 +93,7 @@ def main():
 
     # Optimize the graph and print results
     params = LevenbergMarquardtParams()
-    params.setLambdaInitial(1000.0)  # Initialize lambda to a high value
+    params.setlambdaInitial(1000.0)  # Initialize lambda to a high value
     params.setVerbosityLM("SUMMARY")
     optimizer = LevenbergMarquardtOptimizer(graph, initialEstimate, params)
     result = optimizer.optimize()

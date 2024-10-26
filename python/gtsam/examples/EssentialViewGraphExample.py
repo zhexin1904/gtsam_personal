@@ -5,9 +5,6 @@
   Authors: Frank Dellaert, et al. (see THANKS for the full author list)
 
   See LICENSE for the license information
-
-  Solve a structure-from-motion problem from a "Bundle Adjustment in the Large" file
-  Author: Frank Dellaert (Python: Akshay Krishnan, John Lambert, Varun Agrawal)
 """
 
 """

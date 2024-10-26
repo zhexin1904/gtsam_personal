@@ -4,13 +4,14 @@
 
 namespace gtsam {
 
+#include <gtsam/geometry/Cal3_S2.h>
 #include <gtsam/geometry/Cal3Bundler.h>
 #include <gtsam/geometry/Cal3DS2.h>
+#include <gtsam/geometry/Cal3f.h>
 #include <gtsam/geometry/Cal3Fisheye.h>
 #include <gtsam/geometry/Cal3Unified.h>
-#include <gtsam/geometry/Cal3_S2.h>
-#include <gtsam/geometry/CalibratedCamera.h>
 #include <gtsam/geometry/EssentialMatrix.h>
+#include <gtsam/geometry/FundamentalMatrix.h>
 #include <gtsam/geometry/PinholeCamera.h>
 #include <gtsam/geometry/Point2.h>
 #include <gtsam/geometry/Point3.h>
@@ -80,17 +81,24 @@ class Values {
   void insert(size_t j, const gtsam::Rot3& rot3);
   void insert(size_t j, const gtsam::Pose3& pose3);
   void insert(size_t j, const gtsam::Unit3& unit3);
+  void insert(size_t j, const gtsam::Cal3f& cal3f);
   void insert(size_t j, const gtsam::Cal3_S2& cal3_s2);
   void insert(size_t j, const gtsam::Cal3DS2& cal3ds2);
   void insert(size_t j, const gtsam::Cal3Bundler& cal3bundler);
   void insert(size_t j, const gtsam::Cal3Fisheye& cal3fisheye);
   void insert(size_t j, const gtsam::Cal3Unified& cal3unified);
-  void insert(size_t j, const gtsam::EssentialMatrix& essential_matrix);
+  void insert(size_t j, const gtsam::EssentialMatrix& E);
+  void insert(size_t j, const gtsam::FundamentalMatrix& F);
+  void insert(size_t j, const gtsam::SimpleFundamentalMatrix& F);
+  void insert(size_t j, const gtsam::PinholeCamera<gtsam::Cal3f>& camera);
   void insert(size_t j, const gtsam::PinholeCamera<gtsam::Cal3_S2>& camera);
+  void insert(size_t j, const gtsam::PinholeCamera<gtsam::Cal3DS2>& camera);
   void insert(size_t j, const gtsam::PinholeCamera<gtsam::Cal3Bundler>& camera);
   void insert(size_t j, const gtsam::PinholeCamera<gtsam::Cal3Fisheye>& camera);
   void insert(size_t j, const gtsam::PinholeCamera<gtsam::Cal3Unified>& camera);
+  void insert(size_t j, const gtsam::PinholePose<gtsam::Cal3f>& camera);
   void insert(size_t j, const gtsam::PinholePose<gtsam::Cal3_S2>& camera);
+  void insert(size_t j, const gtsam::PinholePose<gtsam::Cal3DS2>& camera);
   void insert(size_t j, const gtsam::PinholePose<gtsam::Cal3Bundler>& camera);
   void insert(size_t j, const gtsam::PinholePose<gtsam::Cal3Fisheye>& camera);
   void insert(size_t j, const gtsam::PinholePose<gtsam::Cal3Unified>& camera);
@@ -115,17 +123,24 @@ class Values {
   void update(size_t j, const gtsam::Rot3& rot3);
   void update(size_t j, const gtsam::Pose3& pose3);
   void update(size_t j, const gtsam::Unit3& unit3);
+  void update(size_t j, const gtsam::Cal3f& cal3f);
   void update(size_t j, const gtsam::Cal3_S2& cal3_s2);
   void update(size_t j, const gtsam::Cal3DS2& cal3ds2);
   void update(size_t j, const gtsam::Cal3Bundler& cal3bundler);
   void update(size_t j, const gtsam::Cal3Fisheye& cal3fisheye);
   void update(size_t j, const gtsam::Cal3Unified& cal3unified);
-  void update(size_t j, const gtsam::EssentialMatrix& essential_matrix);
+  void update(size_t j, const gtsam::EssentialMatrix& E);
+  void update(size_t j, const gtsam::FundamentalMatrix& F);
+  void update(size_t j, const gtsam::SimpleFundamentalMatrix& F);
+  void update(size_t j, const gtsam::PinholeCamera<gtsam::Cal3f>& camera);
   void update(size_t j, const gtsam::PinholeCamera<gtsam::Cal3_S2>& camera);
+  void update(size_t j, const gtsam::PinholeCamera<gtsam::Cal3DS2>& camera);
   void update(size_t j, const gtsam::PinholeCamera<gtsam::Cal3Bundler>& camera);
   void update(size_t j, const gtsam::PinholeCamera<gtsam::Cal3Fisheye>& camera);
   void update(size_t j, const gtsam::PinholeCamera<gtsam::Cal3Unified>& camera);
+  void update(size_t j, const gtsam::PinholePose<gtsam::Cal3f>& camera);
   void update(size_t j, const gtsam::PinholePose<gtsam::Cal3_S2>& camera);
+  void update(size_t j, const gtsam::PinholePose<gtsam::Cal3DS2>& camera);
   void update(size_t j, const gtsam::PinholePose<gtsam::Cal3Bundler>& camera);
   void update(size_t j, const gtsam::PinholePose<gtsam::Cal3Fisheye>& camera);
   void update(size_t j, const gtsam::PinholePose<gtsam::Cal3Unified>& camera);
@@ -147,15 +162,21 @@ class Values {
   void insert_or_assign(size_t j, const gtsam::Rot3& rot3);
   void insert_or_assign(size_t j, const gtsam::Pose3& pose3);
   void insert_or_assign(size_t j, const gtsam::Unit3& unit3);
+  void insert_or_assign(size_t j, const gtsam::Cal3f& cal3f);
   void insert_or_assign(size_t j, const gtsam::Cal3_S2& cal3_s2);
   void insert_or_assign(size_t j, const gtsam::Cal3DS2& cal3ds2);
   void insert_or_assign(size_t j, const gtsam::Cal3Bundler& cal3bundler);
   void insert_or_assign(size_t j, const gtsam::Cal3Fisheye& cal3fisheye);
   void insert_or_assign(size_t j, const gtsam::Cal3Unified& cal3unified);
+  void insert_or_assign(size_t j, const gtsam::EssentialMatrix& E);
+  void insert_or_assign(size_t j, const gtsam::FundamentalMatrix& F);
+  void insert_or_assign(size_t j, const gtsam::SimpleFundamentalMatrix& F);
   void insert_or_assign(size_t j,
-                        const gtsam::EssentialMatrix& essential_matrix);
+                        const gtsam::PinholeCamera<gtsam::Cal3f>& camera);
   void insert_or_assign(size_t j,
                         const gtsam::PinholeCamera<gtsam::Cal3_S2>& camera);
+  void insert_or_assign(size_t j,
+                        const gtsam::PinholeCamera<gtsam::Cal3DS2>& camera);
   void insert_or_assign(size_t j,
                         const gtsam::PinholeCamera<gtsam::Cal3Bundler>& camera);
   void insert_or_assign(size_t j,
@@ -163,7 +184,11 @@ class Values {
   void insert_or_assign(size_t j,
                         const gtsam::PinholeCamera<gtsam::Cal3Unified>& camera);
   void insert_or_assign(size_t j,
+                        const gtsam::PinholePose<gtsam::Cal3f>& camera);
+  void insert_or_assign(size_t j,
                         const gtsam::PinholePose<gtsam::Cal3_S2>& camera);
+  void insert_or_assign(size_t j,
+                        const gtsam::PinholePose<gtsam::Cal3DS2>& camera);
   void insert_or_assign(size_t j,
                         const gtsam::PinholePose<gtsam::Cal3Bundler>& camera);
   void insert_or_assign(size_t j,
@@ -185,17 +210,24 @@ class Values {
                  gtsam::Rot3,
                  gtsam::Pose3,
                  gtsam::Unit3,
+                 gtsam::Cal3f, 
                  gtsam::Cal3_S2,
                  gtsam::Cal3DS2,
                  gtsam::Cal3Bundler,
                  gtsam::Cal3Fisheye,
                  gtsam::Cal3Unified,
-                 gtsam::EssentialMatrix,
+                 gtsam::EssentialMatrix, 
+                 gtsam::FundamentalMatrix, 
+                 gtsam::SimpleFundamentalMatrix,
+                 gtsam::PinholeCamera<gtsam::Cal3f>,
                  gtsam::PinholeCamera<gtsam::Cal3_S2>,
+                 gtsam::PinholeCamera<gtsam::Cal3DS2>,
                  gtsam::PinholeCamera<gtsam::Cal3Bundler>,
                  gtsam::PinholeCamera<gtsam::Cal3Fisheye>,
                  gtsam::PinholeCamera<gtsam::Cal3Unified>,
+                 gtsam::PinholePose<gtsam::Cal3f>,
                  gtsam::PinholePose<gtsam::Cal3_S2>,
+                 gtsam::PinholePose<gtsam::Cal3DS2>,
                  gtsam::PinholePose<gtsam::Cal3Bundler>,
                  gtsam::PinholePose<gtsam::Cal3Fisheye>,
                  gtsam::PinholePose<gtsam::Cal3Unified>,
