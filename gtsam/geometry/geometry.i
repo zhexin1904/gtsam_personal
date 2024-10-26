@@ -913,6 +913,8 @@ class FundamentalMatrix {
   FundamentalMatrix(const gtsam::Matrix3& F);
 
   // Overloaded constructors for specific calibration types
+  FundamentalMatrix(const gtsam::Cal3_S2& Ka, const gtsam::EssentialMatrix& E,
+                    const gtsam::Cal3_S2& Kb);
   FundamentalMatrix(const gtsam::Cal3_S2& Ka, const gtsam::Pose3& aPb,
                     const gtsam::Cal3_S2& Kb);
 
