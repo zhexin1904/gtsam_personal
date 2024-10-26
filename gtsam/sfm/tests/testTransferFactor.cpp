@@ -12,9 +12,6 @@
 
 using namespace gtsam;
 
-double focalLength = 1000;
-Point2 principalPoint(640 / 2, 480 / 2);
-
 //*************************************************************************
 /// Generate three cameras on a circle, looking in
 std::array<Pose3, 3> generateCameraPoses() {
@@ -45,16 +42,35 @@ TripleF<SimpleFundamentalMatrix> generateTripleF(
 }
 
 //*************************************************************************
+namespace fixture {
+// Generate cameras on a circle
+std::array<Pose3, 3> cameraPoses = generateCameraPoses();
+auto triplet = generateTripleF(cameraPoses);
+double focalLength = 1000;
+Point2 principalPoint(640 / 2, 480 / 2);
+const Cal3_S2 K(focalLength, focalLength, 0.0,  //
+                principalPoint.x(), principalPoint.y());
+}  // namespace fixture
+
+//*************************************************************************
+// Test for getMatrices
+TEST(TransferFactor, GetMatrices) {
+  using namespace fixture;
+  TransferFactor<SimpleFundamentalMatrix> factor{{2, 0}, {1, 2}, {}};
+
+  // Check that getMatrices is correct
+  auto [Fki, Fkj] = factor.getMatrices(triplet.Fca, triplet.Fbc);
+  EXPECT(assert_equal<Matrix3>(triplet.Fca.matrix(), Fki));
+  EXPECT(assert_equal<Matrix3>(triplet.Fbc.matrix().transpose(), Fkj));
+}
+
+//*************************************************************************
 // Test for TransferFactor
 TEST(TransferFactor, Jacobians) {
-  // Generate cameras on a circle
-  std::array<Pose3, 3> cameraPoses = generateCameraPoses();
-  auto triplet = generateTripleF(cameraPoses);
+  using namespace fixture;
 
   // Now project a point into the three cameras
   const Point3 P(0.1, 0.2, 0.3);
-  const Cal3_S2 K(focalLength, focalLength, 0.0,  //
-                  principalPoint.x(), principalPoint.y());
 
   std::array<Point2, 3> p;
   for (size_t i = 0; i < 3; ++i) {
@@ -69,11 +85,6 @@ TEST(TransferFactor, Jacobians) {
       factor0{key01, key20, p[1], p[2], p[0]},
       factor1{key12, key01, p[2], p[0], p[1]},
       factor2{key20, key12, p[0], p[1], p[2]};
-
-  // Check that getMatrices is correct
-  auto [Fki, Fkj] = factor2.getMatrices(triplet.Fca, triplet.Fbc);
-  EXPECT(assert_equal<Matrix3>(triplet.Fca.matrix(), Fki));
-  EXPECT(assert_equal<Matrix3>(triplet.Fbc.matrix().transpose(), Fkj));
 
   // Create Values with edge keys
   Values values;
@@ -92,17 +103,12 @@ TEST(TransferFactor, Jacobians) {
 //*************************************************************************
 // Test for TransferFactor with multiple tuples
 TEST(TransferFactor, MultipleTuples) {
-  // Generate cameras on a circle
-  std::array<Pose3, 3> cameraPoses = generateCameraPoses();
-  auto triplet = generateTripleF(cameraPoses);
+  using namespace fixture;
 
   // Now project multiple points into the three cameras
   const size_t numPoints = 5;  // Number of points to test
   std::vector<Point3> points3D;
   std::vector<std::array<Point2, 3>> projectedPoints;
-
-  const Cal3_S2 K(focalLength, focalLength, 0.0,  //
-                  principalPoint.x(), principalPoint.y());
 
   // Generate random 3D points and project them
   for (size_t n = 0; n < numPoints; ++n) {
@@ -120,15 +126,15 @@ TEST(TransferFactor, MultipleTuples) {
 
   // Create a vector of tuples for the TransferFactor
   EdgeKey key01(0, 1), key12(1, 2), key20(2, 0);
-  std::vector<std::tuple<Point2, Point2, Point2>> tuples0, tuples1, tuples2;
+  std::vector<std::tuple<Point2, Point2, Point2>> tuples;
 
   for (size_t n = 0; n < numPoints; ++n) {
     const auto& p = projectedPoints[n];
-    tuples0.emplace_back(p[1], p[2], p[0]);
+    tuples.emplace_back(p[1], p[2], p[0]);
   }
 
   // Create TransferFactors using the new constructor
-  TransferFactor<SimpleFundamentalMatrix> factor{key01, key20, tuples0};
+  TransferFactor<SimpleFundamentalMatrix> factor{key01, key20, tuples};
 
   // Create Values with edge keys
   Values values;

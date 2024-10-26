@@ -24,8 +24,8 @@ namespace gtsam {
 
 /**
  * Binary factor in the context of Structure from Motion (SfM).
- * It is used to transfer points between different views based on the
- * fundamental matrices between these views. The factor computes the error
+ * It is used to transfer transfer corresponding points from two views to a
+ * third based on two fundamental matrices. The factor computes the error
  * between the transferred points `pa` and `pb`, and the actual point `pc` in
  * the target view. Jacobians are done using numerical differentiation.
  */

@@ -97,20 +97,20 @@ FundamentalMatrix FundamentalMatrix::retract(const Vector& delta) const {
 }
 
 //*************************************************************************
-Matrix3 SimpleFundamentalMatrix::leftK() const {
+Matrix3 SimpleFundamentalMatrix::Ka() const {
   Matrix3 K;
   K << fa_, 0, ca_.x(), 0, fa_, ca_.y(), 0, 0, 1;
   return K;
 }
 
-Matrix3 SimpleFundamentalMatrix::rightK() const {
+Matrix3 SimpleFundamentalMatrix::Kb() const {
   Matrix3 K;
   K << fb_, 0, cb_.x(), 0, fb_, cb_.y(), 0, 0, 1;
   return K;
 }
 
 Matrix3 SimpleFundamentalMatrix::matrix() const {
-  return leftK().transpose().inverse() * E_.matrix() * rightK().inverse();
+  return Ka().transpose().inverse() * E_.matrix() * Kb().inverse();
 }
 
 void SimpleFundamentalMatrix::print(const std::string& s) const {

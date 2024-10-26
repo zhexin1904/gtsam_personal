@@ -68,8 +68,8 @@ class GTSAM_EXPORT FundamentalMatrix {
   template <typename CAL>
   FundamentalMatrix(const CAL& Ka, const Pose3& aPb, const CAL& Kb)
       : FundamentalMatrix(Ka.K().transpose().inverse() *
-                                 EssentialMatrix::FromPose3(aPb).matrix() *
-                                 Kb.K().inverse()) {}
+                          EssentialMatrix::FromPose3(aPb).matrix() *
+                          Kb.K().inverse()) {}
 
   /// Return the fundamental matrix representation
   Matrix3 matrix() const;
@@ -114,25 +114,32 @@ class GTSAM_EXPORT SimpleFundamentalMatrix {
   Point2 ca_;          ///< Principal point for left camera
   Point2 cb_;          ///< Principal point for right camera
 
+  /// Return the left calibration matrix
+  Matrix3 Ka() const;
+
+  /// Return the right calibration matrix
+  Matrix3 Kb() const;
+
  public:
   /// Default constructor
   SimpleFundamentalMatrix()
       : E_(), fa_(1.0), fb_(1.0), ca_(0.0, 0.0), cb_(0.0, 0.0) {}
 
-  /// Construct from essential matrix and focal lengths
+  /**
+   * @brief Construct from essential matrix and focal lengths
+   * @param E Essential matrix
+   * @param fa Focal length for left camera
+   * @param fb Focal length for right camera
+   * @param ca Principal point for left camera
+   * @param cb Principal point for right camera
+   */
   SimpleFundamentalMatrix(const EssentialMatrix& E,  //
-                          double fa, double fb,
-                          const Point2& ca = Point2(0.0, 0.0),
-                          const Point2& cb = Point2(0.0, 0.0))
+                          double fa, double fb, const Point2& ca,
+                          const Point2& cb)
       : E_(E), fa_(fa), fb_(fb), ca_(ca), cb_(cb) {}
 
-  /// Return the left calibration matrix
-  Matrix3 leftK() const;
-
-  /// Return the right calibration matrix
-  Matrix3 rightK() const;
-
   /// Return the fundamental matrix representation
+  /// F = Ka^(-T) * E * Kb^(-1)
   Matrix3 matrix() const;
 
   /// @name Testable
