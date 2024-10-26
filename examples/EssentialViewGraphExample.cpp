@@ -131,8 +131,8 @@ int main(int argc, char* argv[]) {
 
   result.print("Final Results:\n", formatter);
 
-  cout << "Ground Truth E1:\n" << E1.matrix() << endl;
-  cout << "Ground Truth E2:\n" << E2.matrix() << endl;
+  E1.print("Ground Truth E1:\n");
+  E2.print("Ground Truth E2:\n");
 
   return 0;
 }
