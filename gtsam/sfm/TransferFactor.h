@@ -37,22 +37,22 @@ class TransferEdges {
 
  public:
   TransferEdges(EdgeKey edge1, EdgeKey edge2)
-      : edge1_(edge1), edge2_(edge2), c_(viewC(edge1, edge2)) {}
+      : edge1_(edge1), edge2_(edge2), c_(ViewC(edge1, edge2)) {}
 
   /// Returns the view A index based on the EdgeKeys
-  static size_t viewA(const EdgeKey& edge1, const EdgeKey& edge2) {
-    size_t c = viewC(edge1, edge2);
+  static size_t ViewA(const EdgeKey& edge1, const EdgeKey& edge2) {
+    size_t c = ViewC(edge1, edge2);
     return (edge1.i() == c) ? edge1.j() : edge1.i();
   }
 
   /// Returns the view B index based on the EdgeKeys
-  static size_t viewB(const EdgeKey& edge1, const EdgeKey& edge2) {
-    size_t c = viewC(edge1, edge2);
+  static size_t ViewB(const EdgeKey& edge1, const EdgeKey& edge2) {
+    size_t c = ViewC(edge1, edge2);
     return (edge2.i() == c) ? edge2.j() : edge2.i();
   }
 
   /// Returns the view C index based on the EdgeKeys
-  static size_t viewC(const EdgeKey& edge1, const EdgeKey& edge2) {
+  static size_t ViewC(const EdgeKey& edge1, const EdgeKey& edge2) {
     if (edge1.i() == edge2.i() || edge1.i() == edge2.j())
       return edge1.i();
     else if (edge1.j() == edge2.i() || edge1.j() == edge2.j())
@@ -167,9 +167,9 @@ class EssentialTransferFactor
                           const std::vector<Triplet>& triplets,
                           const SharedNoiseModel& model = nullptr)
       : Base(model, edge1, edge2,
-             Symbol('k', viewA(edge1, edge2)),   // calibration key for view a
-             Symbol('k', viewB(edge1, edge2)),   // calibration key for view b
-             Symbol('k', viewC(edge1, edge2))),  // calibration key for target c
+             Symbol('k', ViewA(edge1, edge2)),   // calibration key for view a
+             Symbol('k', ViewB(edge1, edge2)),   // calibration key for view b
+             Symbol('k', ViewC(edge1, edge2))),  // calibration key for target c
         TransferEdges<EM>(edge1, edge2),
         triplets_(triplets) {}
 

@@ -11,7 +11,7 @@
 
 /**
  * @file    EssentialViewGraphExample.cpp
- * @brief   View-graph calibration on a simulated dataset, a la Sweeney 2015
+ * @brief   View-graph calibration with essential matrices.
  * @author  Frank Dellaert
  * @date    October 2024
  */
