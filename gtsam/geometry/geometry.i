@@ -903,6 +903,54 @@ class Cal3Bundler {
   void serialize() const;
 };
 
+#include <gtsam/geometry/FundamentalMatrix.h>
+
+// FundamentalMatrix class
+class FundamentalMatrix {
+  // Constructors
+  FundamentalMatrix();
+  FundamentalMatrix(const gtsam::Rot3& U, double s, const gtsam::Rot3& V);
+  FundamentalMatrix(const gtsam::Matrix3& F);
+
+  // Overloaded constructors for specific calibration types
+  FundamentalMatrix(const gtsam::Cal3_S2& Ka, const gtsam::Pose3& aPb,
+                    const gtsam::Cal3_S2& Kb);
+
+  // Methods
+  gtsam::Matrix3 matrix() const;
+
+  // Testable
+  void print(const std::string& s = "") const;
+  bool equals(const gtsam::FundamentalMatrix& other, double tol = 1e-9) const;
+
+  // Manifold
+  static size_t Dim();
+  size_t dim() const;
+  gtsam::Vector localCoordinates(const gtsam::FundamentalMatrix& F) const;
+  gtsam::FundamentalMatrix retract(const gtsam::Vector& delta) const;
+};
+
+// SimpleFundamentalMatrix class
+class SimpleFundamentalMatrix {
+  // Constructors
+  SimpleFundamentalMatrix();
+  SimpleFundamentalMatrix(const gtsam::EssentialMatrix& E, double fa, double fb,
+                          const gtsam::Point2& ca, const gtsam::Point2& cb);
+
+  // Methods
+  gtsam::Matrix3 matrix() const;
+
+  // Testable
+  void print(const std::string& s = "") const;
+  bool equals(const gtsam::SimpleFundamentalMatrix& other, double tol = 1e-9) const;
+
+  // Manifold
+  static size_t Dim();
+  size_t dim() const;
+  gtsam::Vector localCoordinates(const gtsam::SimpleFundamentalMatrix& F) const;
+  gtsam::SimpleFundamentalMatrix retract(const gtsam::Vector& delta) const;
+};
+
 #include <gtsam/geometry/CalibratedCamera.h>
 class CalibratedCamera {
   // Standard Constructors and Named Constructors
