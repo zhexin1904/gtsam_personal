@@ -913,10 +913,10 @@ class FundamentalMatrix {
   FundamentalMatrix(const gtsam::Matrix3& F);
 
   // Overloaded constructors for specific calibration types
-  FundamentalMatrix(const gtsam::Cal3_S2& Ka, const gtsam::EssentialMatrix& E,
-                    const gtsam::Cal3_S2& Kb);
-  FundamentalMatrix(const gtsam::Cal3_S2& Ka, const gtsam::Pose3& aPb,
-                    const gtsam::Cal3_S2& Kb);
+  FundamentalMatrix(const gtsam::Matrix3& Ka, const gtsam::EssentialMatrix& E,
+                    const gtsam::Matrix3& Kb);
+  FundamentalMatrix(const gtsam::Matrix3& Ka, const gtsam::Pose3& aPb,
+                    const gtsam::Matrix3& Kb);
 
   // Methods
   gtsam::Matrix3 matrix() const;
@@ -1066,6 +1066,7 @@ typedef gtsam::PinholeCamera<gtsam::Cal3_S2> PinholeCameraCal3_S2;
 typedef gtsam::PinholeCamera<gtsam::Cal3DS2> PinholeCameraCal3DS2;
 typedef gtsam::PinholeCamera<gtsam::Cal3Unified> PinholeCameraCal3Unified;
 typedef gtsam::PinholeCamera<gtsam::Cal3Bundler> PinholeCameraCal3Bundler;
+typedef gtsam::PinholeCamera<gtsam::Cal3f> PinholeCameraCal3f;
 typedef gtsam::PinholeCamera<gtsam::Cal3Fisheye> PinholeCameraCal3Fisheye;
 
 #include <gtsam/geometry/PinholePose.h>

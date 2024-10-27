@@ -60,15 +60,14 @@ class GTSAM_EXPORT FundamentalMatrix {
    * Initializes the FundamentalMatrix from the given essential matrix E
    * and calibration matrices Ka and Kb.
    *
-   * @tparam CAL Calibration type, expected to have a matrix() method
    * @param E Essential matrix
    * @param Ka Calibration matrix for the left camera
    * @param Kb Calibration matrix for the right camera
    */
-  template <typename CAL>
-  FundamentalMatrix(const CAL& Ka, const EssentialMatrix& E, const CAL& Kb)
-      : FundamentalMatrix(Ka.K().transpose().inverse() * E.matrix() *
-                          Kb.K().inverse()) {}
+  FundamentalMatrix(const Matrix3& Ka, const EssentialMatrix& E,
+                    const Matrix3& Kb)
+      : FundamentalMatrix(Ka.transpose().inverse() * E.matrix() *
+                          Kb.inverse()) {}
 
   /**
    * @brief Construct from calibration matrices Ka, Kb, and pose aPb
@@ -76,13 +75,11 @@ class GTSAM_EXPORT FundamentalMatrix {
    * Initializes the FundamentalMatrix from the given calibration
    * matrices Ka and Kb, and the pose aPb.
    *
-   * @tparam CAL Calibration type, expected to have a matrix() method
    * @param Ka Calibration matrix for the left camera
    * @param aPb Pose from the left to the right camera
    * @param Kb Calibration matrix for the right camera
    */
-  template <typename CAL>
-  FundamentalMatrix(const CAL& Ka, const Pose3& aPb, const CAL& Kb)
+  FundamentalMatrix(const Matrix3& Ka, const Pose3& aPb, const Matrix3& Kb)
       : FundamentalMatrix(Ka, EssentialMatrix::FromPose3(aPb), Kb) {}
 
   /// Return the fundamental matrix representation
