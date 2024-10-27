@@ -109,7 +109,7 @@ def build_factor_graph(method, num_cameras, measurements):
     return graph
 
 
-def get_initial_estimate(method, num_cameras, ground_truth, cal):
+def get_initial_estimate(method, num_cameras, ground_truth, cal, std=1e-6):
     """get initial estimate for method"""
     initialEstimate = Values()
     total_dimension = 0
@@ -119,16 +119,22 @@ def get_initial_estimate(method, num_cameras, ground_truth, cal):
         for a in range(num_cameras):
             b = (a + 1) % num_cameras  # Next camera
             c = (a + 2) % num_cameras  # Camera after next
-            initialEstimate.insert(EdgeKey(a, b).key(), F1)
-            initialEstimate.insert(EdgeKey(a, c).key(), F2)
+            # Retract with delta drawn from zero-mean normal
+            F1_perturbed = F1.retract(np.random.normal(0, std, F1.dim()))
+            F2_perturbed = F2.retract(np.random.normal(0, 1e-4, F2.dim()))
+            initialEstimate.insert(EdgeKey(a, b).key(), F1_perturbed)
+            initialEstimate.insert(EdgeKey(a, c).key(), F2_perturbed)
             total_dimension += F1.dim() + F2.dim()
     elif method == "EssentialMatrix":
         E1, E2 = ground_truth
         for a in range(num_cameras):
             b = (a + 1) % num_cameras  # Next camera
             c = (a + 2) % num_cameras  # Camera after next
-            initialEstimate.insert(EdgeKey(a, b).key(), E1)
-            initialEstimate.insert(EdgeKey(a, c).key(), E2)
+            # Retract with delta drawn from zero-mean normal
+            E1_perturbed = E1.retract(np.random.normal(0, std, E1.dim()))
+            E2_perturbed = E2.retract(np.random.normal(0, 1e-4, E2.dim()))
+            initialEstimate.insert(EdgeKey(a, b).key(), E1_perturbed)
+            initialEstimate.insert(EdgeKey(a, c).key(), E2_perturbed)
             total_dimension += E1.dim() + E2.dim()
         # Insert initial calibrations
         for i in range(num_cameras):
