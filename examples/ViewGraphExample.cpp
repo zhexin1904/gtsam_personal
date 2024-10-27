@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
     initialEstimate.insert(EdgeKey(a, c), F2.retract(delta));
   }
   initialEstimate.print("Initial Estimates:\n", formatter);
-    graph.printErrors(initialEstimate, "errors: ", formatter);
+  graph.printErrors(initialEstimate, "errors: ", formatter);
 
   /* Optimize the graph and print results */
   LevenbergMarquardtParams params;

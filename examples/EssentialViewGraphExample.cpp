@@ -16,7 +16,7 @@
  * @date    October 2024
  */
 
-#include <gtsam/geometry/Cal3_S2.h>
+#include <gtsam/geometry/Cal3f.h>
 #include <gtsam/geometry/EssentialMatrix.h>
 #include <gtsam/geometry/PinholeCamera.h>
 #include <gtsam/geometry/Point2.h>
@@ -40,7 +40,7 @@ using namespace symbol_shorthand;  // For K(symbol)
 // Main function
 int main(int argc, char* argv[]) {
   // Define the camera calibration parameters
-  Cal3_S2 K_initial(50.0, 50.0, 0.0, 50.0, 50.0);
+  Cal3f cal(50.0, 50.0, 50.0);
 
   // Create the set of 8 ground-truth landmarks
   vector<Point3> points = createPoints();
@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
   // Simulate measurements from each camera pose
   std::array<std::array<Point2, 8>, 4> p;
   for (size_t i = 0; i < 4; ++i) {
-    PinholeCamera<Cal3_S2> camera(poses[i], K_initial);
+    PinholeCamera<Cal3f> camera(poses[i], cal);
     for (size_t j = 0; j < 8; ++j) {
       p[i][j] = camera.project(points[j]);
     }
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
 
   // Create the factor graph
   NonlinearFactorGraph graph;
-  using Factor = EssentialTransferFactor<Cal3_S2>;
+  using Factor = EssentialTransferFactor<Cal3f>;
 
   for (size_t a = 0; a < 4; ++a) {
     size_t b = (a + 1) % 4;  // Next camera
@@ -113,7 +113,7 @@ int main(int argc, char* argv[]) {
 
   // Insert initial calibrations (using K symbol)
   for (size_t i = 0; i < 4; ++i) {
-    initialEstimate.insert(K(i), K_initial);
+    initialEstimate.insert(K(i), cal);
   }
 
   initialEstimate.print("Initial Estimates:\n", formatter);

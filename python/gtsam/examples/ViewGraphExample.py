@@ -32,7 +32,7 @@ def formatter(key):
 
 def main():
     # Define the camera calibration parameters
-    K = Cal3_S2(50.0, 50.0, 0.0, 50.0, 50.0)
+    cal = Cal3_S2(50.0, 50.0, 0.0, 50.0, 50.0)
 
     # Create the set of 8 ground-truth landmarks
     points = SFMdata.createPoints()
@@ -41,13 +41,13 @@ def main():
     poses = SFMdata.posesOnCircle(4, 30)
 
     # Calculate ground truth fundamental matrices, 1 and 2 poses apart
-    F1 = FundamentalMatrix(K, poses[0].between(poses[1]), K)
-    F2 = FundamentalMatrix(K, poses[0].between(poses[2]), K)
+    F1 = FundamentalMatrix(cal.K(), poses[0].between(poses[1]), cal.K())
+    F2 = FundamentalMatrix(cal.K(), poses[0].between(poses[2]), cal.K())
 
     # Simulate measurements from each camera pose
     p = [[None for _ in range(8)] for _ in range(4)]
     for i in range(4):
-        camera = PinholeCameraCal3_S2(poses[i], K)
+        camera = PinholeCameraCal3_S2(poses[i], cal)
         for j in range(8):
             p[i][j] = camera.project(points[j])
 

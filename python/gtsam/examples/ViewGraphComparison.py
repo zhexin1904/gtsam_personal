@@ -6,26 +6,19 @@
   Date: October 2024
 """
 
+import argparse
+
 import matplotlib.pyplot as plt
 import numpy as np
 from gtsam.examples import SFMdata
 
 import gtsam
-import argparse
-from gtsam import (
-    Cal3_S2,
-    EdgeKey,
-    EssentialMatrix,
-    FundamentalMatrix,
-    LevenbergMarquardtOptimizer,
-    LevenbergMarquardtParams,
-    NonlinearFactorGraph,
-    PinholeCameraCal3_S2,
-    Values,
-)
+from gtsam import (Cal3f, EdgeKey, EssentialMatrix, FundamentalMatrix,
+                   LevenbergMarquardtOptimizer, LevenbergMarquardtParams,
+                   NonlinearFactorGraph, PinholeCameraCal3f, Values)
 
 # For symbol shorthand (e.g., K(0), K(1))
-K_sym = gtsam.symbol_shorthand.K
+K = gtsam.symbol_shorthand.K
 
 # Methods to compare
 methods = ["FundamentalMatrix", "EssentialMatrix"]
@@ -44,7 +37,7 @@ def formatter(key):
 # Function to simulate data
 def simulate_data(num_cameras):
     # Define the camera calibration parameters
-    K = Cal3_S2(50.0, 50.0, 0.0, 50.0, 50.0)
+    cal = Cal3f(50.0, 50.0, 50.0)
 
     # Create the set of 8 ground-truth landmarks
     points = SFMdata.createPoints()
@@ -55,18 +48,18 @@ def simulate_data(num_cameras):
     # Simulate measurements from each camera pose
     measurements = [[None for _ in range(len(points))] for _ in range(num_cameras)]
     for i in range(num_cameras):
-        camera = PinholeCameraCal3_S2(poses[i], K)
+        camera = PinholeCameraCal3f(poses[i], cal)
         for j in range(len(points)):
             measurements[i][j] = camera.project(points[j])
 
-    return points, poses, measurements, K
+    return points, poses, measurements, cal
 
 
 # Function to compute ground truth matrices
-def compute_ground_truth_matrices(method, poses, K):
+def compute_ground_truth(method, poses, cal):
     if method == "FundamentalMatrix":
-        F1 = FundamentalMatrix(K, poses[0].between(poses[1]), K)
-        F2 = FundamentalMatrix(K, poses[0].between(poses[2]), K)
+        F1 = FundamentalMatrix(cal.K(), poses[0].between(poses[1]), cal.K())
+        F2 = FundamentalMatrix(cal.K(), poses[0].between(poses[2]), cal.K())
         return F1, F2
     elif method == "EssentialMatrix":
         E1 = EssentialMatrix.FromPose3(poses[0].between(poses[1]))
@@ -84,8 +77,8 @@ def build_factor_graph(method, num_cameras, measurements):
         # Use TransferFactorFundamentalMatrix
         FactorClass = gtsam.TransferFactorFundamentalMatrix
     elif method == "EssentialMatrix":
-        # Use EssentialTransferFactorCal3_S2
-        FactorClass = gtsam.EssentialTransferFactorCal3_S2
+        # Use EssentialTransferFactorCal3f
+        FactorClass = gtsam.EssentialTransferFactorCal3f
     else:
         raise ValueError(f"Unknown method {method}")
 
@@ -113,7 +106,7 @@ def build_factor_graph(method, num_cameras, measurements):
 
 
 # Function to get initial estimates
-def get_initial_estimate(method, num_cameras, ground_truth, K):
+def get_initial_estimate(method, num_cameras, ground_truth, cal):
     initialEstimate = Values()
 
     if method == "FundamentalMatrix":
@@ -132,7 +125,7 @@ def get_initial_estimate(method, num_cameras, ground_truth, K):
             initialEstimate.insert(EdgeKey(a, c).key(), E2)
         # Insert initial calibrations
         for i in range(num_cameras):
-            initialEstimate.insert(K_sym(i), K)
+            initialEstimate.insert(K(i), cal)
     else:
         raise ValueError(f"Unknown method {method}")
 
@@ -150,7 +143,7 @@ def optimize(graph, initialEstimate):
 
 
 # Function to compute distances from ground truth
-def compute_distances(method, result, ground_truth, num_cameras, K):
+def compute_distances(method, result, ground_truth, num_cameras, cal):
     distances = []
 
     if method == "FundamentalMatrix":
@@ -158,8 +151,8 @@ def compute_distances(method, result, ground_truth, num_cameras, K):
     elif method == "EssentialMatrix":
         E1, E2 = ground_truth
         # Convert ground truth EssentialMatrices to FundamentalMatrices using GTSAM method
-        F1 = gtsam.FundamentalMatrix(K, E1, K)
-        F2 = gtsam.FundamentalMatrix(K, E2, K)
+        F1 = gtsam.FundamentalMatrix(cal.K(), E1, cal.K())
+        F2 = gtsam.FundamentalMatrix(cal.K(), E2, cal.K())
     else:
         raise ValueError(f"Unknown method {method}")
 
@@ -176,8 +169,8 @@ def compute_distances(method, result, ground_truth, num_cameras, K):
             E_est_ab = result.atEssentialMatrix(key_ab)
             E_est_ac = result.atEssentialMatrix(key_ac)
             # Convert estimated EssentialMatrices to FundamentalMatrices using GTSAM method
-            F_est_ab = gtsam.FundamentalMatrix(K, E_est_ab, K)
-            F_est_ac = gtsam.FundamentalMatrix(K, E_est_ac, K)
+            F_est_ab = gtsam.FundamentalMatrix(cal.K(), E_est_ab, cal.K())
+            F_est_ac = gtsam.FundamentalMatrix(cal.K(), E_est_ac, cal.K())
         else:
             raise ValueError(f"Unknown method {method}")
 
@@ -229,22 +222,22 @@ def main():
         print(f"Running method: {method}")
 
         # Simulate data
-        points, poses, measurements, K = simulate_data(args.num_cameras)
+        points, poses, measurements, cal = simulate_data(args.num_cameras)
 
         # Compute ground truth matrices
-        ground_truth = compute_ground_truth_matrices(method, poses, K)
+        ground_truth = compute_ground_truth(method, poses, cal)
 
         # Build the factor graph
         graph = build_factor_graph(method, args.num_cameras, measurements)
 
         # Get initial estimates
-        initialEstimate = get_initial_estimate(method, args.num_cameras, ground_truth, K)
+        initialEstimate = get_initial_estimate(method, args.num_cameras, ground_truth, cal)
 
         # Optimize the graph
         result = optimize(graph, initialEstimate)
 
         # Compute distances from ground truth
-        distances = compute_distances(method, result, ground_truth, args.num_cameras, K)
+        distances = compute_distances(method, result, ground_truth, args.num_cameras, cal)
 
         # Compute final error
         final_error = graph.error(result)

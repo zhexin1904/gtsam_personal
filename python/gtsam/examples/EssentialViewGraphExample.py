@@ -18,10 +18,10 @@ import numpy as np
 from gtsam.examples import SFMdata
 
 import gtsam
-from gtsam import Cal3_S2, EdgeKey, EssentialMatrix
-from gtsam import EssentialTransferFactorCal3_S2 as Factor
+from gtsam import Cal3f, EdgeKey, EssentialMatrix
+from gtsam import EssentialTransferFactorCal3f as Factor
 from gtsam import (LevenbergMarquardtOptimizer, LevenbergMarquardtParams,
-                   NonlinearFactorGraph, PinholeCameraCal3_S2, Values)
+                   NonlinearFactorGraph, PinholeCameraCal3f, Values)
 
 # For symbol shorthand (e.g., X(0), L(1))
 K = gtsam.symbol_shorthand.K
@@ -39,7 +39,7 @@ def formatter(key):
 
 def main():
     # Define the camera calibration parameters
-    K_initial = Cal3_S2(50.0, 50.0, 0.0, 50.0, 50.0)
+    cal = Cal3f(50.0, 50.0, 50.0)
 
     # Create the set of 8 ground-truth landmarks
     points = SFMdata.createPoints()
@@ -54,7 +54,7 @@ def main():
     # Simulate measurements from each camera pose
     p = [[None for _ in range(8)] for _ in range(4)]
     for i in range(4):
-        camera = PinholeCameraCal3_S2(poses[i], K_initial)
+        camera = PinholeCameraCal3f(poses[i], cal)
         for j in range(8):
             p[i][j] = camera.project(points[j])
 
@@ -95,7 +95,7 @@ def main():
 
     # Insert initial calibrations
     for i in range(4):
-        initialEstimate.insert(K(i), K_initial)
+        initialEstimate.insert(K(i), cal)
 
     # Optimize the graph and print results
     params = LevenbergMarquardtParams()
