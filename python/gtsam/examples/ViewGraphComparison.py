@@ -34,8 +34,8 @@ def formatter(key):
         return f"({edge.i()},{edge.j()})"
 
 
-# Function to simulate data
-def simulate_data(num_cameras):
+def simulate_geometry(num_cameras):
+    """simulate geometry (points and poses)"""
     # Define the camera calibration parameters
     cal = Cal3f(50.0, 50.0, 50.0)
 
@@ -45,14 +45,20 @@ def simulate_data(num_cameras):
     # Create the set of ground-truth poses
     poses = SFMdata.posesOnCircle(num_cameras, 30)
 
-    # Simulate measurements from each camera pose
-    measurements = [[None for _ in range(len(points))] for _ in range(num_cameras)]
-    for i in range(num_cameras):
-        camera = PinholeCameraCal3f(poses[i], cal)
-        for j in range(len(points)):
-            measurements[i][j] = camera.project(points[j])
+    return points, poses, cal
 
-    return points, poses, measurements, cal
+
+def simulate_data(points, poses, cal, rng, noise_std):
+    """Simulate measurements from each camera pose"""
+    measurements = [[None for _ in points] for _ in poses]
+    for i, pose in enumerate(poses):
+        camera = PinholeCameraCal3f(pose, cal)
+        for j, point in enumerate(points):
+            projection = camera.project(point)
+            noise = rng.normal(0, noise_std, size=2)
+            measurements[i][j] = projection + noise
+
+    return measurements
 
 
 # Function to compute ground truth matrices
@@ -69,15 +75,13 @@ def compute_ground_truth(method, poses, cal):
         raise ValueError(f"Unknown method {method}")
 
 
-# Function to build the factor graph
 def build_factor_graph(method, num_cameras, measurements):
+    """build the factor graph"""
     graph = NonlinearFactorGraph()
 
     if method == "FundamentalMatrix":
-        # Use TransferFactorFundamentalMatrix
         FactorClass = gtsam.TransferFactorFundamentalMatrix
     elif method == "EssentialMatrix":
-        # Use EssentialTransferFactorCal3f
         FactorClass = gtsam.EssentialTransferFactorCal3f
     else:
         raise ValueError(f"Unknown method {method}")
@@ -105,9 +109,10 @@ def build_factor_graph(method, num_cameras, measurements):
     return graph
 
 
-# Function to get initial estimates
 def get_initial_estimate(method, num_cameras, ground_truth, cal):
+    """get initial estimate for method"""
     initialEstimate = Values()
+    total_dimension = 0
 
     if method == "FundamentalMatrix":
         F1, F2 = ground_truth
@@ -116,6 +121,7 @@ def get_initial_estimate(method, num_cameras, ground_truth, cal):
             c = (a + 2) % num_cameras  # Camera after next
             initialEstimate.insert(EdgeKey(a, b).key(), F1)
             initialEstimate.insert(EdgeKey(a, c).key(), F2)
+            total_dimension += F1.dim() + F2.dim()
     elif method == "EssentialMatrix":
         E1, E2 = ground_truth
         for a in range(num_cameras):
@@ -123,34 +129,38 @@ def get_initial_estimate(method, num_cameras, ground_truth, cal):
             c = (a + 2) % num_cameras  # Camera after next
             initialEstimate.insert(EdgeKey(a, b).key(), E1)
             initialEstimate.insert(EdgeKey(a, c).key(), E2)
+            total_dimension += E1.dim() + E2.dim()
         # Insert initial calibrations
         for i in range(num_cameras):
             initialEstimate.insert(K(i), cal)
+            total_dimension += cal.dim()
     else:
         raise ValueError(f"Unknown method {method}")
 
+    print(f"Total dimension of the problem: {total_dimension}")
     return initialEstimate
 
 
-# Function to optimize the graph
 def optimize(graph, initialEstimate):
+    """optimize the graph"""
     params = LevenbergMarquardtParams()
     params.setlambdaInitial(1000.0)  # Initialize lambda to a high value
+    params.setAbsoluteErrorTol(1.0)
     params.setVerbosityLM("SUMMARY")
     optimizer = LevenbergMarquardtOptimizer(graph, initialEstimate, params)
     result = optimizer.optimize()
     return result
 
 
-# Function to compute distances from ground truth
 def compute_distances(method, result, ground_truth, num_cameras, cal):
+    """Compute geodesic distances from ground truth"""
     distances = []
 
     if method == "FundamentalMatrix":
         F1, F2 = ground_truth
     elif method == "EssentialMatrix":
         E1, E2 = ground_truth
-        # Convert ground truth EssentialMatrices to FundamentalMatrices using GTSAM method
+        # Convert ground truth EssentialMatrices to FundamentalMatrices
         F1 = gtsam.FundamentalMatrix(cal.K(), E1, cal.K())
         F2 = gtsam.FundamentalMatrix(cal.K(), E2, cal.K())
     else:
@@ -168,11 +178,9 @@ def compute_distances(method, result, ground_truth, num_cameras, cal):
         elif method == "EssentialMatrix":
             E_est_ab = result.atEssentialMatrix(key_ab)
             E_est_ac = result.atEssentialMatrix(key_ac)
-            # Convert estimated EssentialMatrices to FundamentalMatrices using GTSAM method
+            # Convert estimated EssentialMatrices to FundamentalMatrices
             F_est_ab = gtsam.FundamentalMatrix(cal.K(), E_est_ab, cal.K())
             F_est_ac = gtsam.FundamentalMatrix(cal.K(), E_est_ac, cal.K())
-        else:
-            raise ValueError(f"Unknown method {method}")
 
         # Compute local coordinates (geodesic distance on the F-manifold)
         dist_ab = np.linalg.norm(F1.localCoordinates(F_est_ab))
@@ -183,8 +191,8 @@ def compute_distances(method, result, ground_truth, num_cameras, cal):
     return distances
 
 
-# Function to plot results
 def plot_results(results):
+    """plot results"""
     methods = list(results.keys())
     final_errors = [results[method]["final_error"] for method in methods]
     distances = [np.mean(results[method]["distances"]) for method in methods]
@@ -213,41 +221,61 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Compare Fundamental and Essential Matrix Methods")
     parser.add_argument("--num_cameras", type=int, default=4, help="Number of cameras (default: 4)")
+    parser.add_argument("--nr_trials", type=int, default=5, help="Number of trials (default: 5)")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed (default: 42)")
+    parser.add_argument("--noise_std", type=float, default=1.0, help="Standard deviation of noise (default: 1.0)")
     args = parser.parse_args()
 
-    # Initialize results dictionary
-    results = {}
+    # Initialize the random number generator
+    rng = np.random.default_rng(seed=args.seed)
 
-    for method in methods:
-        print(f"Running method: {method}")
+    # Initialize results dictionary
+    results = {method: {"distances": [], "final_error": []} for method in methods}
+
+    # Simulate geometry
+    points, poses, cal = simulate_geometry(args.num_cameras)
+
+    # Compute ground truth matrices
+    ground_truth = {method: compute_ground_truth(method, poses, cal) for method in methods}
+
+    # Get initial estimates
+    initial_estimate = {
+        method: get_initial_estimate(method, args.num_cameras, ground_truth[method], cal) for method in methods
+    }
+
+    for trial in range(args.nr_trials):
+        print(f"\nTrial {trial + 1}/{args.nr_trials}")
 
         # Simulate data
-        points, poses, measurements, cal = simulate_data(args.num_cameras)
+        measurements = simulate_data(points, poses, cal, rng, args.noise_std)
 
-        # Compute ground truth matrices
-        ground_truth = compute_ground_truth(method, poses, cal)
+        for method in methods:
+            print(f"\nRunning method: {method}")
 
-        # Build the factor graph
-        graph = build_factor_graph(method, args.num_cameras, measurements)
+            # Build the factor graph
+            graph = build_factor_graph(method, args.num_cameras, measurements)
 
-        # Get initial estimates
-        initialEstimate = get_initial_estimate(method, args.num_cameras, ground_truth, cal)
+            # Optimize the graph
+            result = optimize(graph, initial_estimate[method])
 
-        # Optimize the graph
-        result = optimize(graph, initialEstimate)
+            # Compute distances from ground truth
+            distances = compute_distances(method, result, ground_truth[method], args.num_cameras, cal)
 
-        # Compute distances from ground truth
-        distances = compute_distances(method, result, ground_truth, args.num_cameras, cal)
+            # Compute final error
+            final_error = graph.error(result)
 
-        # Compute final error
-        final_error = graph.error(result)
+            # Store results
+            results[method]["distances"].extend(distances)
+            results[method]["final_error"].append(final_error)
 
-        # Store results
-        results[method] = {"distances": distances, "final_error": final_error}
+            print(f"Method: {method}")
+            print(f"Final Error: {final_error:.3f}")
+            print(f"Mean Geodesic Distance: {np.mean(distances):.3f}\n")
 
-        print(f"Method: {method}")
-        print(f"Final Error: {final_error}")
-        print(f"Mean Geodesic Distance: {np.mean(distances)}\n")
+    # Average results over trials
+    for method in methods:
+        results[method]["final_error"] = np.mean(results[method]["final_error"])
+        results[method]["distances"] = np.mean(results[method]["distances"])
 
     # Plot results
     plot_results(results)
