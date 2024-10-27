@@ -58,7 +58,7 @@ class GTSAM_EXPORT Cal3f : public Cal3 {
   /// @{
 
   /// Output stream operator
-  friend std::ostream& operator<<(std::ostream& os, const Cal3f& cal);
+  GTSAM_EXPORT friend std::ostream& operator<<(std::ostream& os, const Cal3f& cal);
 
   /// print with optional string
   void print(const std::string& s = "") const override;
