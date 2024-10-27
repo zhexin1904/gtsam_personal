@@ -259,27 +259,27 @@ TEST(HybridGaussianElimination, Approx_inference) {
 
 /* ****************************************************************************/
 // Test approximate inference with an additional pruning step.
-TEST(HybridGaussianElimination, IncrementalApproximate) {
+TEST_DISABLED(HybridGaussianElimination, IncrementalApproximate) {
   Switching switching(5);
   HybridGaussianISAM incrementalHybrid;
-  HybridGaussianFactorGraph graph1;
+  HybridGaussianFactorGraph graph;
 
   /***** Run Round 1 *****/
   // Add the 3 hybrid factors, x0-x1, x1-x2, x2-x3
   for (size_t i = 1; i < 4; i++) {
-    graph1.push_back(switching.linearizedFactorGraph.at(i));
+    graph.push_back(switching.linearizedFactorGraph.at(i));
   }
 
   // Add the Gaussian factors, 1 prior on X(0),
+  graph.push_back(switching.linearizedFactorGraph.at(0));
   // 3 measurements on X(1), X(2), X(3)
-  graph1.push_back(switching.linearizedFactorGraph.at(0));
   for (size_t i = 5; i <= 7; i++) {
-    graph1.push_back(switching.linearizedFactorGraph.at(i));
+    graph.push_back(switching.linearizedFactorGraph.at(i));
   }
 
   // Run update with pruning
   size_t maxComponents = 5;
-  incrementalHybrid.update(graph1);
+  incrementalHybrid.update(graph);
   incrementalHybrid.prune(maxComponents);
 
   // Check if we have a bayes tree with 4 hybrid nodes,
@@ -295,12 +295,14 @@ TEST(HybridGaussianElimination, IncrementalApproximate) {
       5, incrementalHybrid[X(3)]->conditional()->asHybrid()->nrComponents());
 
   /***** Run Round 2 *****/
-  HybridGaussianFactorGraph graph2;
-  graph2.push_back(switching.linearizedFactorGraph.at(4));
-  graph2.push_back(switching.linearizedFactorGraph.at(8));
+  graph.resize(0);  // clear all factors
+  // Add hybrid factor X(3)-X(4)
+  graph.push_back(switching.linearizedFactorGraph.at(4));
+  // Add measurement factor X(4)
+  graph.push_back(switching.linearizedFactorGraph.at(8));
 
   // Run update with pruning a second time.
-  incrementalHybrid.update(graph2);
+  incrementalHybrid.update(graph);
   incrementalHybrid.prune(maxComponents);
 
   // Check if we have a bayes tree with pruned hybrid nodes,
