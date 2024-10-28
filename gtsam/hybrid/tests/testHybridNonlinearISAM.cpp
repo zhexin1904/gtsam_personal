@@ -195,7 +195,7 @@ TEST(HybridNonlinearISAM, IncrementalInference) {
 }
 
 /* ****************************************************************************/
-// Test if we can approximately do the inference
+// Test if we can approximately do the inference (using pruning)
 TEST(HybridNonlinearISAM, ApproxInference) {
   Switching switching(4);
   HybridNonlinearISAM incrementalHybrid;
@@ -325,7 +325,6 @@ TEST(HybridNonlinearISAM, IncrementalApproximate) {
 
   // TODO(Frank): no mode chain?
 
-
   // Run update with pruning
   size_t maxComponents = 5;
   incrementalHybrid.update(graph, initial);
@@ -347,7 +346,7 @@ TEST(HybridNonlinearISAM, IncrementalApproximate) {
   /***** Run Round 2 *****/
   graph = HybridGaussianFactorGraph();
   graph.push_back(switching.binaryFactors.at(3));  // x3-x4
-  graph.push_back(switching.unaryFactors.at(4));  // x4 measurement
+  graph.push_back(switching.unaryFactors.at(4));   // x4 measurement
   initial = Values();
   initial.insert<double>(X(4), 5);
 
