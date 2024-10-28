@@ -83,7 +83,7 @@ TEST(HybridNonlinearISAM, IncrementalElimination) {
   HybridNonlinearFactorGraph graph2;
   initial = Values();
 
-  graph1.push_back(switching.unaryFactors.at(1));  // P(X1)
+  graph2.push_back(switching.unaryFactors.at(1));  // P(X1)
   graph2.push_back(switching.unaryFactors.at(2));  // P(X2)
   graph2.push_back(switching.modeChain.at(1));     // P(M0, M1)
 
