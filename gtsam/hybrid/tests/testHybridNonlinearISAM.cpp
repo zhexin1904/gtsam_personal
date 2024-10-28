@@ -196,7 +196,7 @@ TEST(HybridNonlinearISAM, IncrementalInference) {
 
 /* ****************************************************************************/
 // Test if we can approximately do the inference
-TEST(HybridNonlinearISAM, Approx_inference) {
+TEST(HybridNonlinearISAM, ApproxInference) {
   Switching switching(4);
   HybridNonlinearISAM incrementalHybrid;
   HybridNonlinearFactorGraph graph1;
@@ -304,7 +304,7 @@ TEST(HybridNonlinearISAM, Approx_inference) {
 
 /* ****************************************************************************/
 // Test approximate inference with an additional pruning step.
-TEST(HybridNonlinearISAM, Incremental_approximate) {
+TEST(HybridNonlinearISAM, IncrementalApproximate) {
   Switching switching(5);
   HybridNonlinearISAM incrementalHybrid;
   HybridNonlinearFactorGraph graph1;
