@@ -99,7 +99,7 @@ TEST( IncrementalFixedLagSmoother, Example )
 
   // Create a Fixed-Lag Smoother
   typedef IncrementalFixedLagSmoother::KeyTimestampMap Timestamps;
-  IncrementalFixedLagSmoother smoother(9.0, ISAM2Params());
+  IncrementalFixedLagSmoother smoother(12.0, ISAM2Params());
 
   // Create containers to keep the full graph
   Values fullinit;
@@ -226,6 +226,7 @@ TEST( IncrementalFixedLagSmoother, Example )
 	  newFactors.push_back(BetweenFactor<Point2>(key1, key2, Point2(1.0, 0.0), odometerNoise));
 	  newValues.insert(key2, Point2(double(i)+0.1, -0.1));
 	  newTimestamps[key2] = double(i);
+	  ++i;
 
 	  fullgraph.push_back(newFactors);
 	  fullinit.insert(newValues);
@@ -275,10 +276,12 @@ TEST( IncrementalFixedLagSmoother, Example )
   }
 
   {
+    SETDEBUG("BayesTreeMarginalizationHelper", true);
     PrintSymbolicTree(smoother.getISAM2(), "Bayes Tree Before marginalization test:");
 
-    i = 17;
-    while(i <= 200) {
+    // Do pressure test on marginalization. Enlarge max_i to enhance the test.
+    const int max_i = 500;
+    while(i <= max_i) {
       Key key_0 = MakeKey(i);
       Key key_1 = MakeKey(i-1);
       Key key_2 = MakeKey(i-2);
@@ -288,6 +291,8 @@ TEST( IncrementalFixedLagSmoother, Example )
       Key key_6 = MakeKey(i-6);
       Key key_7 = MakeKey(i-7);
       Key key_8 = MakeKey(i-8);
+      Key key_9 = MakeKey(i-9);
+      Key key_10 = MakeKey(i-10);
 
       NonlinearFactorGraph newFactors;
       Values newValues;
@@ -309,6 +314,10 @@ TEST( IncrementalFixedLagSmoother, Example )
         newFactors.push_back(BetweenFactor<Point2>(key_7, key_6, Point2(1.0, 0.0), odometerNoise));
       if (i % 8 == 0)
         newFactors.push_back(BetweenFactor<Point2>(key_8, key_7, Point2(1.0, 0.0), odometerNoise));
+      if (i % 9 == 0)
+        newFactors.push_back(BetweenFactor<Point2>(key_9, key_8, Point2(1.0, 0.0), odometerNoise));
+      if (i % 10 == 0)
+        newFactors.push_back(BetweenFactor<Point2>(key_10, key_9, Point2(1.0, 0.0), odometerNoise));
 
       newValues.insert(key_0, Point2(double(i)+0.1, -0.1));
       newTimestamps[key_0] = double(i);
