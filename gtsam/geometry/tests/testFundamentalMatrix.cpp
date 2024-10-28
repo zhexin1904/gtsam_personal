@@ -40,30 +40,20 @@ TEST(FundamentalMatrix, Retract) {
 }
 
 //*************************************************************************
-// Test conversion from an F-matrix
+// Test conversion from F matrices, including non-rotations
 TEST(FundamentalMatrix, Conversion) {
-  const Matrix3 F = trueU.matrix() * Vector3(1, trueS, 0).asDiagonal() *
-                    trueV.matrix().transpose();
-  FundamentalMatrix actual(F);
-  EXPECT(assert_equal(trueF, actual));
-}
+  Matrix3 U = trueU.matrix();
+  Matrix3 V = trueV.matrix();
+  std::vector<FundamentalMatrix> Fs = {
+      FundamentalMatrix(U, trueS, V), FundamentalMatrix(U, trueS, -V),
+      FundamentalMatrix(-U, trueS, V), FundamentalMatrix(-U, trueS, -V)};
 
-//*************************************************************************
-// Test conversion with a *non-rotation* U
-TEST(FlippedFundamentalMatrix, Conversion1) {
-  FundamentalMatrix trueF(trueU.matrix(), trueS, -trueV.matrix());
-  const Matrix3 F = trueF.matrix();
-  FundamentalMatrix actual(F);
-  CHECK(assert_equal(F, actual.matrix()));
-}
-
-//*************************************************************************
-// Test conversion with a *non-rotation* U
-TEST(FlippedFundamentalMatrix, Conversion2) {
-  FundamentalMatrix trueF(-trueU.matrix(), trueS, trueV.matrix());
-  const Matrix3 F = trueF.matrix();
-  FundamentalMatrix actual(F);
-  CHECK(assert_equal(F, actual.matrix()));
+  for (const auto& trueF : Fs) {
+    const Matrix3 F = trueF.matrix();
+    FundamentalMatrix actual(F);
+    // We check the matrices as the underlying representation is not unique
+    CHECK(assert_equal(F, actual.matrix()));
+  }
 }
 
 //*************************************************************************
