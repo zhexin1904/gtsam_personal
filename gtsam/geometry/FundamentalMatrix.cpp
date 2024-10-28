@@ -26,6 +26,11 @@ Point2 EpipolarTransfer(const Matrix3& Fca, const Point2& pa,  //
 }
 
 //*************************************************************************
+FundamentalMatrix::FundamentalMatrix(const Matrix& U, double s,
+                                     const Matrix& V) {
+  initialize(U, s, V);
+}
+
 FundamentalMatrix::FundamentalMatrix(const Matrix3& F) {
   // Perform SVD
   Eigen::JacobiSVD<Matrix3> svd(F, Eigen::ComputeFullU | Eigen::ComputeFullV);
@@ -47,28 +52,44 @@ FundamentalMatrix::FundamentalMatrix(const Matrix3& F) {
         "The input matrix does not represent a valid fundamental matrix.");
   }
 
-  // Ensure the second singular value is recorded as s
-  s_ = singularValues(1);
+  initialize(U, singularValues(1), V);
+}
 
-  // Check if U is a reflection
-  if (U.determinant() < 0) {
-    U = -U;
-    s_ = -s_;  // Change sign of scalar if U is a reflection
+void FundamentalMatrix::initialize(const Matrix3& U, double s,
+                                   const Matrix3& V) {
+  s_ = s;
+  sign_ = 1.0;
+
+  // Check if U is a reflection and its determinant is close to -1 or 1
+  double detU = U.determinant();
+  if (std::abs(std::abs(detU) - 1.0) > 1e-9) {
+    throw std::invalid_argument(
+        "Matrix U does not have a determinant close to -1 or 1.");
+  }
+  if (detU < 0) {
+    U_ = Rot3(-U);
+    sign_ = -sign_;  // Flip sign if U is a reflection
+  } else {
+    U_ = Rot3(U);
   }
 
-  // Check if V is a reflection
-  if (V.determinant() < 0) {
-    V = -V;
-    s_ = -s_;  // Change sign of scalar if U is a reflection
+  // Check if V is a reflection and its determinant is close to -1 or 1
+  double detV = V.determinant();
+  if (std::abs(std::abs(detV) - 1.0) > 1e-9) {
+    throw std::invalid_argument(
+        "Matrix V does not have a determinant close to -1 or 1.");
   }
-
-  // Assign the rotations
-  U_ = Rot3(U);
-  V_ = Rot3(V);
+  if (detV < 0) {
+    V_ = Rot3(-V);
+    sign_ = -sign_;  // Flip sign if V is a reflection
+  } else {
+    V_ = Rot3(V);
+  }
 }
 
 Matrix3 FundamentalMatrix::matrix() const {
-  return U_.matrix() * Vector3(1, s_, 0).asDiagonal() * V_.transpose().matrix();
+  return sign_ * U_.matrix() * Vector3(1.0, s_, 0).asDiagonal() *
+         V_.transpose().matrix();
 }
 
 void FundamentalMatrix::print(const std::string& s) const {
@@ -77,8 +98,8 @@ void FundamentalMatrix::print(const std::string& s) const {
 
 bool FundamentalMatrix::equals(const FundamentalMatrix& other,
                                double tol) const {
-  return U_.equals(other.U_, tol) && std::abs(s_ - other.s_) < tol &&
-         V_.equals(other.V_, tol);
+  return U_.equals(other.U_, tol) && sign_ == other.sign_ &&
+         std::abs(s_ - other.s_) < tol && V_.equals(other.V_, tol);
 }
 
 Vector FundamentalMatrix::localCoordinates(const FundamentalMatrix& F) const {
@@ -93,7 +114,7 @@ FundamentalMatrix FundamentalMatrix::retract(const Vector& delta) const {
   Rot3 newU = U_.retract(delta.head<3>());
   double newS = s_ + delta(3);  // Update scalar
   Rot3 newV = V_.retract(delta.tail<3>());
-  return FundamentalMatrix(newU, newS, newV);
+  return FundamentalMatrix(newU, sign_, newS, newV);
 }
 
 //*************************************************************************

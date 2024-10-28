@@ -15,34 +15,36 @@ namespace gtsam {
 
 /**
  * @class FundamentalMatrix
- * @brief Represents a general fundamental matrix.
+ * @brief Represents a fundamental matrix in computer vision, which encodes the
+ * epipolar geometry between two views.
  *
- * This class represents a general fundamental matrix, which is a 3x3 matrix
- * that describes the relationship between two images. It is parameterized by a
- * left rotation U, a scalar s, and a right rotation V.
+ * The FundamentalMatrix class encapsulates the fundamental matrix, which
+ * relates corresponding points in stereo images. It is parameterized by two
+ * rotation matrices (U and V), a scalar parameter (s), and a sign.
+ * Using these values, the fundamental matrix is represented as
+ *
+ *   F = sign * U * diag(1, s, 0) * V^T
+ *
+ * We need the `sign` because we use SO(3) for U and V, not O(3).
  */
 class GTSAM_EXPORT FundamentalMatrix {
  private:
-  Rot3 U_;    ///< Left rotation
-  double s_;  ///< Scalar parameter for S
-  Rot3 V_;    ///< Right rotation
+  Rot3 U_;       ///< Left rotation
+  double sign_;  ///< Whether to flip the sign or not
+  double s_;     ///< Scalar parameter for S
+  Rot3 V_;       ///< Right rotation
 
  public:
   /// Default constructor
-  FundamentalMatrix() : U_(Rot3()), s_(1.0), V_(Rot3()) {}
+  FundamentalMatrix() : U_(Rot3()), sign_(1.0), s_(1.0), V_(Rot3()) {}
 
   /**
    * @brief Construct from U, V, and scalar s
    *
-   * Initializes the FundamentalMatrix with the given left rotation U,
-   * scalar s, and right rotation V.
-   *
-   * @param U Left rotation matrix
-   * @param s Scalar parameter for the fundamental matrix
-   * @param V Right rotation matrix
+   * Initializes the FundamentalMatrix From the SVD representation
+   * U*diag(1,s,0)*V^T. It will internally convert to using SO(3).
    */
-  FundamentalMatrix(const Rot3& U, double s, const Rot3& V)
-      : U_(U), s_(s), V_(V) {}
+  FundamentalMatrix(const Matrix& U, double s, const Matrix& V);
 
   /**
    * @brief Construct from a 3x3 matrix using SVD
@@ -107,6 +109,13 @@ class GTSAM_EXPORT FundamentalMatrix {
   /// Retract the given vector to get a new FundamentalMatrix
   FundamentalMatrix retract(const Vector& delta) const;
   /// @}
+ private:
+  /// Private constructor for internal use
+  FundamentalMatrix(const Rot3& U, double sign, double s, const Rot3& V)
+      : U_(U), sign_(sign), s_(s), V_(V) {}
+
+  /// Initialize SO(3) matrices from general O(3) matrices
+  void initialize(const Matrix3& U, double s, const Matrix3& V);
 };
 
 /**
