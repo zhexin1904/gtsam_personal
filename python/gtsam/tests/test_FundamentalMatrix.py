@@ -29,7 +29,7 @@ class TestFundamentalMatrix(unittest.TestCase):
         self.trueU = Rot3.Yaw(np.pi / 2)
         self.trueV = Rot3.Yaw(np.pi / 4)
         self.trueS = 0.5
-        self.trueF = FundamentalMatrix(self.trueU, self.trueS, self.trueV)
+        self.trueF = FundamentalMatrix(self.trueU.matrix(), self.trueS, self.trueV.matrix())
 
     def test_localCoordinates(self):
         expected = np.zeros(7)  # Assuming 7 dimensions for U, V, and s

@@ -911,7 +911,7 @@ class Cal3Bundler {
 class FundamentalMatrix {
   // Constructors
   FundamentalMatrix();
-  FundamentalMatrix(const gtsam::Rot3& U, double s, const gtsam::Rot3& V);
+  FundamentalMatrix(const gtsam::Matrix3& U, double s, const gtsam::Matrix3& V);
   FundamentalMatrix(const gtsam::Matrix3& F);
 
   // Overloaded constructors for specific calibration types
