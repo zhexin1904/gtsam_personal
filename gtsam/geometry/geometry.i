@@ -578,6 +578,8 @@ class Unit3 {
   // Standard Constructors
   Unit3();
   Unit3(const gtsam::Point3& pose);
+  Unit3(double x, double y, double z);
+  Unit3(const gtsam::Point2& p, double f);
 
   // Testable
   void print(string s = "") const;
@@ -953,6 +955,9 @@ class SimpleFundamentalMatrix {
   gtsam::SimpleFundamentalMatrix retract(const gtsam::Vector& delta) const;
 };
 
+gtsam::Point2 EpipolarTransfer(const gtsam::Matrix3& Fca, const gtsam::Point2& pa,
+                               const gtsam::Matrix3& Fcb, const gtsam::Point2& pb);
+
 #include <gtsam/geometry/CalibratedCamera.h>
 class CalibratedCamera {
   // Standard Constructors and Named Constructors
@@ -1066,7 +1071,6 @@ typedef gtsam::PinholeCamera<gtsam::Cal3_S2> PinholeCameraCal3_S2;
 typedef gtsam::PinholeCamera<gtsam::Cal3DS2> PinholeCameraCal3DS2;
 typedef gtsam::PinholeCamera<gtsam::Cal3Unified> PinholeCameraCal3Unified;
 typedef gtsam::PinholeCamera<gtsam::Cal3Bundler> PinholeCameraCal3Bundler;
-typedef gtsam::PinholeCamera<gtsam::Cal3f> PinholeCameraCal3f;
 typedef gtsam::PinholeCamera<gtsam::Cal3Fisheye> PinholeCameraCal3Fisheye;
 
 #include <gtsam/geometry/PinholePose.h>
