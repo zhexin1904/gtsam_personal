@@ -18,7 +18,7 @@ from numpy.testing import assert_almost_equal
 
 import gtsam
 from gtsam import (Cal3_S2, EssentialMatrix, FundamentalMatrix,
-                   PinholeCameraCal3_S2, Point2, Point3, Pose3, Rot3,
+                   PinholeCameraCal3_S2, Point2, Point3, Rot3,
                    SimpleFundamentalMatrix, Unit3)
 
 
@@ -216,12 +216,69 @@ class TestTripleF(unittest.TestCase):
             p.append(p_i)
 
         # Check that transfer works
-        transferredA = self.transferToA(p[1], p[2])
-        transferredB = self.transferToB(p[0], p[2])
-        transferredC = self.transferToC(p[0], p[1])
-        assert_almost_equal([p[0][0], p[0][1]], [transferredA[0], transferredA[1]], decimal=9)
-        assert_almost_equal([p[1][0], p[1][1]], [transferredB[0], transferredB[1]], decimal=9)
-        assert_almost_equal([p[2][0], p[2][1]], [transferredC[0], transferredC[1]], decimal=9)
+        assert_almost_equal(p[0], self.transferToA(p[1], p[2]), decimal=9)
+        assert_almost_equal(p[1], self.transferToB(p[0], p[2]), decimal=9)
+        assert_almost_equal(p[2], self.transferToC(p[0], p[1]), decimal=9)
+
+
+class TestManyCamerasCircle(unittest.TestCase):
+    N = 6
+
+    def setUp(self):
+        # Generate six cameras on a circle, looking in
+        self.cameraPoses = SFMdata.posesOnCircle(self.N, 1.0)
+        self.focalLength = 1000.0
+        self.principalPoint = Point2(640 / 2, 480 / 2)
+        self.manyFs = self.generateManyFs(self.cameraPoses)
+
+    def generateManyFs(self, cameraPoses):
+        F = []
+        for i in range(self.N):
+            j = (i + 1) % self.N
+            iPj = cameraPoses[i].between(cameraPoses[j])
+            E = EssentialMatrix(iPj.rotation(), Unit3(iPj.translation()))
+            F_ij = SimpleFundamentalMatrix(
+                E, self.focalLength, self.focalLength, self.principalPoint, self.principalPoint
+            )
+            F.append(F_ij)
+        return F
+
+    def test_Conversion(self):
+        for i in range(self.N):
+            expected = self.manyFs[i].matrix()
+            convertedF = FundamentalMatrix(self.manyFs[i].matrix())
+            # Check equality of F-matrices up to a scale
+            actual = convertedF.matrix()
+            scale = expected[1, 2] / actual[1, 2]
+            actual *= scale
+            # print(f"\n{np.round(expected, 3)}", f"\n{np.round(actual, 3)}")
+            assert_almost_equal(expected, actual, decimal=4)
+
+    def test_Transfer(self):
+        # Now project a point into the six cameras
+        P = Point3(0.1, 0.2, 0.3)
+        K = Cal3_S2(self.focalLength, self.focalLength, 0.0, self.principalPoint[0], self.principalPoint[1])
+
+        p = []
+        for i in range(self.N):
+            # Project the point into each camera
+            camera = PinholeCameraCal3_S2(self.cameraPoses[i], K)
+            p_i = camera.project(P)
+            p.append(p_i)
+
+        # Check that transfer works
+        for a in range(self.N):
+            b = (a + 1) % self.N
+            c = (a + 2) % self.N
+            # We transfer from a to b and from c to b,
+            # and check that the result lines up with the projected point in b.
+            transferred = gtsam.EpipolarTransfer(
+                self.manyFs[a].matrix().transpose(),  # need to transpose for a->b
+                p[a],
+                self.manyFs[c].matrix(),
+                p[c],
+            )
+            assert_almost_equal(p[b], transferred, decimal=9)
 
 
 if __name__ == "__main__":
