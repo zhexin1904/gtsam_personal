@@ -620,10 +620,10 @@ class EssentialMatrix {
   EssentialMatrix(const gtsam::Rot3& aRb, const gtsam::Unit3& aTb);
 
   // Constructors from Pose3
-  gtsam::EssentialMatrix FromPose3(const gtsam::Pose3& _1P2_);
+  static gtsam::EssentialMatrix FromPose3(const gtsam::Pose3& _1P2_);
 
-  gtsam::EssentialMatrix FromPose3(const gtsam::Pose3& _1P2_,
-                            Eigen::Ref<Eigen::MatrixXd> H);
+  static gtsam::EssentialMatrix FromPose3(const gtsam::Pose3& _1P2_,
+                                          Eigen::Ref<Eigen::MatrixXd> H);
 
   // Testable
   void print(string s = "") const;
