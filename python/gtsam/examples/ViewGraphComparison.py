@@ -63,13 +63,24 @@ def simulate_data(points, poses, cal, rng, noise_std):
 
 # Function to compute ground truth matrices
 def compute_ground_truth(method, poses, cal):
+    F1 = FundamentalMatrix(cal.K(), poses[0].between(poses[1]), cal.K())
+    F2 = FundamentalMatrix(cal.K(), poses[0].between(poses[2]), cal.K())
     if method == "FundamentalMatrix":
-        F1 = FundamentalMatrix(cal.K(), poses[0].between(poses[1]), cal.K())
-        F2 = FundamentalMatrix(cal.K(), poses[0].between(poses[2]), cal.K())
         return F1, F2
     elif method == "EssentialMatrix":
         E1 = EssentialMatrix.FromPose3(poses[0].between(poses[1]))
         E2 = EssentialMatrix.FromPose3(poses[0].between(poses[2]))
+
+        # Assert that E1.matrix and F1 are the same
+        invK = np.linalg.inv(cal.K())
+        G1 = invK.transpose() @ E1.matrix() @ invK
+        G2 = invK.transpose() @ E2.matrix() @ invK
+        assert np.allclose(
+            G1 / np.linalg.norm(G1), F1.matrix() / np.linalg.norm(F1.matrix())
+        ), "E1 and F1 are not the same"
+        assert np.allclose(
+            G2 / np.linalg.norm(G2), F2.matrix() / np.linalg.norm(F2.matrix())
+        ), "E2 and F2 are not the same"
         return E1, E2
     else:
         raise ValueError(f"Unknown method {method}")
@@ -260,6 +271,16 @@ def main():
 
             # Build the factor graph
             graph = build_factor_graph(method, args.num_cameras, measurements)
+
+            # Assert that the initial error is the same for both methods:
+            if trial == 0 and method == methods[0]:
+                initial_error = graph.error(initial_estimate[method])
+            else:
+                current_error = graph.error(initial_estimate[method])
+                if not np.allclose(initial_error, current_error):
+                    print(f"Initial error for {method} ({current_error}) does not match ")
+                    print(f"initial error for {methods[0]} ({initial_error})")
+                    exit(1)
 
             # Optimize the graph
             result = optimize(graph, initial_estimate[method])
