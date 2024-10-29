@@ -32,7 +32,7 @@ from gtsam import (
 K = gtsam.symbol_shorthand.K
 
 # Methods to compare
-methods = ["FundamentalMatrix", "SimpleFundamentalMatrix", "EssentialMatrix", "CalibratedEssentialMatrix"]
+methods = ["Fundamental", "SimpleF", "Essential+Ks", "Calibrated"]
 
 
 # Formatter function for printing keys
@@ -82,15 +82,15 @@ def compute_ground_truth(method, poses, cal):
     E2 = EssentialMatrix.FromPose3(poses[0].between(poses[2]))
     F1 = FundamentalMatrix(cal.K(), E1, cal.K())
     F2 = FundamentalMatrix(cal.K(), E2, cal.K())
-    if method == "FundamentalMatrix":
+    if method == "Fundamental":
         return F1, F2
-    elif method == "SimpleFundamentalMatrix":
+    elif method == "SimpleF":
         f = cal.fx()
         c = cal.principalPoint()
         SF1 = SimpleFundamentalMatrix(E1, f, f, c, c)
         SF2 = SimpleFundamentalMatrix(E2, f, f, c, c)
         return SF1, SF2
-    elif method == "EssentialMatrix" or method == "CalibratedEssentialMatrix":
+    elif method == "Essential+Ks" or method == "Calibrated":
         return E1, E2
     else:
         raise ValueError(f"Unknown method {method}")
@@ -100,23 +100,23 @@ def build_factor_graph(method, num_cameras, measurements, cal):
     """build the factor graph"""
     graph = NonlinearFactorGraph()
 
-    if method == "FundamentalMatrix":
+    if method == "Fundamental":
         FactorClass = gtsam.TransferFactorFundamentalMatrix
-    elif method == "SimpleFundamentalMatrix":
+    elif method == "SimpleF":
         FactorClass = gtsam.TransferFactorSimpleFundamentalMatrix
-    elif method == "EssentialMatrix":
+    elif method == "Essential+Ks":
         FactorClass = gtsam.EssentialTransferFactorCal3f
         # add priors on all calibrations:
         for i in range(num_cameras):
             model = gtsam.noiseModel.Isotropic.Sigma(1, 10.0)
             graph.addPriorCal3f(K(i), cal, model)
-    elif method == "CalibratedEssentialMatrix":
+    elif method == "Calibrated":
         FactorClass = gtsam.TransferFactorEssentialMatrix
         # No priors on calibration needed
     else:
         raise ValueError(f"Unknown method {method}")
 
-    if method == "CalibratedEssentialMatrix":
+    if method == "Calibrated":
         # Calibrate measurements using ground truth calibration
         z = [[cal.calibrate(m) for m in cam_measurements] for cam_measurements in measurements]
     else:
@@ -150,7 +150,7 @@ def get_initial_estimate(method, num_cameras, ground_truth, cal):
     initialEstimate = Values()
     total_dimension = 0
 
-    if method in ["FundamentalMatrix", "SimpleFundamentalMatrix"]:
+    if method in ["Fundamental", "SimpleF"]:
         F1, F2 = ground_truth
         for a in range(num_cameras):
             b = (a + 1) % num_cameras  # Next camera
@@ -158,7 +158,7 @@ def get_initial_estimate(method, num_cameras, ground_truth, cal):
             initialEstimate.insert(EdgeKey(a, b).key(), F1)
             initialEstimate.insert(EdgeKey(a, c).key(), F2)
             total_dimension += F1.dim() + F2.dim()
-    elif method in ["EssentialMatrix", "CalibratedEssentialMatrix"]:
+    elif method in ["Essential+Ks", "Calibrated"]:
         E1, E2 = ground_truth
         for a in range(num_cameras):
             b = (a + 1) % num_cameras  # Next camera
@@ -169,7 +169,7 @@ def get_initial_estimate(method, num_cameras, ground_truth, cal):
     else:
         raise ValueError(f"Unknown method {method}")
 
-    if method == "EssentialMatrix":
+    if method == "Essential+Ks":
         # Insert initial calibrations
         for i in range(num_cameras):
             initialEstimate.insert(K(i), cal)
@@ -196,7 +196,7 @@ def compute_distances(method, result, ground_truth, num_cameras, cal):
     """Compute geodesic distances from ground truth"""
     distances = []
 
-    F1, F2 = ground_truth["FundamentalMatrix"]
+    F1, F2 = ground_truth["Fundamental"]
 
     for a in range(num_cameras):
         b = (a + 1) % num_cameras
@@ -204,20 +204,20 @@ def compute_distances(method, result, ground_truth, num_cameras, cal):
         key_ab = EdgeKey(a, b).key()
         key_ac = EdgeKey(a, c).key()
 
-        if method in ["EssentialMatrix", "CalibratedEssentialMatrix"]:
+        if method in ["Essential+Ks", "Calibrated"]:
             E_est_ab = result.atEssentialMatrix(key_ab)
             E_est_ac = result.atEssentialMatrix(key_ac)
 
         # Compute estimated FundamentalMatrices
-        if method == "FundamentalMatrix":
+        if method == "Fundamental":
             F_est_ab = result.atFundamentalMatrix(key_ab)
             F_est_ac = result.atFundamentalMatrix(key_ac)
-        elif method == "SimpleFundamentalMatrix":
+        elif method == "SimpleF":
             SF_est_ab = result.atSimpleFundamentalMatrix(key_ab).matrix()
             SF_est_ac = result.atSimpleFundamentalMatrix(key_ac).matrix()
             F_est_ab = FundamentalMatrix(SF_est_ab)
             F_est_ac = FundamentalMatrix(SF_est_ac)
-        elif method == "EssentialMatrix":
+        elif method == "Essential+Ks":
             # Retrieve calibrations from result:
             cal_a = result.atCal3f(K(a))
             cal_b = result.atCal3f(K(b))
@@ -226,7 +226,7 @@ def compute_distances(method, result, ground_truth, num_cameras, cal):
             # Convert estimated EssentialMatrices to FundamentalMatrices
             F_est_ab = FundamentalMatrix(cal_a.K(), E_est_ab, cal_b.K())
             F_est_ac = FundamentalMatrix(cal_a.K(), E_est_ac, cal_c.K())
-        elif method == "CalibratedEssentialMatrix":
+        elif method == "Calibrated":
             # Use ground truth calibration
             F_est_ab = FundamentalMatrix(cal.K(), E_est_ab, cal.K())
             F_est_ac = FundamentalMatrix(cal.K(), E_est_ac, cal.K())
@@ -322,7 +322,7 @@ def main():
             # Assert that the initial error is the same for all methods:
             if method == methods[0]:
                 error0 = graph.error(initial_estimate[method])
-            elif method == "CalibratedEssentialMatrix":
+            elif method == "Calibrated":
                 current_error = graph.error(initial_estimate[method]) * cal.f() * cal.f()
                 print(error0, current_error)
                 assert np.allclose(error0, current_error), "Initial errors do not match among methods."
@@ -338,7 +338,7 @@ def main():
 
             # Compute final error
             final_error = graph.error(result)
-            if method == "CalibratedEssentialMatrix":
+            if method == "Calibrated":
                 final_error *= cal.f() * cal.f()
 
             # Store results
