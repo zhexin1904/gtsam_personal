@@ -52,7 +52,8 @@ using symbol_shorthand::X;
  * @return HybridGaussianFactorGraph::shared_ptr
  */
 inline HybridGaussianFactorGraph::shared_ptr makeSwitchingChain(
-    size_t K, std::function<Key(int)> x = X, std::function<Key(int)> m = M) {
+    size_t K, std::function<Key(int)> x = X, std::function<Key(int)> m = M,
+    const std::string &transitionProbabilityTable = "0 1 1 3") {
   HybridGaussianFactorGraph hfg;
 
   hfg.add(JacobianFactor(x(1), I_3x3, Z_3x1));
@@ -68,7 +69,8 @@ inline HybridGaussianFactorGraph::shared_ptr makeSwitchingChain(
     hfg.add(HybridGaussianFactor({m(k), 2}, components));
 
     if (k > 1) {
-      hfg.add(DecisionTreeFactor({{m(k - 1), 2}, {m(k), 2}}, "0 1 1 3"));
+      hfg.add(DecisionTreeFactor({{m(k - 1), 2}, {m(k), 2}},
+                                 transitionProbabilityTable));
     }
   }
 
@@ -171,8 +173,8 @@ struct Switching {
     // Add "motion models" ϕ(X(k),X(k+1),M(k)).
     for (size_t k = 0; k < K - 1; k++) {
       auto motion_models = motionModels(k, between_sigma);
-      nonlinearFactorGraph_.emplace_shared<HybridNonlinearFactor>(modes[k],
-                                                                 motion_models);
+      nonlinearFactorGraph_.emplace_shared<HybridNonlinearFactor>(
+          modes[k], motion_models);
       binaryFactors.push_back(nonlinearFactorGraph_.back());
     }
 
@@ -193,7 +195,8 @@ struct Switching {
       linearizationPoint.insert<double>(X(k), static_cast<double>(k + 1));
     }
 
-    linearizedFactorGraph = *nonlinearFactorGraph_.linearize(linearizationPoint);
+    linearizedFactorGraph =
+        *nonlinearFactorGraph_.linearize(linearizationPoint);
   }
 
   // Create motion models for a given time step
