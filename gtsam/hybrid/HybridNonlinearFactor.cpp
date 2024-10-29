@@ -185,6 +185,11 @@ std::shared_ptr<HybridGaussianFactor> HybridNonlinearFactor::linearize(
       [continuousValues](
           const std::pair<sharedFactor, double>& f) -> GaussianFactorValuePair {
     auto [factor, val] = f;
+    // Check if valid factor. If not, return null and infinite error.
+    if (!factor) {
+      return {nullptr, std::numeric_limits<double>::infinity()};
+    }
+
     if (auto gaussian = std::dynamic_pointer_cast<noiseModel::Gaussian>(
             factor->noiseModel())) {
       return {factor->linearize(continuousValues),
