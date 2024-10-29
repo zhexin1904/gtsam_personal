@@ -443,12 +443,7 @@ TEST(HybridBayesTree, Optimize) {
   const auto [hybridBayesNet, remainingFactorGraph] =
       s.linearizedFactorGraph.eliminatePartialSequential(ordering);
 
-  DiscreteFactorGraph dfg;
-  for (auto&& f : *remainingFactorGraph) {
-    auto discreteFactor = dynamic_pointer_cast<DiscreteFactor>(f);
-    assert(discreteFactor);
-    dfg.push_back(discreteFactor);
-  }
+  DiscreteFactorGraph dfg = remainingFactorGraph->discreteFactors();
 
   // Add the probabilities for each branch
   DiscreteKeys discrete_keys = {{M(0), 2}, {M(1), 2}, {M(2), 2}};

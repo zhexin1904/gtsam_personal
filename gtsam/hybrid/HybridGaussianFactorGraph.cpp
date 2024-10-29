@@ -580,4 +580,15 @@ GaussianFactorGraph HybridGaussianFactorGraph::choose(
   return gfg;
 }
 
+/* ************************************************************************ */
+DiscreteFactorGraph HybridGaussianFactorGraph::discreteFactors() const {
+  DiscreteFactorGraph dfg;
+  for (auto &&f : factors_) {
+    auto discreteFactor = std::dynamic_pointer_cast<DiscreteFactor>(f);
+    assert(discreteFactor);
+    dfg.push_back(discreteFactor);
+  }
+  return dfg;
+}
+
 }  // namespace gtsam

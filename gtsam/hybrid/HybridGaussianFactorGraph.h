@@ -254,6 +254,14 @@ class GTSAM_EXPORT HybridGaussianFactorGraph
   GaussianFactorGraph operator()(const DiscreteValues& assignment) const {
     return choose(assignment);
   }
+
+  /**
+   * @brief Helper method to get all the discrete factors
+   * as a DiscreteFactorGraph.
+   *
+   * @return DiscreteFactorGraph
+   */
+  DiscreteFactorGraph discreteFactors() const;
 };
 
 // traits
