@@ -59,7 +59,7 @@ FundamentalMatrix::FundamentalMatrix(const Matrix3& F) {
 
 void FundamentalMatrix::initialize(const Matrix3& U, double s,
                                    const Matrix3& V) {
-  s_ = s / kScale;
+  s_ = s;
   sign_ = 1.0;
 
   // Check if U is a reflection and flip U and sign_ if so
@@ -82,7 +82,7 @@ void FundamentalMatrix::initialize(const Matrix3& U, double s,
 }
 
 Matrix3 FundamentalMatrix::matrix() const {
-  return sign_ * U_.matrix() * Vector3(1.0, s_ * kScale, 0).asDiagonal() *
+  return sign_ * U_.matrix() * Vector3(1.0, s_, 0).asDiagonal() *
          V_.transpose().matrix();
 }
 

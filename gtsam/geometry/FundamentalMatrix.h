@@ -34,11 +34,9 @@ class GTSAM_EXPORT FundamentalMatrix {
   double s_;     ///< Scalar parameter for S
   Rot3 V_;       ///< Right rotation
 
-  static constexpr double kScale = 1000;  // s is stored in s_ as s/kScale
-
  public:
   /// Default constructor
-  FundamentalMatrix() : U_(Rot3()), sign_(1.0), s_(1.0 / kScale), V_(Rot3()) {}
+  FundamentalMatrix() : U_(Rot3()), sign_(1.0), s_(1.0), V_(Rot3()) {}
 
   /**
    * @brief Construct from U, V, and scalar s
