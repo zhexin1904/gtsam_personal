@@ -2,7 +2,7 @@
  * @file FundamentalMatrix.h
  * @brief FundamentalMatrix classes
  * @author Frank Dellaert
- * @date Oct 23, 2024
+ * @date October 2024
  */
 
 #pragma once
@@ -34,9 +34,11 @@ class GTSAM_EXPORT FundamentalMatrix {
   double s_;     ///< Scalar parameter for S
   Rot3 V_;       ///< Right rotation
 
+  static constexpr double kScale = 1000;  // s is stored in s_ as s/kScale
+
  public:
   /// Default constructor
-  FundamentalMatrix() : U_(Rot3()), sign_(1.0), s_(1.0), V_(Rot3()) {}
+  FundamentalMatrix() : U_(Rot3()), sign_(1.0), s_(1.0 / kScale), V_(Rot3()) {}
 
   /**
    * @brief Construct from U, V, and scalar s
@@ -44,7 +46,7 @@ class GTSAM_EXPORT FundamentalMatrix {
    * Initializes the FundamentalMatrix From the SVD representation
    * U*diag(1,s,0)*V^T. It will internally convert to using SO(3).
    */
-  FundamentalMatrix(const Matrix& U, double s, const Matrix& V);
+  FundamentalMatrix(const Matrix3& U, double s, const Matrix3& V);
 
   /**
    * @brief Construct from a 3x3 matrix using SVD
@@ -60,7 +62,9 @@ class GTSAM_EXPORT FundamentalMatrix {
    * @brief Construct from essential matrix and calibration matrices
    *
    * Initializes the FundamentalMatrix from the given essential matrix E
-   * and calibration matrices Ka and Kb.
+   * and calibration matrices Ka and Kb, using
+   *   F = Ka^(-T) * E * Kb^(-1)
+   * and then calls constructor that decomposes F via SVD.
    *
    * @param E Essential matrix
    * @param Ka Calibration matrix for the left camera
@@ -111,8 +115,8 @@ class GTSAM_EXPORT FundamentalMatrix {
   /// @}
  private:
   /// Private constructor for internal use
-  FundamentalMatrix(const Rot3& U, double sign, double s, const Rot3& V)
-      : U_(U), sign_(sign), s_(s), V_(V) {}
+  FundamentalMatrix(const Rot3& U, double sign, double scaled_s, const Rot3& V)
+      : U_(U), sign_(sign), s_(scaled_s), V_(V) {}
 
   /// Initialize SO(3) matrices from general O(3) matrices
   void initialize(const Matrix3& U, double s, const Matrix3& V);

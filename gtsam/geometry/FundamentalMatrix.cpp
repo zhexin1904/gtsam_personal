@@ -2,10 +2,12 @@
  * @file FundamentalMatrix.cpp
  * @brief FundamentalMatrix classes
  * @author Frank Dellaert
- * @date Oct 23, 2024
+ * @date October 2024
  */
 
+#include <gtsam/base/Matrix.h>
 #include <gtsam/geometry/FundamentalMatrix.h>
+#include <gtsam/geometry/Point2.h>
 
 namespace gtsam {
 
@@ -26,8 +28,8 @@ Point2 EpipolarTransfer(const Matrix3& Fca, const Point2& pa,  //
 }
 
 //*************************************************************************
-FundamentalMatrix::FundamentalMatrix(const Matrix& U, double s,
-                                     const Matrix& V) {
+FundamentalMatrix::FundamentalMatrix(const Matrix3& U, double s,
+                                     const Matrix3& V) {
   initialize(U, s, V);
 }
 
@@ -57,38 +59,30 @@ FundamentalMatrix::FundamentalMatrix(const Matrix3& F) {
 
 void FundamentalMatrix::initialize(const Matrix3& U, double s,
                                    const Matrix3& V) {
-  s_ = s;
+  s_ = s / kScale;
   sign_ = 1.0;
 
-  // Check if U is a reflection and its determinant is close to -1 or 1
-  double detU = U.determinant();
-  if (std::abs(std::abs(detU) - 1.0) > 1e-9) {
-    throw std::invalid_argument(
-        "Matrix U does not have a determinant close to -1 or 1.");
-  }
+  // Check if U is a reflection and flip U and sign_ if so
+  double detU = U.determinant();  // detU will be -1 or 1
   if (detU < 0) {
     U_ = Rot3(-U);
-    sign_ = -sign_;  // Flip sign if U is a reflection
+    sign_ = -sign_;
   } else {
     U_ = Rot3(U);
   }
 
-  // Check if V is a reflection and its determinant is close to -1 or 1
+  // Same check for V
   double detV = V.determinant();
-  if (std::abs(std::abs(detV) - 1.0) > 1e-9) {
-    throw std::invalid_argument(
-        "Matrix V does not have a determinant close to -1 or 1.");
-  }
   if (detV < 0) {
     V_ = Rot3(-V);
-    sign_ = -sign_;  // Flip sign if V is a reflection
+    sign_ = -sign_;
   } else {
     V_ = Rot3(V);
   }
 }
 
 Matrix3 FundamentalMatrix::matrix() const {
-  return sign_ * U_.matrix() * Vector3(1.0, s_, 0).asDiagonal() *
+  return sign_ * U_.matrix() * Vector3(1.0, s_ * kScale, 0).asDiagonal() *
          V_.transpose().matrix();
 }
 
