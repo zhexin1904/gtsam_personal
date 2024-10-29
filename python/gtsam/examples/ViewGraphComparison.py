@@ -45,13 +45,17 @@ def formatter(key):
         return f"({edge.i()},{edge.j()})"
 
 
-def simulate_geometry(num_cameras):
+def simulate_geometry(num_cameras, rng, num_random_points=12):
     """simulate geometry (points and poses)"""
     # Define the camera calibration parameters
     cal = Cal3f(50.0, 50.0, 50.0)
 
     # Create the set of 8 ground-truth landmarks
     points = SFMdata.createPoints()
+
+    # Create extra random points in the -10,10 cube around the origin
+    extra_points = rng.uniform(-10, 10, (num_random_points, 3))
+    points.extend([gtsam.Point3(p) for p in extra_points])
 
     # Create the set of ground-truth poses
     poses = SFMdata.posesOnCircle(num_cameras, 30)
@@ -173,9 +177,8 @@ def optimize(graph, initialEstimate, method):
     params.setVerbosityLM("SUMMARY")
     optimizer = LevenbergMarquardtOptimizer(graph, initialEstimate, params)
     result = optimizer.optimize()
-    # if method == "EssentialMatrix":
-    #     result.print("Final results:\n", formatter)
-    return result
+    iterations = optimizer.iterations()
+    return result, iterations
 
 
 def compute_distances(method, result, ground_truth, num_cameras, cal):
@@ -231,6 +234,7 @@ def plot_results(results):
     methods = list(results.keys())
     final_errors = [results[method]["final_error"] for method in methods]
     distances = [results[method]["distances"] for method in methods]
+    iterations = [results[method]["iterations"] for method in methods]
 
     fig, ax1 = plt.subplots()
 
@@ -243,10 +247,21 @@ def plot_results(results):
     ax2 = ax1.twinx()
     color = "tab:blue"
     ax2.set_ylabel("Mean Geodesic Distance", color=color)
-    ax2.plot(methods, distances, color=color, marker="o")
+    ax2.plot(methods, distances, color=color, marker="o", linestyle="-")
     ax2.tick_params(axis="y", labelcolor=color)
 
-    plt.title("Comparison of Methods")
+    # Annotate the blue data points with the average number of iterations
+    for i, method in enumerate(methods):
+        ax2.annotate(
+            f"{iterations[i]:.1f}",
+            (i, distances[i]),
+            textcoords="offset points",
+            xytext=(20, -5),
+            ha="center",
+            color=color,
+        )
+
+    plt.title("Comparison of Methods (Labels show avg iterations)")
     fig.tight_layout()
     plt.show()
 
@@ -256,6 +271,7 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Compare Fundamental and Essential Matrix Methods")
     parser.add_argument("--num_cameras", type=int, default=4, help="Number of cameras (default: 4)")
+    parser.add_argument("--num_extra_points", type=int, default=12, help="Number of extra random points (default: 12)")
     parser.add_argument("--nr_trials", type=int, default=5, help="Number of trials (default: 5)")
     parser.add_argument("--seed", type=int, default=42, help="Random seed (default: 42)")
     parser.add_argument("--noise_std", type=float, default=0.5, help="Standard deviation of noise (default: 0.5)")
@@ -265,10 +281,10 @@ def main():
     rng = np.random.default_rng(seed=args.seed)
 
     # Initialize results dictionary
-    results = {method: {"distances": [], "final_error": []} for method in methods}
+    results = {method: {"distances": [], "final_error": [], "iterations": []} for method in methods}
 
     # Simulate geometry
-    points, poses, cal = simulate_geometry(args.num_cameras)
+    points, poses, cal = simulate_geometry(args.num_cameras, rng, args.num_extra_points)
 
     # Compute ground truth matrices
     ground_truth = {method: compute_ground_truth(method, poses, cal) for method in methods}
@@ -298,7 +314,7 @@ def main():
                 assert np.allclose(error0, current_error), "Initial errors do not match among methods."
 
             # Optimize the graph
-            result = optimize(graph, initial_estimate[method], method)
+            result, iterations = optimize(graph, initial_estimate[method], method)
 
             # Compute distances from ground truth
             distances = compute_distances(method, result, ground_truth[method], args.num_cameras, cal)
@@ -309,15 +325,18 @@ def main():
             # Store results
             results[method]["distances"].extend(distances)
             results[method]["final_error"].append(final_error)
+            results[method]["iterations"].append(iterations)
 
             print(f"Method: {method}")
             print(f"Final Error: {final_error:.3f}")
-            print(f"Mean Geodesic Distance: {np.mean(distances):.3f}\n")
+            print(f"Mean Geodesic Distance: {np.mean(distances):.3f}")
+            print(f"Number of Iterations: {iterations}\n")
 
     # Average results over trials
     for method in methods:
         results[method]["final_error"] = np.mean(results[method]["final_error"])
         results[method]["distances"] = np.mean(results[method]["distances"])
+        results[method]["iterations"] = np.mean(results[method]["iterations"])
 
     # Plot results
     plot_results(results)
