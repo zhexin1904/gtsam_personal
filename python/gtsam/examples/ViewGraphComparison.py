@@ -1,7 +1,9 @@
 """
-  Compare the Fundamental Matrix and Essential Matrix methods for optimizing the view-graph.
-  It measures the distance from the ground truth matrices in terms of the norm of local coordinates (geodesic distance) 
-  on the F-manifold. It also plots the final error of the optimization.
+  Compare several methods for optimizing the view-graph.
+  We measure the distance from the ground truth in terms of the norm of 
+  local coordinates (geodesic distance) on the F-manifold. 
+  We also plot the final error of the optimization.
+  
   Author: Frank Dellaert (with heavy assist from ChatGPT)
   Date: October 2024
 """
@@ -13,15 +15,24 @@ import numpy as np
 from gtsam.examples import SFMdata
 
 import gtsam
-from gtsam import (Cal3f, EdgeKey, EssentialMatrix, FundamentalMatrix,
-                   LevenbergMarquardtOptimizer, LevenbergMarquardtParams,
-                   NonlinearFactorGraph, PinholeCameraCal3f, Values)
+from gtsam import (
+    Cal3f,
+    EdgeKey,
+    EssentialMatrix,
+    FundamentalMatrix,
+    LevenbergMarquardtOptimizer,
+    LevenbergMarquardtParams,
+    NonlinearFactorGraph,
+    PinholeCameraCal3f,
+    SimpleFundamentalMatrix,
+    Values,
+)
 
 # For symbol shorthand (e.g., K(0), K(1))
 K = gtsam.symbol_shorthand.K
 
 # Methods to compare
-methods = ["FundamentalMatrix", "EssentialMatrix"]
+methods = ["FundamentalMatrix", "SimpleFundamentalMatrix", "EssentialMatrix"]
 
 
 # Formatter function for printing keys
@@ -63,41 +74,38 @@ def simulate_data(points, poses, cal, rng, noise_std):
 
 # Function to compute ground truth matrices
 def compute_ground_truth(method, poses, cal):
-    F1 = FundamentalMatrix(cal.K(), poses[0].between(poses[1]), cal.K())
-    F2 = FundamentalMatrix(cal.K(), poses[0].between(poses[2]), cal.K())
+    E1 = EssentialMatrix.FromPose3(poses[0].between(poses[1]))
+    E2 = EssentialMatrix.FromPose3(poses[0].between(poses[2]))
+    F1 = FundamentalMatrix(cal.K(), E1, cal.K())
+    F2 = FundamentalMatrix(cal.K(), E2, cal.K())
     if method == "FundamentalMatrix":
         return F1, F2
+    elif method == "SimpleFundamentalMatrix":
+        f = cal.fx()
+        c = cal.principalPoint()
+        SF1 = SimpleFundamentalMatrix(E1, f, f, c, c)
+        SF2 = SimpleFundamentalMatrix(E2, f, f, c, c)
+        return SF1, SF2
     elif method == "EssentialMatrix":
-        E1 = EssentialMatrix.FromPose3(poses[0].between(poses[1]))
-        E2 = EssentialMatrix.FromPose3(poses[0].between(poses[2]))
-
-        # Assert that E1.matrix and F1 are the same, with known calibration
-        invK = np.linalg.inv(cal.K())
-        G1 = invK.transpose() @ E1.matrix() @ invK
-        G2 = invK.transpose() @ E2.matrix() @ invK
-        assert np.allclose(
-            G1 / np.linalg.norm(G1), F1.matrix() / np.linalg.norm(F1.matrix())
-        ), "E1 and F1 are not the same"
-        assert np.allclose(
-            G2 / np.linalg.norm(G2), F2.matrix() / np.linalg.norm(F2.matrix())
-        ), "E2 and F2 are not the same"
         return E1, E2
     else:
         raise ValueError(f"Unknown method {method}")
 
 
-def build_factor_graph(method, num_cameras, measurements):
+def build_factor_graph(method, num_cameras, measurements, cal):
     """build the factor graph"""
     graph = NonlinearFactorGraph()
 
     if method == "FundamentalMatrix":
         FactorClass = gtsam.TransferFactorFundamentalMatrix
+    elif method == "SimpleFundamentalMatrix":
+        FactorClass = gtsam.TransferFactorSimpleFundamentalMatrix
     elif method == "EssentialMatrix":
         FactorClass = gtsam.EssentialTransferFactorCal3f
         # add priors on all calibrations:
         for i in range(num_cameras):
             model = gtsam.noiseModel.Isotropic.Sigma(1, 10.0)
-            graph.addPriorCal3f(K(i), Cal3f(50.0, 50.0, 50.0), model)
+            graph.addPriorCal3f(K(i), cal, model)
     else:
         raise ValueError(f"Unknown method {method}")
 
@@ -129,7 +137,7 @@ def get_initial_estimate(method, num_cameras, ground_truth, cal):
     initialEstimate = Values()
     total_dimension = 0
 
-    if method == "FundamentalMatrix":
+    if method == "FundamentalMatrix" or method == "SimpleFundamentalMatrix":
         F1, F2 = ground_truth
         for a in range(num_cameras):
             b = (a + 1) % num_cameras  # Next camera
@@ -174,13 +182,13 @@ def compute_distances(method, result, ground_truth, num_cameras, cal):
     """Compute geodesic distances from ground truth"""
     distances = []
 
-    if method == "FundamentalMatrix":
+    if method == "FundamentalMatrix" or method == "SimpleFundamentalMatrix":
         F1, F2 = ground_truth
     elif method == "EssentialMatrix":
         E1, E2 = ground_truth
         # Convert ground truth EssentialMatrices to FundamentalMatrices
-        F1 = gtsam.FundamentalMatrix(cal.K(), E1, cal.K())
-        F2 = gtsam.FundamentalMatrix(cal.K(), E2, cal.K())
+        F1 = FundamentalMatrix(cal.K(), E1, cal.K())
+        F2 = FundamentalMatrix(cal.K(), E2, cal.K())
     else:
         raise ValueError(f"Unknown method {method}")
 
@@ -193,6 +201,9 @@ def compute_distances(method, result, ground_truth, num_cameras, cal):
         if method == "FundamentalMatrix":
             F_est_ab = result.atFundamentalMatrix(key_ab)
             F_est_ac = result.atFundamentalMatrix(key_ac)
+        elif method == "SimpleFundamentalMatrix":
+            F_est_ab = result.atSimpleFundamentalMatrix(key_ab)
+            F_est_ac = result.atSimpleFundamentalMatrix(key_ac)
         elif method == "EssentialMatrix":
             E_est_ab = result.atEssentialMatrix(key_ab)
             E_est_ac = result.atEssentialMatrix(key_ac)
@@ -203,8 +214,8 @@ def compute_distances(method, result, ground_truth, num_cameras, cal):
             cal_c = result.atCal3f(K(c))
 
             # Convert estimated EssentialMatrices to FundamentalMatrices
-            F_est_ab = gtsam.FundamentalMatrix(cal_a.K(), E_est_ab, cal_b.K())
-            F_est_ac = gtsam.FundamentalMatrix(cal_a.K(), E_est_ac, cal_c.K())
+            F_est_ab = FundamentalMatrix(cal_a.K(), E_est_ab, cal_b.K())
+            F_est_ac = FundamentalMatrix(cal_a.K(), E_est_ac, cal_c.K())
 
         # Compute local coordinates (geodesic distance on the F-manifold)
         dist_ab = np.linalg.norm(F1.localCoordinates(F_est_ab))
@@ -219,7 +230,7 @@ def plot_results(results):
     """plot results"""
     methods = list(results.keys())
     final_errors = [results[method]["final_error"] for method in methods]
-    distances = [np.mean(results[method]["distances"]) for method in methods]
+    distances = [results[method]["distances"] for method in methods]
 
     fig, ax1 = plt.subplots()
 
@@ -277,14 +288,14 @@ def main():
             print(f"\nRunning method: {method}")
 
             # Build the factor graph
-            graph = build_factor_graph(method, args.num_cameras, measurements)
+            graph = build_factor_graph(method, args.num_cameras, measurements, cal)
 
-            # Assert that the initial error is the same for both methods:
+            # Assert that the initial error is the same for all methods:
             if method == methods[0]:
                 error0 = graph.error(initial_estimate[method])
             else:
                 current_error = graph.error(initial_estimate[method])
-                assert np.allclose(error0, current_error)
+                assert np.allclose(error0, current_error), "Initial errors do not match among methods."
 
             # Optimize the graph
             result = optimize(graph, initial_estimate[method], method)
