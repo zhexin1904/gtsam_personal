@@ -79,7 +79,6 @@ void HybridNonlinearISAM::reorderRelinearize() {
       }
     }
     factors_ = pruned_factors;
-    factors_.print("OG factors");
 
     // Just recreate the whole BayesTree
     // TODO: allow for constrained ordering here
