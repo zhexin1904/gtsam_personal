@@ -14,6 +14,7 @@
  * @brief  A hybrid conditional in the Conditional Linear Gaussian scheme
  * @author Fan Jiang
  * @author Varun Agrawal
+ * @author Frank Dellaert
  * @date   Mar 12, 2022
  */
 
@@ -63,8 +64,6 @@ class GTSAM_EXPORT HybridGaussianConditional
   using Conditionals = DecisionTree<Key, GaussianConditional::shared_ptr>;
 
  private:
-  Conditionals conditionals_;  ///< a decision tree of Gaussian conditionals.
-
   ///< Negative-log of the normalization constant (log(\sqrt(|2πΣ|))).
   ///< Take advantage of the neg-log space so everything is a minimization
   double negLogConstant_;
@@ -142,6 +141,19 @@ class GTSAM_EXPORT HybridGaussianConditional
   HybridGaussianConditional(const DiscreteKeys &discreteParents,
                             const Conditionals &conditionals);
 
+  /**
+   * @brief Construct from multiple discrete keys M and a tree of
+   * factor/scalar pairs, where the scalar is assumed to be the
+   * the negative log constant for each assignment m, up to a constant.
+   *
+   * @note Will throw if factors are not actually conditionals.
+   *
+   * @param discreteParents the discrete parents. Will be placed last.
+   * @param conditionalPairs Decision tree of GaussianFactor/scalar pairs.
+   */
+  HybridGaussianConditional(const DiscreteKeys &discreteParents,
+                            const FactorValuePairs &pairs);
+
   /// @}
   /// @name Testable
   /// @{
@@ -159,8 +171,14 @@ class GTSAM_EXPORT HybridGaussianConditional
   /// @{
 
   /// @brief Return the conditional Gaussian for the given discrete assignment.
-  GaussianConditional::shared_ptr operator()(
+  GaussianConditional::shared_ptr choose(
       const DiscreteValues &discreteValues) const;
+
+  /// @brief Syntactic sugar for choose.
+  GaussianConditional::shared_ptr operator()(
+      const DiscreteValues &discreteValues) const {
+    return choose(discreteValues);
+  }
 
   /// Returns the total number of continuous components
   size_t nrComponents() const;
@@ -185,18 +203,9 @@ class GTSAM_EXPORT HybridGaussianConditional
   std::shared_ptr<HybridGaussianFactor> likelihood(
       const VectorValues &given) const;
 
-  /// Getter for the underlying Conditionals DecisionTree
-  const Conditionals &conditionals() const;
-
-  /**
-   * @brief Compute logProbability of the HybridGaussianConditional as a tree.
-   *
-   * @param continuousValues The continuous VectorValues.
-   * @return AlgebraicDecisionTree<Key> A decision tree with the same keys
-   * as the conditionals, and leaf values as the logProbability.
-   */
-  AlgebraicDecisionTree<Key> logProbability(
-      const VectorValues &continuousValues) const;
+  /// Get Conditionals DecisionTree (dynamic cast from factors)
+  /// @note Slow: avoid using in favor of factors(), which uses existing tree.
+  const Conditionals conditionals() const;
 
   /**
    * @brief Compute the logProbability of this hybrid Gaussian conditional.
@@ -219,8 +228,10 @@ class GTSAM_EXPORT HybridGaussianConditional
    * `discreteProbs`.
    *
    * @param discreteProbs A pruned set of probabilities for the discrete keys.
+   * @return Shared pointer to possibly a pruned HybridGaussianConditional
    */
-  void prune(const DecisionTreeFactor &discreteProbs);
+  HybridGaussianConditional::shared_ptr prune(
+      const DecisionTreeFactor &discreteProbs) const;
 
   /// @}
 
@@ -230,21 +241,7 @@ class GTSAM_EXPORT HybridGaussianConditional
 
   /// Private constructor that uses helper struct above.
   HybridGaussianConditional(const DiscreteKeys &discreteParents,
-                            const Helper &helper);
-
-  /// Convert to a DecisionTree of Gaussian factor graphs.
-  GaussianFactorGraphTree asGaussianFactorGraphTree() const;
-
-  /**
-   * @brief Get the pruner function from discrete probabilities.
-   *
-   * @param discreteProbs The probabilities of only discrete keys.
-   * @return std::function<GaussianConditional::shared_ptr(
-   * const Assignment<Key> &, const GaussianConditional::shared_ptr &)>
-   */
-  std::function<GaussianConditional::shared_ptr(
-      const Assignment<Key> &, const GaussianConditional::shared_ptr &)>
-  prunerFunc(const DecisionTreeFactor &prunedProbabilities);
+                            Helper &&helper);
 
   /// Check whether `given` has values for all frontal keys.
   bool allFrontalsGiven(const VectorValues &given) const;
@@ -256,7 +253,6 @@ class GTSAM_EXPORT HybridGaussianConditional
   void serialize(Archive &ar, const unsigned int /*version*/) {
     ar &BOOST_SERIALIZATION_BASE_OBJECT_NVP(BaseFactor);
     ar &BOOST_SERIALIZATION_BASE_OBJECT_NVP(BaseConditional);
-    ar &BOOST_SERIALIZATION_NVP(conditionals_);
   }
 #endif
 };

@@ -18,6 +18,8 @@
  * @date    December 2021
  */
 
+#include <gtsam/discrete/DecisionTree.h>
+#include <gtsam/discrete/DiscreteKey.h>
 #include <gtsam/discrete/DiscreteValues.h>
 #include <gtsam/hybrid/HybridGaussianConditional.h>
 #include <gtsam/hybrid/HybridGaussianFactor.h>
@@ -25,6 +27,7 @@
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/linear/GaussianConditional.h>
 
+#include <memory>
 #include <vector>
 
 // Include for test suite
@@ -74,17 +77,6 @@ TEST(HybridGaussianConditional, Invariants) {
 /// Check LogProbability.
 TEST(HybridGaussianConditional, LogProbability) {
   using namespace equal_constants;
-  auto actual = hybrid_conditional.logProbability(vv);
-
-  // Check result.
-  std::vector<DiscreteKey> discrete_keys = {mode};
-  std::vector<double> leaves = {conditionals[0]->logProbability(vv),
-                                conditionals[1]->logProbability(vv)};
-  AlgebraicDecisionTree<Key> expected(discrete_keys, leaves);
-
-  EXPECT(assert_equal(expected, actual, 1e-6));
-
-  // Check for non-tree version.
   for (size_t mode : {0, 1}) {
     const HybridValues hv{vv, {{M(0), mode}}};
     EXPECT_DOUBLES_EQUAL(conditionals[mode]->logProbability(vv),
@@ -168,6 +160,9 @@ TEST(HybridGaussianConditional, ContinuousParents) {
   // Check that the continuous parent keys are correct:
   EXPECT(continuousParentKeys.size() == 1);
   EXPECT(continuousParentKeys[0] == X(0));
+
+  EXPECT(HybridGaussianConditional::CheckInvariants(hybrid_conditional, hv0));
+  EXPECT(HybridGaussianConditional::CheckInvariants(hybrid_conditional, hv1));
 }
 
 /* ************************************************************************* */
@@ -221,30 +216,16 @@ TEST(HybridGaussianConditional, Likelihood2) {
   // Check the detailed JacobianFactor calculation for mode==1.
   {
     // We have a JacobianFactor
-    const auto gf1 = (*likelihood)(assignment1);
+    const auto [gf1, _] = (*likelihood)(assignment1);
     const auto jf1 = std::dynamic_pointer_cast<JacobianFactor>(gf1);
     CHECK(jf1);
 
-    // It has 2 rows, not 1!
-    CHECK(jf1->rows() == 2);
-
-    // Check that the constant C1 is properly encoded in the JacobianFactor.
-    const double C1 =
-        conditionals[1]->negLogConstant() - hybrid_conditional.negLogConstant();
-    const double c1 = std::sqrt(2.0 * C1);
-    Vector expected_unwhitened(2);
-    expected_unwhitened << 4.9 - 5.0, -c1;
-    Vector actual_unwhitened = jf1->unweighted_error(vv);
-    EXPECT(assert_equal(expected_unwhitened, actual_unwhitened));
-
-    // Make sure the noise model does not touch it.
-    Vector expected_whitened(2);
-    expected_whitened << (4.9 - 5.0) / 3.0, -c1;
-    Vector actual_whitened = jf1->error_vector(vv);
-    EXPECT(assert_equal(expected_whitened, actual_whitened));
-
-    // Check that the error is equal to the conditional error:
-    EXPECT_DOUBLES_EQUAL(hybrid_conditional.error(hv1), jf1->error(hv1), 1e-8);
+    // Check that the JacobianFactor error with constants is equal to the
+    // conditional error:
+    EXPECT_DOUBLES_EQUAL(hybrid_conditional.error(hv1),
+                         jf1->error(hv1) + conditionals[1]->negLogConstant() -
+                             hybrid_conditional.negLogConstant(),
+                         1e-8);
   }
 
   // Check that the ratio of probPrime to evaluate is the same for all modes.
@@ -258,8 +239,60 @@ TEST(HybridGaussianConditional, Likelihood2) {
 }
 
 /* ************************************************************************* */
+// Test pruning a HybridGaussianConditional with two discrete keys, based on a
+// DecisionTreeFactor with 3 keys:
+TEST(HybridGaussianConditional, Prune) {
+  // Create a two key conditional:
+  DiscreteKeys modes{{M(1), 2}, {M(2), 2}};
+  std::vector<GaussianConditional::shared_ptr> gcs;
+  for (size_t i = 0; i < 4; i++) {
+    gcs.push_back(
+        GaussianConditional::sharedMeanAndStddev(Z(0), Vector1(i + 1), i + 1));
+  }
+  auto empty = std::make_shared<GaussianConditional>();
+  HybridGaussianConditional::Conditionals conditionals(modes, gcs);
+  HybridGaussianConditional hgc(modes, conditionals);
+
+  DiscreteKeys keys = modes;
+  keys.push_back({M(3), 2});
+  {
+    for (size_t i = 0; i < 8; i++) {
+      std::vector<double> potentials{0, 0, 0, 0, 0, 0, 0, 0};
+      potentials[i] = 1;
+      const DecisionTreeFactor decisionTreeFactor(keys, potentials);
+      // Prune the HybridGaussianConditional
+      const auto pruned = hgc.prune(decisionTreeFactor);
+      // Check that the pruned HybridGaussianConditional has 1 conditional
+      EXPECT_LONGS_EQUAL(1, pruned->nrComponents());
+    }
+  }
+  {
+    const std::vector<double> potentials{0, 0, 0.5, 0,  //
+                                         0, 0, 0.5, 0};
+    const DecisionTreeFactor decisionTreeFactor(keys, potentials);
+
+    const auto pruned = hgc.prune(decisionTreeFactor);
+
+    // Check that the pruned HybridGaussianConditional has 2 conditionals
+    EXPECT_LONGS_EQUAL(2, pruned->nrComponents());
+  }
+  {
+    const std::vector<double> potentials{0.2, 0, 0.3, 0,  //
+                                         0,   0, 0.5, 0};
+    const DecisionTreeFactor decisionTreeFactor(keys, potentials);
+
+    const auto pruned = hgc.prune(decisionTreeFactor);
+
+    // Check that the pruned HybridGaussianConditional has 3 conditionals
+    EXPECT_LONGS_EQUAL(3, pruned->nrComponents());
+  }
+}
+
+/* *************************************************************************
+ */
 int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);
 }
-/* ************************************************************************* */
+/* *************************************************************************
+ */

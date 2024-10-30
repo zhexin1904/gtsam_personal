@@ -22,9 +22,12 @@
 #include <gtsam/discrete/DiscreteFactorGraph.h>
 #include <gtsam/hybrid/HybridBayesNet.h>
 #include <gtsam/hybrid/HybridBayesTree.h>
+#include <gtsam/hybrid/HybridConditional.h>
 #include <gtsam/inference/BayesTree-inst.h>
 #include <gtsam/inference/BayesTreeCliqueBase-inst.h>
 #include <gtsam/linear/GaussianJunctionTree.h>
+
+#include <memory>
 
 namespace gtsam {
 
@@ -207,7 +210,9 @@ void HybridBayesTree::prune(const size_t maxNrLeaves) {
       if (conditional->isHybrid()) {
         auto hybridGaussianCond = conditional->asHybrid();
 
-        hybridGaussianCond->prune(parentData.prunedDiscreteProbs);
+        // Imperative
+        clique->conditional() = std::make_shared<HybridConditional>(
+            hybridGaussianCond->prune(parentData.prunedDiscreteProbs));
       }
       return parentData;
     }

@@ -63,22 +63,6 @@ namespace gtsam {
   }
 
   /* ************************************************************************ */
-  AlgebraicDecisionTree<Key> DecisionTreeFactor::errorTree() const {
-    // Get all possible assignments
-    DiscreteKeys dkeys = discreteKeys();
-    // Reverse to make cartesian product output a more natural ordering.
-    DiscreteKeys rdkeys(dkeys.rbegin(), dkeys.rend());
-    const auto assignments = DiscreteValues::CartesianProduct(rdkeys);
-
-    // Construct vector with error values
-    std::vector<double> errors;
-    for (const auto& assignment : assignments) {
-      errors.push_back(error(assignment));
-    }
-    return AlgebraicDecisionTree<Key>(dkeys, errors);
-  }
-
-  /* ************************************************************************ */
   double DecisionTreeFactor::safe_div(const double& a, const double& b) {
     // The use for safe_div is when we divide the product factor by the sum
     // factor. If the product or sum is zero, we accord zero probability to the
@@ -385,6 +369,16 @@ namespace gtsam {
     // Now threshold the decision tree
     size_t total = 0;
     auto thresholdFunc = [threshold, &total, N](const double& value) {
+      // There is a possible case where the `threshold` is equal to 0.0
+      // In that case `(value < threshold) == false`
+      // which increases the leaf total erroneously.
+      // Hence we check for 0.0 explicitly.
+      if (fpEqual(value, 0.0, 1e-12)) {
+        return 0.0;
+      }
+
+      // Check if value is less than the threshold and
+      // we haven't exceeded the maximum number of leaves.
       if (value < threshold || total >= N) {
         return 0.0;
       } else {

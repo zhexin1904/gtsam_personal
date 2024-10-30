@@ -211,13 +211,44 @@ TEST(HybridNonlinearFactorGraph, PushBack) {
   // EXPECT_LONGS_EQUAL(3, hnfg.size());
 }
 
+/* ****************************************************************************/
+// Test hybrid nonlinear factor graph errorTree
+TEST(HybridNonlinearFactorGraph, ErrorTree) {
+  Switching s(3);
+
+  const HybridNonlinearFactorGraph &graph = s.nonlinearFactorGraph();
+  const Values &values = s.linearizationPoint;
+
+  auto error_tree = graph.errorTree(s.linearizationPoint);
+
+  auto dkeys = graph.discreteKeys();
+  DiscreteKeys discrete_keys(dkeys.begin(), dkeys.end());
+
+  // Compute the sum of errors for each factor.
+  auto assignments = DiscreteValues::CartesianProduct(discrete_keys);
+  std::vector<double> leaves(assignments.size());
+  for (auto &&factor : graph) {
+    for (size_t i = 0; i < assignments.size(); ++i) {
+      leaves[i] +=
+          factor->error(HybridValues(VectorValues(), assignments[i], values));
+    }
+  }
+  // Swap i=1 and i=2 to give correct ordering.
+  double temp = leaves[1];
+  leaves[1] = leaves[2];
+  leaves[2] = temp;
+  AlgebraicDecisionTree<Key> expected_error(discrete_keys, leaves);
+
+  EXPECT(assert_equal(expected_error, error_tree, 1e-7));
+}
+
 /****************************************************************************
  * Test construction of switching-like hybrid factor graph.
  */
 TEST(HybridNonlinearFactorGraph, Switching) {
   Switching self(3);
 
-  EXPECT_LONGS_EQUAL(7, self.nonlinearFactorGraph.size());
+  EXPECT_LONGS_EQUAL(7, self.nonlinearFactorGraph().size());
   EXPECT_LONGS_EQUAL(7, self.linearizedFactorGraph.size());
 }
 
@@ -229,7 +260,7 @@ TEST(HybridNonlinearFactorGraph, Linearization) {
 
   // Linearize here:
   HybridGaussianFactorGraph actualLinearized =
-      *self.nonlinearFactorGraph.linearize(self.linearizationPoint);
+      *self.nonlinearFactorGraph().linearize(self.linearizationPoint);
 
   EXPECT_LONGS_EQUAL(7, actualLinearized.size());
 }
@@ -378,7 +409,7 @@ TEST(HybridNonlinearFactorGraph, Partial_Elimination) {
 /* ****************************************************************************/
 TEST(HybridNonlinearFactorGraph, Error) {
   Switching self(3);
-  HybridNonlinearFactorGraph fg = self.nonlinearFactorGraph;
+  HybridNonlinearFactorGraph fg = self.nonlinearFactorGraph();
 
   {
     HybridValues values(VectorValues(), DiscreteValues{{M(0), 0}, {M(1), 0}},
@@ -410,8 +441,9 @@ TEST(HybridNonlinearFactorGraph, Error) {
 TEST(HybridNonlinearFactorGraph, PrintErrors) {
   Switching self(3);
 
-  // Get nonlinear factor graph and add linear factors to be holistic
-  HybridNonlinearFactorGraph fg = self.nonlinearFactorGraph;
+  // Get nonlinear factor graph and add linear factors to be holistic.
+  // TODO(Frank): ???
+  HybridNonlinearFactorGraph fg = self.nonlinearFactorGraph();
   fg.add(self.linearizedFactorGraph);
 
   // Optimize to get HybridValues
@@ -514,14 +546,17 @@ TEST(HybridNonlinearFactorGraph, Printing) {
 #ifdef GTSAM_DT_MERGING
   string expected_hybridFactorGraph = R"(
 size: 7
-factor 0: 
+Factor 0
+GaussianFactor:
+
   A[x0] = [
 	10
 ]
   b = [ -10 ]
   No noise model
-factor 1: 
-HybridGaussianFactor
+
+Factor 1
+HybridGaussianFactor:
 Hybrid [x0 x1; m0]{
  Choice(m0) 
  0 Leaf :
@@ -533,6 +568,7 @@ Hybrid [x0 x1; m0]{
 ]
   b = [ -1 ]
   No noise model
+scalar: 0.918939
 
  1 Leaf :
   A[x0] = [
@@ -543,10 +579,12 @@ Hybrid [x0 x1; m0]{
 ]
   b = [ -0 ]
   No noise model
+scalar: 0.918939
 
 }
-factor 2: 
-HybridGaussianFactor
+
+Factor 2
+HybridGaussianFactor:
 Hybrid [x1 x2; m1]{
  Choice(m1) 
  0 Leaf :
@@ -558,6 +596,7 @@ Hybrid [x1 x2; m1]{
 ]
   b = [ -1 ]
   No noise model
+scalar: 0.918939
 
  1 Leaf :
   A[x1] = [
@@ -568,24 +607,37 @@ Hybrid [x1 x2; m1]{
 ]
   b = [ -0 ]
   No noise model
+scalar: 0.918939
 
 }
-factor 3: 
+
+Factor 3
+GaussianFactor:
+
   A[x1] = [
 	10
 ]
   b = [ -10 ]
   No noise model
-factor 4: 
+
+Factor 4
+GaussianFactor:
+
   A[x2] = [
 	10
 ]
   b = [ -10 ]
   No noise model
-factor 5:  P( m0 ):
+
+Factor 5
+DiscreteFactor:
+ P( m0 ):
  Leaf  0.5
 
-factor 6:  P( m1 | m0 ):
+
+Factor 6
+DiscreteFactor:
+ P( m1 | m0 ):
  Choice(m1) 
  0 Choice(m0) 
  0 0 Leaf 0.33333333
@@ -593,6 +645,7 @@ factor 6:  P( m1 | m0 ):
  1 Choice(m0) 
  1 0 Leaf 0.66666667
  1 1 Leaf  0.4
+
 
 )";
 #else
@@ -686,7 +739,7 @@ factor 6:  P( m1 | m0 ):
   // Expected output for hybridBayesNet.
   string expected_hybridBayesNet = R"(
 size: 3
-conditional 0: Hybrid  P( x0 | x1 m0)
+conditional 0:  P( x0 | x1 m0)
  Discrete Keys = (m0, 2), 
  logNormalizationConstant: 1.38862
 
@@ -705,7 +758,7 @@ conditional 0: Hybrid  P( x0 | x1 m0)
   logNormalizationConstant: 1.38862
   No noise model
 
-conditional 1: Hybrid  P( x1 | x2 m0 m1)
+conditional 1:  P( x1 | x2 m0 m1)
  Discrete Keys = (m0, 2), (m1, 2), 
  logNormalizationConstant: 1.3935
 
@@ -740,7 +793,7 @@ conditional 1: Hybrid  P( x1 | x2 m0 m1)
   logNormalizationConstant: 1.3935
   No noise model
 
-conditional 2: Hybrid  P( x2 | m0 m1)
+conditional 2:  P( x2 | m0 m1)
  Discrete Keys = (m0, 2), (m1, 2), 
  logNormalizationConstant: 1.38857
 
@@ -921,8 +974,6 @@ TEST(HybridNonlinearFactorGraph, DifferentMeans) {
     VectorValues cont0 = bn->optimize(dv0);
     double error0 = bn->error(HybridValues(cont0, dv0));
 
-    // TODO(Varun) Perform importance sampling to estimate error?
-
     // regression
     EXPECT_DOUBLES_EQUAL(0.69314718056, error0, 1e-9);
 
@@ -994,15 +1045,8 @@ TEST(HybridNonlinearFactorGraph, DifferentCovariances) {
   cv.insert(X(0), Vector1(0.0));
   cv.insert(X(1), Vector1(0.0));
 
-  // Check that the error values at the MLE point μ.
-  AlgebraicDecisionTree<Key> errorTree = hbn->errorTree(cv);
-
   DiscreteValues dv0{{M(1), 0}};
   DiscreteValues dv1{{M(1), 1}};
-
-  // regression
-  EXPECT_DOUBLES_EQUAL(9.90348755254, errorTree(dv0), 1e-9);
-  EXPECT_DOUBLES_EQUAL(0.69314718056, errorTree(dv1), 1e-9);
 
   DiscreteConditional expected_m1(m1, "0.5/0.5");
   DiscreteConditional actual_m1 = *(hbn->at(2)->asDiscrete());
