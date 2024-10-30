@@ -354,7 +354,7 @@ class EssentialMatrixFactor4
    * coordinates
    */
   EssentialMatrixFactor4(Key keyE, Key keyK, const Point2& pA, const Point2& pB,
-                         const SharedNoiseModel& model)
+                         const SharedNoiseModel& model = nullptr)
       : Base(model, keyE, keyK), pA_(pA), pB_(pB) {}
 
   /// @return a deep copy of this factor
@@ -452,7 +452,7 @@ class EssentialMatrixFactor5
    * coordinates
    */
   EssentialMatrixFactor5(Key keyE, Key keyKa, Key keyKb, const Point2& pA,
-                         const Point2& pB, const SharedNoiseModel& model)
+                         const Point2& pB, const SharedNoiseModel& model = nullptr)
       : Base(model, keyE, keyKa, keyKb), pA_(pA), pB_(pB) {}
 
   /// @return a deep copy of this factor
