@@ -14,8 +14,8 @@
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/expressionTesting.h>
 #include <gtsam/nonlinear/factorTesting.h>
-#include <gtsam/slam/EssentialMatrixFactor.h>
 #include <gtsam/sfm/SfmData.h>
+#include <gtsam/slam/EssentialMatrixFactor.h>
 #include <gtsam/slam/dataset.h>
 
 using namespace std::placeholders;
@@ -101,7 +101,8 @@ TEST(EssentialMatrixFactor, ExpressionFactor) {
   Key key(1);
   for (size_t i = 0; i < 5; i++) {
     std::function<double(const EssentialMatrix &, OptionalJacobian<1, 5>)> f =
-        std::bind(&EssentialMatrix::error, std::placeholders::_1, vA(i), vB(i), std::placeholders::_2);
+        std::bind(&EssentialMatrix::error, std::placeholders::_1, vA(i), vB(i),
+                  std::placeholders::_2);
     Expression<EssentialMatrix> E_(key);  // leaf expression
     Expression<double> expr(f, E_);       // unary expression
 
@@ -127,10 +128,11 @@ TEST(EssentialMatrixFactor, ExpressionFactorRotationOnly) {
   Key key(1);
   for (size_t i = 0; i < 5; i++) {
     std::function<double(const EssentialMatrix &, OptionalJacobian<1, 5>)> f =
-        std::bind(&EssentialMatrix::error, std::placeholders::_1, vA(i), vB(i), std::placeholders::_2);
+        std::bind(&EssentialMatrix::error, std::placeholders::_1, vA(i), vB(i),
+                  std::placeholders::_2);
     std::function<EssentialMatrix(const Rot3 &, const Unit3 &,
-                                    OptionalJacobian<5, 3>,
-                                    OptionalJacobian<5, 2>)>
+                                  OptionalJacobian<5, 3>,
+                                  OptionalJacobian<5, 2>)>
         g;
     Expression<Rot3> R_(key);
     Expression<Unit3> d_(trueDirection);
@@ -527,6 +529,27 @@ TEST(EssentialMatrixFactor4, minimizationWithStrongCal3BundlerPrior) {
         actualE.error(EssentialMatrix::Homogeneous(actualK.calibrate(pA(i))),
                       EssentialMatrix::Homogeneous(actualK.calibrate(pB(i)))),
         1e-6);
+}
+
+//*************************************************************************
+TEST(EssentialMatrixFactor5, factor) {
+  Key keyE(1), keyKa(2), keyKb(3);
+  for (size_t i = 0; i < 5; i++) {
+    EssentialMatrixFactor5<Cal3_S2> factor(keyE, keyKa, keyKb, pA(i), pB(i),
+                                           model1);
+
+    // Check evaluation
+    Vector1 expected;
+    expected << 0;
+    Vector actual = factor.evaluateError(trueE, trueK, trueK);
+    EXPECT(assert_equal(expected, actual, 1e-7));
+
+    Values truth;
+    truth.insert(keyE, trueE);
+    truth.insert(keyKa, trueK);
+    truth.insert(keyKb, trueK);
+    EXPECT_CORRECT_FACTOR_JACOBIANS(factor, truth, 1e-6, 1e-7);
+  }
 }
 
 }  // namespace example1
