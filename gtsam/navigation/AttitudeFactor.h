@@ -29,13 +29,13 @@ namespace gtsam {
  * @brief Base class for an attitude factor that constrains the rotation between
  * body and navigation frames.
  *
- * This factor enforces that when a known reference direction in the body frame
- * (e.g., accelerometer axis) is rotated into the navigation frame using the
- * rotation variable, it should align with a measured direction in the
+ * This factor enforces that when the measured direction in the body frame
+ * (e.g., from an IMU accelerometer) is rotated into the navigation frame using the
+ * rotation variable, it should align with a known reference direction in the
  * navigation frame (e.g., gravity vector).
  *
  * Mathematically, the error is zero when:
- *   nRb * bRef == nZ
+ *   nRb * bMeasured == nRef
  *
  * This is useful for incorporating absolute orientation measurements into the
  * factor graph.
@@ -44,7 +44,7 @@ namespace gtsam {
  */
 class AttitudeFactor {
  protected:
-  Unit3 nZ_, bRef_;  ///< Position measurement in
+  Unit3 nRef_, bMeasured_;  ///< Position measurement in
 
  public:
   /** default constructor - only use for serialization */
@@ -52,26 +52,34 @@ class AttitudeFactor {
 
   /**
    * @brief Constructor
-   * @param nZ Measured direction in the navigation frame (e.g., gravity).
-   * @param bRef Reference direction in the body frame (e.g., accelerometer
-   * axis). Default is Unit3(0, 0, 1).
+   * @param nRef Reference direction in the navigation frame (e.g., gravity).
+   * @param bMeasured Measured direction in the body frame (e.g., from IMU
+   * accelerometer). Default is Unit3(0, 0, 1).
    */
-  AttitudeFactor(const Unit3& nZ, const Unit3& bRef = Unit3(0, 0, 1))
-      : nZ_(nZ), bRef_(bRef) {}
+  AttitudeFactor(const Unit3& nRef, const Unit3& bMeasured = Unit3(0, 0, 1))
+      : nRef_(nRef), bMeasured_(bMeasured) {}
 
   /** vector of errors */
   Vector attitudeError(const Rot3& p, OptionalJacobian<2, 3> H = {}) const;
 
-  const Unit3& nZ() const { return nZ_; }
-  const Unit3& bRef() const { return bRef_; }
+  const Unit3& nRef() const { return nRef_; }
+  const Unit3& bMeasured() const { return bMeasured_; }
+
+#ifdef GTSAM_ALLOW_DEPRECATED_SINCE_V43
+  [[deprecated("Use nRef() instead")]]
+  const Unit3& nZ() const { return nRef_; }
+
+  [[deprecated("Use bMeasured() instead")]]
+  const Unit3& bRef() const { return bMeasured_; }
+#endif
 
 #ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
   template <class ARCHIVE>
   void serialize(ARCHIVE& ar, const unsigned int /*version*/) {
-    ar& boost::serialization::make_nvp("nZ_", nZ_);
-    ar& boost::serialization::make_nvp("bRef_", bRef_);
+    ar& boost::serialization::make_nvp("nRef_", nRef_);
+    ar& boost::serialization::make_nvp("bMeasured_", bMeasured_);
   }
 #endif
 };
@@ -102,13 +110,13 @@ class GTSAM_EXPORT Rot3AttitudeFactor : public NoiseModelFactorN<Rot3>,
   /**
    * @brief Constructor
    * @param key of the Rot3 variable that will be constrained
-   * @param nZ measured direction in navigation frame
+   * @param nRef reference direction in navigation frame
    * @param model Gaussian noise model
-   * @param bRef reference direction in body frame (default Z-axis)
+   * @param bMeasured measured direction in body frame (default Z-axis)
    */
-  Rot3AttitudeFactor(Key key, const Unit3& nZ, const SharedNoiseModel& model,
-                     const Unit3& bRef = Unit3(0, 0, 1))
-      : Base(model, key), AttitudeFactor(nZ, bRef) {}
+  Rot3AttitudeFactor(Key key, const Unit3& nRef, const SharedNoiseModel& model,
+                     const Unit3& bMeasured = Unit3(0, 0, 1))
+      : Base(model, key), AttitudeFactor(nRef, bMeasured) {}
 
   /// @return a deep copy of this factor
   gtsam::NonlinearFactor::shared_ptr clone() const override {
@@ -178,13 +186,13 @@ class GTSAM_EXPORT Pose3AttitudeFactor : public NoiseModelFactorN<Pose3>,
   /**
    * @brief Constructor
    * @param key of the Pose3 variable that will be constrained
-   * @param nZ measured direction in navigation frame
+   * @param nRef reference direction in navigation frame
    * @param model Gaussian noise model
-   * @param bRef reference direction in body frame (default Z-axis)
+   * @param bMeasured measured direction in body frame (default Z-axis)
    */
-  Pose3AttitudeFactor(Key key, const Unit3& nZ, const SharedNoiseModel& model,
-                      const Unit3& bRef = Unit3(0, 0, 1))
-      : Base(model, key), AttitudeFactor(nZ, bRef) {}
+  Pose3AttitudeFactor(Key key, const Unit3& nRef, const SharedNoiseModel& model,
+                      const Unit3& bMeasured = Unit3(0, 0, 1))
+      : Base(model, key), AttitudeFactor(nRef, bMeasured) {}
 
   /// @return a deep copy of this factor
   gtsam::NonlinearFactor::shared_ptr clone() const override {
