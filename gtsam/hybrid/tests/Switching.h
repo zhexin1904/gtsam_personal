@@ -214,10 +214,20 @@ struct Switching {
     return chain;
   }
 
-  HybridGaussianFactorGraph linearizedFactorGraph() {
+  /// Get the full linear factor graph.
+  HybridGaussianFactorGraph linearizedFactorGraph() const {
     HybridGaussianFactorGraph graph;
     graph.push_back(linearUnaryFactors);
     graph.push_back(linearBinaryFactors);
+    graph.push_back(modeChain);
+    return graph;
+  }
+
+  /// Get all the nonlinear factors.
+  HybridNonlinearFactorGraph nonlinearFactorGraph() const {
+    HybridNonlinearFactorGraph graph;
+    graph.push_back(unaryFactors);
+    graph.push_back(binaryFactors);
     graph.push_back(modeChain);
     return graph;
   }
