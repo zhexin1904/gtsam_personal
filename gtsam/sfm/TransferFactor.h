@@ -236,6 +236,8 @@ class EssentialTransferFactorK
   /**
    * @brief Constructor that accepts a vector of point triplets.
    *
+   * @note Calibrations are assumed all different, keys are derived from edges.
+   *
    * @param edge1 First EdgeKey specifying E1: (a, c) or (c, a)
    * @param edge2 Second EdgeKey specifying E2: (b, c) or (c, b)
    * @param triplets A vector of triplets containing (pa, pb, pc)
