@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <gtsam/discrete/DiscreteFactorGraph.h>
 #include <gtsam/discrete/DiscreteKey.h>
 #include <gtsam/hybrid/HybridFactor.h>
 #include <gtsam/hybrid/HybridFactorGraph.h>
