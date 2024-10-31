@@ -70,7 +70,6 @@ public:
     std::set<Key> additionalKeys;
     std::set<Key> marginalizableKeySet(
         marginalizableKeys.begin(), marginalizableKeys.end());
-    std::set<sharedClique> dependentCliques;
     CachedSearch cachedSearch;
 
     // Check each clique that contains a marginalizable key
