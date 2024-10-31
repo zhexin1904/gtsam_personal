@@ -57,32 +57,20 @@ FundamentalMatrix::FundamentalMatrix(const Matrix3& F) {
   initialize(U, singularValues(1), V);
 }
 
-void FundamentalMatrix::initialize(const Matrix3& U, double s,
-                                   const Matrix3& V) {
-  s_ = s;
-  sign_ = 1.0;
-
-  // Check if U is a reflection and flip U and sign_ if so
-  double detU = U.determinant();  // detU will be -1 or 1
-  if (detU < 0) {
-    U_ = Rot3(-U);
-    sign_ = -sign_;
-  } else {
-    U_ = Rot3(U);
-  }
+void FundamentalMatrix::initialize(Matrix3 U, double s, Matrix3 V) {
+  // Check if U is a reflection and flip third column if so
+  if (U.determinant() < 0) U.col(2) *= -1;
 
   // Same check for V
-  double detV = V.determinant();
-  if (detV < 0) {
-    V_ = Rot3(-V);
-    sign_ = -sign_;
-  } else {
-    V_ = Rot3(V);
-  }
+  if (V.determinant() < 0) V.col(2) *= -1;
+
+  U_ = Rot3(U);
+  s_ = s;
+  V_ = Rot3(V);
 }
 
 Matrix3 FundamentalMatrix::matrix() const {
-  return sign_ * U_.matrix() * Vector3(1.0, s_, 0).asDiagonal() *
+  return U_.matrix() * Vector3(1.0, s_, 0).asDiagonal() *
          V_.transpose().matrix();
 }
 
@@ -92,8 +80,8 @@ void FundamentalMatrix::print(const std::string& s) const {
 
 bool FundamentalMatrix::equals(const FundamentalMatrix& other,
                                double tol) const {
-  return U_.equals(other.U_, tol) && sign_ == other.sign_ &&
-         std::abs(s_ - other.s_) < tol && V_.equals(other.V_, tol);
+  return U_.equals(other.U_, tol) && std::abs(s_ - other.s_) < tol &&
+         V_.equals(other.V_, tol);
 }
 
 Vector FundamentalMatrix::localCoordinates(const FundamentalMatrix& F) const {
@@ -105,10 +93,10 @@ Vector FundamentalMatrix::localCoordinates(const FundamentalMatrix& F) const {
 }
 
 FundamentalMatrix FundamentalMatrix::retract(const Vector& delta) const {
-  Rot3 newU = U_.retract(delta.head<3>());
-  double newS = s_ + delta(3);  // Update scalar
-  Rot3 newV = V_.retract(delta.tail<3>());
-  return FundamentalMatrix(newU, sign_, newS, newV);
+  const Rot3 newU = U_.retract(delta.head<3>());
+  const double newS = s_ + delta(3);
+  const Rot3 newV = V_.retract(delta.tail<3>());
+  return FundamentalMatrix(newU, newS, newV);
 }
 
 //*************************************************************************

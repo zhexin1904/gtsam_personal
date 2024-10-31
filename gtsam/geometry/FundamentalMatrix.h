@@ -20,23 +20,20 @@ namespace gtsam {
  *
  * The FundamentalMatrix class encapsulates the fundamental matrix, which
  * relates corresponding points in stereo images. It is parameterized by two
- * rotation matrices (U and V), a scalar parameter (s), and a sign.
+ * rotation matrices (U and V) and a scalar parameter (s).
  * Using these values, the fundamental matrix is represented as
  *
- *   F = sign * U * diag(1, s, 0) * V^T
- *
- * We need the `sign` because we use SO(3) for U and V, not O(3).
+ *   F = U * diag(1, s, 0) * V^T
  */
 class GTSAM_EXPORT FundamentalMatrix {
  private:
-  Rot3 U_;       ///< Left rotation
-  double sign_;  ///< Whether to flip the sign or not
-  double s_;     ///< Scalar parameter for S
-  Rot3 V_;       ///< Right rotation
+  Rot3 U_;    ///< Left rotation
+  double s_;  ///< Scalar parameter for S
+  Rot3 V_;    ///< Right rotation
 
  public:
   /// Default constructor
-  FundamentalMatrix() : U_(Rot3()), sign_(1.0), s_(1.0), V_(Rot3()) {}
+  FundamentalMatrix() : U_(Rot3()), s_(1.0), V_(Rot3()) {}
 
   /**
    * @brief Construct from U, V, and scalar s
@@ -113,11 +110,11 @@ class GTSAM_EXPORT FundamentalMatrix {
   /// @}
  private:
   /// Private constructor for internal use
-  FundamentalMatrix(const Rot3& U, double sign, double scaled_s, const Rot3& V)
-      : U_(U), sign_(sign), s_(scaled_s), V_(V) {}
+  FundamentalMatrix(const Rot3& U, double s, const Rot3& V)
+      : U_(U), s_(s), V_(V) {}
 
   /// Initialize SO(3) matrices from general O(3) matrices
-  void initialize(const Matrix3& U, double s, const Matrix3& V);
+  void initialize(Matrix3 U, double s, Matrix3 V);
 };
 
 /**
