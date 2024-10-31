@@ -120,8 +120,8 @@ FixedLagSmoother::Result IncrementalFixedLagSmoother::update(
   }
 
   // Mark additional keys between the marginalized keys and the leaves
-  std::set<Key> additionalKeys;
 #ifdef GTSAM_OLD_MARGINALIZATION
+  std::set<Key> additionalKeys;
   for(Key key: marginalizableKeys) {
     ISAM2Clique::shared_ptr clique = isam_[key];
     for(const ISAM2Clique::shared_ptr& child: clique->children) {
@@ -129,8 +129,9 @@ FixedLagSmoother::Result IncrementalFixedLagSmoother::update(
     }
   }
 #else
-  BayesTreeMarginalizationHelper<ISAM2>::gatherAdditionalKeysToReEliminate(
-        isam_, marginalizableKeys, additionalKeys);
+  std::set<Key> additionalKeys =
+      BayesTreeMarginalizationHelper<ISAM2>::gatherAdditionalKeysToReEliminate(
+          isam_, marginalizableKeys);
 #endif
   KeyList additionalMarkedKeys(additionalKeys.begin(), additionalKeys.end());
 
