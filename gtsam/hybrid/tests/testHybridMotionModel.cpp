@@ -124,7 +124,7 @@ std::pair<double, double> approximateDiscreteMarginal(
  * the posterior probability of m1 should be 0.5/0.5.
  * Getting a measurement on z1 gives use more information.
  */
-TEST(HybridGaussianFactor, TwoStateModel) {
+TEST(HybridGaussianFactorGraph, TwoStateModel) {
   double mu0 = 1.0, mu1 = 3.0;
   double sigma = 0.5;
   auto hybridMotionModel = CreateHybridMotionModel(mu0, mu1, sigma, sigma);
@@ -178,7 +178,7 @@ TEST(HybridGaussianFactor, TwoStateModel) {
  * the P(m1) should be 0.5/0.5.
  * Getting a measurement on z1 gives use more information.
  */
-TEST(HybridGaussianFactor, TwoStateModel2) {
+TEST(HybridGaussianFactorGraph, TwoStateModel2) {
   double mu0 = 1.0, mu1 = 3.0;
   double sigma0 = 0.5, sigma1 = 2.0;
   auto hybridMotionModel = CreateHybridMotionModel(mu0, mu1, sigma0, sigma1);
@@ -281,7 +281,7 @@ TEST(HybridGaussianFactor, TwoStateModel2) {
  * the p(m1) should be 0.5/0.5.
  * Getting a measurement on z1 gives use more information.
  */
-TEST(HybridGaussianFactor, TwoStateModel3) {
+TEST(HybridGaussianFactorGraph, TwoStateModel3) {
   double mu = 1.0;
   double sigma0 = 0.5, sigma1 = 2.0;
   auto hybridMotionModel = CreateHybridMotionModel(mu, mu, sigma0, sigma1);
@@ -366,7 +366,7 @@ TEST(HybridGaussianFactor, TwoStateModel3) {
  * measurements and vastly different motion model: either stand still or move
  * far. This yields a very informative posterior.
  */
-TEST(HybridGaussianFactor, TwoStateModel4) {
+TEST(HybridGaussianFactorGraph, TwoStateModel4) {
   double mu0 = 0.0, mu1 = 10.0;
   double sigma0 = 0.2, sigma1 = 5.0;
   auto hybridMotionModel = CreateHybridMotionModel(mu0, mu1, sigma0, sigma1);
