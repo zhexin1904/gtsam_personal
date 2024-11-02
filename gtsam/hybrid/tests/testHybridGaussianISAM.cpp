@@ -258,7 +258,7 @@ TEST(HybridGaussianElimination, Approx_inference) {
 
 /* ****************************************************************************/
 // Test approximate inference with an additional pruning step.
-TEST_DISABLED(HybridGaussianElimination, IncrementalApproximate) {
+TEST(HybridGaussianElimination, IncrementalApproximate) {
   Switching switching(5);
   HybridGaussianISAM incrementalHybrid;
   HybridGaussianFactorGraph graph;
@@ -277,8 +277,7 @@ TEST_DISABLED(HybridGaussianElimination, IncrementalApproximate) {
 
   // Run update with pruning
   size_t maxComponents = 5;
-  incrementalHybrid.update(graph);
-  incrementalHybrid.prune(maxComponents);
+  incrementalHybrid.update(graph, maxComponents);
 
   // Check if we have a bayes tree with 4 hybrid nodes,
   // each with 2, 4, 8, and 5 (pruned) leaves respectively.
@@ -298,8 +297,7 @@ TEST_DISABLED(HybridGaussianElimination, IncrementalApproximate) {
   graph.push_back(switching.linearUnaryFactors.at(4));   // x4
 
   // Run update with pruning a second time.
-  incrementalHybrid.update(graph);
-  incrementalHybrid.prune(maxComponents);
+  incrementalHybrid.update(graph, maxComponents);
 
   // Check if we have a bayes tree with pruned hybrid nodes,
   // with 5 (pruned) leaves.
@@ -470,8 +468,7 @@ TEST(HybridGaussianISAM, NonTrivial) {
   fg = HybridNonlinearFactorGraph();
 
   // Keep pruning!
-  inc.update(gfg);
-  inc.prune(3);
+  inc.update(gfg, 3);
 
   // The final discrete graph should not be empty since we have eliminated
   // all continuous variables.
