@@ -238,6 +238,23 @@ class GTSAM_EXPORT HybridBayesNet : public BayesNet<HybridConditional> {
   using BayesNet::logProbability;  // expose HybridValues version
 
   /**
+   * @brief Get the negative log of the normalization constant corresponding
+   * to the joint density represented by this Bayes net.
+   *
+   * @return double
+   */
+  double negLogConstant() const;
+
+  /**
+   * @brief Get the negative log of the normalization constant
+   * corresponding to the joint Gaussian density represented by
+   * this Bayes net indexed by `discrete`.
+   *
+   * @return double
+   */
+  double negLogConstant(const DiscreteValues &discrete) const;
+
+  /**
    * @brief Compute normalized posterior P(M|X=x) and return as a tree.
    *
    * @note Not a DiscreteConditional as the cardinalities of the DiscreteKeys,
