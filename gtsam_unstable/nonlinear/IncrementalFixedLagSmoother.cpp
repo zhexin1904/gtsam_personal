@@ -93,7 +93,7 @@ FixedLagSmoother::Result IncrementalFixedLagSmoother::update(
     std::cout << std::endl;
   }
 
-  std::set<Key> additionalKeys =
+  std::unordered_set<Key> additionalKeys =
       BayesTreeMarginalizationHelper<ISAM2>::gatherAdditionalKeysToReEliminate(
           isam_, marginalizableKeys);
   KeyList additionalMarkedKeys(additionalKeys.begin(), additionalKeys.end());
