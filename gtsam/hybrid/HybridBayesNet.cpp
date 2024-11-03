@@ -198,29 +198,24 @@ AlgebraicDecisionTree<Key> HybridBayesNet::errorTree(
 }
 
 /* ************************************************************************* */
-double HybridBayesNet::negLogConstant() const {
+double HybridBayesNet::negLogConstant(
+    const std::optional<DiscreteValues> &discrete) const {
   double negLogNormConst = 0.0;
   // Iterate over each conditional.
   for (auto &&conditional : *this) {
-    negLogNormConst += conditional->negLogConstant();
-  }
-  return negLogNormConst;
-}
-
-/* ************************************************************************* */
-double HybridBayesNet::negLogConstant(const DiscreteValues &discrete) const {
-  double negLogNormConst = 0.0;
-  // Iterate over each conditional.
-  for (auto &&conditional : *this) {
-    if (auto gm = conditional->asHybrid()) {
-      negLogNormConst += gm->choose(discrete)->negLogConstant();
-    } else if (auto gc = conditional->asGaussian()) {
-      negLogNormConst += gc->negLogConstant();
-    } else if (auto dc = conditional->asDiscrete()) {
-      negLogNormConst += dc->choose(discrete)->negLogConstant();
+    if (discrete.has_value()) {
+      if (auto gm = conditional->asHybrid()) {
+        negLogNormConst += gm->choose(*discrete)->negLogConstant();
+      } else if (auto gc = conditional->asGaussian()) {
+        negLogNormConst += gc->negLogConstant();
+      } else if (auto dc = conditional->asDiscrete()) {
+        negLogNormConst += dc->choose(*discrete)->negLogConstant();
+      } else {
+        throw std::runtime_error(
+            "Unknown conditional type when computing negLogConstant");
+      }
     } else {
-      throw std::runtime_error(
-          "Unknown conditional type when computing negLogConstant");
+      negLogNormConst += conditional->negLogConstant();
     }
   }
   return negLogNormConst;
