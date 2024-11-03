@@ -56,7 +56,7 @@ const HybridGaussianFactorGraph graph2{lfg.at(4), lfg.at(1), lfg.at(2),
 
 /* ****************************************************************************/
 // Test if we can perform elimination incrementally.
-TEST(HybridGaussianElimination, IncrementalElimination) {
+TEST(HybridGaussianISAM, IncrementalElimination) {
   using namespace switching3;
   HybridGaussianISAM isam;
 
@@ -88,7 +88,7 @@ TEST(HybridGaussianElimination, IncrementalElimination) {
 
 /* ****************************************************************************/
 // Test if we can incrementally do the inference
-TEST(HybridGaussianElimination, IncrementalInference) {
+TEST(HybridGaussianISAM, IncrementalInference) {
   using namespace switching3;
   HybridGaussianISAM isam;
 
@@ -156,7 +156,7 @@ TEST(HybridGaussianElimination, IncrementalInference) {
 
 /* ****************************************************************************/
 // Test if we can approximately do the inference
-TEST(HybridGaussianElimination, Approx_inference) {
+TEST(HybridGaussianISAM, ApproxInference) {
   Switching switching(4);
   HybridGaussianISAM incrementalHybrid;
   HybridGaussianFactorGraph graph1;
@@ -258,7 +258,7 @@ TEST(HybridGaussianElimination, Approx_inference) {
 
 /* ****************************************************************************/
 // Test approximate inference with an additional pruning step.
-TEST(HybridGaussianElimination, IncrementalApproximate) {
+TEST(HybridGaussianISAM, IncrementalApproximate) {
   Switching switching(5);
   HybridGaussianISAM incrementalHybrid;
   HybridGaussianFactorGraph graph;
