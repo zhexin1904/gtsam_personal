@@ -30,7 +30,6 @@ jobs:
           [
             ubuntu-20.04-gcc-9,
             ubuntu-20.04-clang-9,
-            macos-14-arm64-xcode-15.4,
             macos-14-xcode-15.4,
             windows-2022-msbuild,
           ]
@@ -47,11 +46,6 @@ jobs:
             os: ubuntu-20.04
             compiler: clang
             version: "9"
-
-          - name: macos-14-arm64-xcode-15.4
-            os: macos-14-xlarge
-            compiler: xcode
-            version: "15.4"
 
           - name: macos-14-xcode-15.4
             os: macos-14
