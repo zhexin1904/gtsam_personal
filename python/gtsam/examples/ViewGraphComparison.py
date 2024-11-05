@@ -117,10 +117,10 @@ def build_factor_graph(method, num_cameras, measurements, cal):
     # Add priors on calibrations if necessary
     if method in ["Essential+Ks", "Binary+Ks"]:
         for i in range(num_cameras):
-            model = gtsam.noiseModel.Isotropic.Sigma(1, 10.0)
+            model = gtsam.noiseModel.Isotropic.Sigma(1, 1000.0)
             graph.addPriorCal3f(K(i), cal, model)
     elif method in ["Essential+K", "Binary+K"]:
-        model = gtsam.noiseModel.Isotropic.Sigma(1, 10.0)
+        model = gtsam.noiseModel.Isotropic.Sigma(1, 1000.0)
         graph.addPriorCal3f(K(0), cal, model)
 
     z = measurements  # shorthand
@@ -186,6 +186,8 @@ def get_initial_estimate(method, num_cameras, ground_truth, cal):
         for a in range(num_cameras):
             b = (a + 1) % num_cameras
             c = (a + 2) % num_cameras
+            # initialEstimate.insert(EdgeKey(a, b).key(), E1.retract(0.1 * np.ones((5, 1))))
+            # initialEstimate.insert(EdgeKey(a, c).key(), E2.retract(0.1 * np.ones((5, 1))))
             initialEstimate.insert(EdgeKey(a, b).key(), E1)
             initialEstimate.insert(EdgeKey(a, c).key(), E2)
             total_dimension += E1.dim() + E2.dim()
@@ -206,8 +208,9 @@ def get_initial_estimate(method, num_cameras, ground_truth, cal):
 def optimize(graph, initialEstimate, method):
     """optimize the graph"""
     params = LevenbergMarquardtParams()
-    params.setlambdaInitial(1e10)  # Initialize lambda to a high value
-    params.setlambdaUpperBound(1e10)
+    if method not in ["Calibrated", "Binary+K", "Binary+Ks"]:
+        params.setlambdaInitial(1e10)  # Initialize lambda to a high value
+        params.setlambdaUpperBound(1e10)
     # params.setAbsoluteErrorTol(0.1)
     params.setVerbosityLM("SUMMARY")
     optimizer = LevenbergMarquardtOptimizer(graph, initialEstimate, params)
@@ -373,6 +376,8 @@ def main():
 
             # Compute final error
             final_error = graph.error(result)
+            if method in ["Binary+K", "Binary+Ks"]:
+                final_error *= cal.f() * cal.f()
 
             # Store results
             results[method]["distances"].extend(distances)
