@@ -105,22 +105,18 @@ def build_factor_graph(method, num_cameras, measurements, cal):
     elif method == "SimpleF":
         FactorClass = gtsam.TransferFactorSimpleFundamentalMatrix
     elif method == "Essential+Ks":
-        FactorClass = gtsam.EssentialTransferFactorCal3f
+        FactorClass = gtsam.EssentialTransferFactorKCal3f
         # add priors on all calibrations:
         for i in range(num_cameras):
             model = gtsam.noiseModel.Isotropic.Sigma(1, 10.0)
             graph.addPriorCal3f(K(i), cal, model)
     elif method == "Calibrated":
-        FactorClass = gtsam.TransferFactorEssentialMatrix
+        FactorClass = gtsam.EssentialTransferFactorCal3f
         # No priors on calibration needed
     else:
         raise ValueError(f"Unknown method {method}")
 
-    if method == "Calibrated":
-        # Calibrate measurements using ground truth calibration
-        z = [[cal.calibrate(m) for m in cam_measurements] for cam_measurements in measurements]
-    else:
-        z = measurements
+    z = measurements  # shorthand
 
     for a in range(num_cameras):
         b = (a + 1) % num_cameras  # Next camera
@@ -138,9 +134,14 @@ def build_factor_graph(method, num_cameras, measurements, cal):
             tuples3.append((z[c][j], z[b][j], z[a][j]))
 
         # Add transfer factors between views a, b, and c.
-        graph.add(FactorClass(EdgeKey(a, c), EdgeKey(b, c), tuples1))
-        graph.add(FactorClass(EdgeKey(a, b), EdgeKey(b, c), tuples2))
-        graph.add(FactorClass(EdgeKey(a, c), EdgeKey(a, b), tuples3))
+        if method in ["Calibrated"]:
+            graph.add(FactorClass(EdgeKey(a, c), EdgeKey(b, c), tuples1, cal))
+            graph.add(FactorClass(EdgeKey(a, b), EdgeKey(b, c), tuples2, cal))
+            graph.add(FactorClass(EdgeKey(a, c), EdgeKey(a, b), tuples3, cal))
+        else:
+            graph.add(FactorClass(EdgeKey(a, c), EdgeKey(b, c), tuples1))
+            graph.add(FactorClass(EdgeKey(a, b), EdgeKey(b, c), tuples2))
+            graph.add(FactorClass(EdgeKey(a, c), EdgeKey(a, b), tuples3))
 
     return graph
 
@@ -279,6 +280,7 @@ def plot_results(results):
     fig.tight_layout()
     plt.show()
 
+
 # Main function
 def main():
     # Parse command line arguments
@@ -345,8 +347,6 @@ def main():
 
             # Compute final error
             final_error = graph.error(result)
-            if method == "Calibrated":
-                final_error *= cal.f() * cal.f()
 
             # Store results
             results[method]["distances"].extend(distances)

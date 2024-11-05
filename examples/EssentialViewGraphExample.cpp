@@ -27,7 +27,7 @@
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/Values.h>
-#include <gtsam/sfm/TransferFactor.h>  // Contains EssentialTransferFactor
+#include <gtsam/sfm/TransferFactor.h>  // Contains EssentialTransferFactorK
 
 #include <vector>
 
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
 
   // Create the factor graph
   NonlinearFactorGraph graph;
-  using Factor = EssentialTransferFactor<Cal3f>;
+  using Factor = EssentialTransferFactorK<Cal3f>;
 
   for (size_t a = 0; a < 4; ++a) {
     size_t b = (a + 1) % 4;  // Next camera

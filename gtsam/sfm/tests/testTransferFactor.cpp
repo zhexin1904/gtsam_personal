@@ -6,9 +6,12 @@
  */
 
 #include <CppUnitLite/TestHarness.h>
+#include <gtsam/geometry/Cal3_S2.h>
 #include <gtsam/geometry/SimpleCamera.h>
 #include <gtsam/nonlinear/factorTesting.h>
 #include <gtsam/sfm/TransferFactor.h>
+
+#include <memory>
 
 using namespace gtsam;
 using symbol_shorthand::K;
@@ -173,7 +176,51 @@ TEST(EssentialTransferFactor, Jacobians) {
   EdgeKey key02(0, 2);
 
   // Create an EssentialTransferFactor
-  EssentialTransferFactor<Cal3_S2> factor(key01, key02, {{p[1], p[2], p[0]}});
+  auto sharedCal = std::make_shared<Cal3_S2>(cal);
+  EssentialTransferFactor<Cal3_S2> factor(key01, key02, {{p[1], p[2], p[0]}},
+                                          sharedCal);
+
+  // Create Values and insert variables
+  Values values;
+  values.insert(key01, E01);  // Essential matrix between views 0 and 1
+  values.insert(key02, E02);  // Essential matrix between views 0 and 2
+
+  // Check error
+  Matrix H1, H2, H3, H4, H5;
+  Vector error = factor.evaluateError(E01, E02,  //
+                                      &H1, &H2);
+  EXPECT(H1.rows() == 2 && H1.cols() == 5)
+  EXPECT(H2.rows() == 2 && H2.cols() == 5)
+  EXPECT(assert_equal(Vector::Zero(2), error, 1e-9))
+
+  // Check Jacobians
+  EXPECT_CORRECT_FACTOR_JACOBIANS(factor, values, 1e-5, 1e-7);
+}
+
+//*************************************************************************
+// Test for EssentialTransferFactorK
+TEST(EssentialTransferFactorK, Jacobians) {
+  using namespace fixture;
+
+  // Create EssentialMatrices between cameras
+  EssentialMatrix E01 =
+      EssentialMatrix::FromPose3(cameraPoses[0].between(cameraPoses[1]));
+  EssentialMatrix E02 =
+      EssentialMatrix::FromPose3(cameraPoses[0].between(cameraPoses[2]));
+
+  // Project a point into the three cameras
+  const Point3 P(0.1, 0.2, 0.3);
+  std::array<Point2, 3> p;
+  for (size_t i = 0; i < 3; ++i) {
+    p[i] = cameras[i].project(P);
+  }
+
+  // Create EdgeKeys
+  EdgeKey key01(0, 1);
+  EdgeKey key02(0, 2);
+
+  // Create an EssentialTransferFactorK
+  EssentialTransferFactorK<Cal3_S2> factor(key01, key02, {{p[1], p[2], p[0]}});
 
   // Create Values and insert variables
   Values values;
@@ -185,10 +232,9 @@ TEST(EssentialTransferFactor, Jacobians) {
 
   // Check error
   Matrix H1, H2, H3, H4, H5;
-  Vector error =
-      factor.evaluateError(E01, E02,                                  //
-                           fixture::cal, fixture::cal, fixture::cal,  //
-                           &H1, &H2, &H3, &H4, &H5);
+  Vector error = factor.evaluateError(E01, E02,       //
+                                      cal, cal, cal,  //
+                                      &H1, &H2, &H3, &H4, &H5);
   EXPECT(H1.rows() == 2 && H1.cols() == 5)
   EXPECT(H2.rows() == 2 && H2.cols() == 5)
   EXPECT(H3.rows() == 2 && H3.cols() == 5)
