@@ -253,6 +253,24 @@ class EssentialTransferFactorK
         TransferEdges<EM>(edge1, edge2),
         triplets_(triplets) {}
 
+  /**
+   * @brief Constructor that accepts a vector of point triplets.
+   *
+   * @note Calibrations are assumed all same, using given key `keyK`.
+   *
+   * @param edge1 First EdgeKey specifying E1: (a, c) or (c, a)
+   * @param edge2 Second EdgeKey specifying E2: (b, c) or (c, b)
+   * @param keyK Calibration key for all views.
+   * @param triplets A vector of triplets containing (pa, pb, pc)
+   * @param model An optional SharedNoiseModel
+   */
+  EssentialTransferFactorK(EdgeKey edge1, EdgeKey edge2, Key keyK,
+                           const std::vector<Triplet>& triplets,
+                           const SharedNoiseModel& model = nullptr)
+      : Base(model, edge1, edge2, keyK, keyK, keyK),
+        TransferEdges<EM>(edge1, edge2),
+        triplets_(triplets) {}
+
   /// Transfer points pa and pb to view c and evaluate error.
   Vector2 TransferError(const Matrix3& Eca, const K& Ka, const Point2& pa,
                         const Matrix3& Ecb, const K& Kb, const Point2& pb,
