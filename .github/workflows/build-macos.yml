@@ -39,7 +39,7 @@ jobs:
             compiler: xcode
             version: "14.2"
 
-            - name: macos-13-arm64-xcode-14.2
+          - name: macos-13-arm64-xcode-14.2
             os: macos-13-xlarge
             compiler: xcode
             version: "14.2"
@@ -49,7 +49,7 @@ jobs:
             compiler: xcode
             version: "15.4"
 
-            - name: macos-14-arm64-xcode-15.4
+          - name: macos-14-arm64-xcode-15.4
             os: macos-14-xlarge
             compiler: xcode
             version: "15.4"
