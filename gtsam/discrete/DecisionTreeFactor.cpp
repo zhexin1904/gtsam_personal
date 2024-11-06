@@ -239,7 +239,7 @@ namespace gtsam {
     };
 
     // Go through the tree
-    this->apply(op);
+    this->visitWith(op);
 
     return probs;
   }
