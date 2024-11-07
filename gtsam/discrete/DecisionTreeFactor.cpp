@@ -363,13 +363,15 @@ namespace gtsam {
     /// Push value onto the heap
     void push(double x) {
       v_.push_back(x);
-      std::make_heap(v_.begin(), v_.end(), std::greater<double>{});
+      std::push_heap(v_.begin(), v_.end(), std::greater<double>{});
     }
 
     /// Push value `x`, `n` number of times.
     void push(double x, size_t n) {
-      v_.insert(v_.end(), n, x);
-      std::make_heap(v_.begin(), v_.end(), std::greater<double>{});
+      for (size_t i = 0; i < n; ++i) {
+        v_.push_back(x);
+        std::push_heap(v_.begin(), v_.end(), std::greater<double>{});
+      }
     }
 
     /// Pop the top value of the heap.
@@ -390,10 +392,11 @@ namespace gtsam {
      */
     void print(const std::string& s = "") {
       std::cout << (s.empty() ? "" : s + " ");
-      for (size_t i = 0; i < v_.size() - 1; i++) {
-        std::cout << v_.at(i) << ",";
+      for (size_t i = 0; i < v_.size(); i++) {
+        std::cout << v_.at(i);
+        if (v_.size() > 1 && i < v_.size() - 1) std::cout << ", ";
       }
-      std::cout << v_.at(v_.size() - 1) << std::endl;
+      std::cout << std::endl;
     }
 
     /// Return true if heap is empty.
