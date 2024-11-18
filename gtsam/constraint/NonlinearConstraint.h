@@ -40,6 +40,8 @@ class GTSAM_EXPORT NonlinearConstraint : public NoiseModelFactor {
   /** Use constructors of NoiseModelFactor. */
   using Base::Base;
 
+  using NonlinearFactor::error;
+
   /** Destructor. */
   virtual ~NonlinearConstraint() {}
 
