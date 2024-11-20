@@ -52,7 +52,7 @@ class GTSAM_EXPORT NonlinearEqualityConstraint : public NonlinearConstraint {
 
 /** Equality constraint that force g(x) = M. */
 template <typename T>
-class GTSAM_EXPORT ExpressionEqualityConstraint : public NonlinearEqualityConstraint {
+class ExpressionEqualityConstraint : public NonlinearEqualityConstraint {
  public:
   typedef NonlinearEqualityConstraint Base;
   typedef ExpressionEqualityConstraint This;
