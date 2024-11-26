@@ -117,8 +117,8 @@ TEST(EssentialMatrixFactor, ExpressionFactor) {
     // Check evaluation
     Vector expected(1);
     expected << 0;
-    vector<Matrix> Hactual(1);
-    Vector actual = factor.unwhitenedError(values, Hactual);
+    vector<Matrix> actualH(1);
+    Vector actual = factor.unwhitenedError(values, actualH);
     EXPECT(assert_equal(expected, actual, 1e-7));
   }
 }
@@ -151,8 +151,8 @@ TEST(EssentialMatrixFactor, ExpressionFactorRotationOnly) {
     // Check evaluation
     Vector expected(1);
     expected << 0;
-    vector<Matrix> Hactual(1);
-    Vector actual = factor.unwhitenedError(values, Hactual);
+    vector<Matrix> actualH(1);
+    Vector actual = factor.unwhitenedError(values, actualH);
     EXPECT(assert_equal(expected, actual, 1e-7));
   }
 }
@@ -213,9 +213,9 @@ TEST(EssentialMatrixFactor2, factor) {
     const Point2 pi = PinholeBase::Project(P2);
     Point2 expected(pi - pB(i));
 
-    Matrix Hactual1, Hactual2;
+    Matrix actualH1, actualH2;
     double d(baseline / P1.z());
-    Vector actual = factor.evaluateError(trueE, d, Hactual1, Hactual2);
+    Vector actual = factor.evaluateError(trueE, d, actualH1, actualH2);
     EXPECT(assert_equal(expected, actual, 1e-7));
 
     Values val;
@@ -278,9 +278,9 @@ TEST(EssentialMatrixFactor3, factor) {
     const Point2 pi = camera2.project(P1);
     Point2 expected(pi - pB(i));
 
-    Matrix Hactual1, Hactual2;
+    Matrix actualH1, actualH2;
     double d(baseline / P1.z());
-    Vector actual = factor.evaluateError(bodyE, d, Hactual1, Hactual2);
+    Vector actual = factor.evaluateError(bodyE, d, actualH1, actualH2);
     EXPECT(assert_equal(expected, actual, 1e-7));
 
     Values val;
@@ -552,6 +552,27 @@ TEST(EssentialMatrixFactor5, factor) {
   }
 }
 
+//*************************************************************************
+// Test that if we use the same keys for Ka and Kb the sum of the two K
+// Jacobians equals that of the single K Jacobian for EssentialMatrix4
+TEST(EssentialMatrixFactor5, SameKeys) {
+  Key keyE(1), keyK(2);
+  for (size_t i = 0; i < 5; i++) {
+    EssentialMatrixFactor4<Cal3_S2> factor4(keyE, keyK, pA(i), pB(i), model1);
+    EssentialMatrixFactor5<Cal3_S2> factor5(keyE, keyK, keyK, pA(i), pB(i),
+                                            model1);
+
+    Values truth;
+    truth.insert(keyE, trueE);
+    truth.insert(keyK, trueK);
+
+    // Check Jacobians
+    Matrix H0, H1, H2;
+    factor4.evaluateError(trueE, trueK, nullptr, &H0);
+    factor5.evaluateError(trueE, trueK, trueK, nullptr, &H1, &H2);
+    EXPECT(assert_equal(H0, H1 + H2, 1e-9));
+  }
+}
 }  // namespace example1
 
 //*************************************************************************

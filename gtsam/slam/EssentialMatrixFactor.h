@@ -420,10 +420,13 @@ class EssentialMatrixFactor4
 /**
  * Binary factor that optimizes for E and two calibrations Ka and Kb using the
  * algebraic epipolar error (Ka^-1 pA)'E (Kb^-1 pB). The calibrations are
- * assumed different for the two images. Don'tt use this factor with same
- * calibration unknown, as Jacobians will be incorrect...
+ * assumed different for the two images, but if you use the same key for Ka and
+ * Kb, the sum of the two K Jacobians equals that of the K Jacobian for
+ * EssentialMatrix4. If you know there is a single global calibration, use
+ * that factor instead.
  *
- * Note: even stronger caveats about having priors on calibration apply.
+ * Note: see the comment about priors from EssentialMatrixFactor4: even stronger
+ * caveats about having priors on calibration apply here.
  */
 template <class CALIBRATION>
 class EssentialMatrixFactor5
@@ -442,17 +445,18 @@ class EssentialMatrixFactor5
   using Base::evaluateError;
 
   /**
-   *  Constructor
-   *  @param keyE Essential Matrix aEb variable key
-   *  @param keyKa Calibration variable key for camera A
-   *  @param keyKb Calibration variable key for camera B
-   *  @param pA point in first camera, in pixel coordinates
-   *  @param pB point in second camera, in pixel coordinates
-   *  @param model noise model is about dot product in ideal, homogeneous
+   * Constructor
+   * @param keyE Essential Matrix aEb variable key
+   * @param keyKa Calibration variable key for camera A
+   * @param keyKb Calibration variable key for camera B
+   * @param pA point in first camera, in pixel coordinates
+   * @param pB point in second camera, in pixel coordinates
+   * @param model noise model is about dot product in ideal, homogeneous
    * coordinates
    */
   EssentialMatrixFactor5(Key keyE, Key keyKa, Key keyKb, const Point2& pA,
-                         const Point2& pB, const SharedNoiseModel& model = nullptr)
+                         const Point2& pB,
+                         const SharedNoiseModel& model = nullptr)
       : Base(model, keyE, keyKa, keyKb), pA_(pA), pB_(pB) {}
 
   /// @return a deep copy of this factor
@@ -492,17 +496,17 @@ class EssentialMatrixFactor5
     Point2 cA = Ka.calibrate(pA_, HKa ? &cA_H_Ka : 0, OptionalNone);
     Point2 cB = Kb.calibrate(pB_, HKb ? &cB_H_Kb : 0, OptionalNone);
 
-    // convert to homogeneous coordinates
+    // Convert to homogeneous coordinates.
     Vector3 vA = EssentialMatrix::Homogeneous(cA);
     Vector3 vB = EssentialMatrix::Homogeneous(cB);
 
     if (HKa) {
-      // compute the jacobian of error w.r.t Ka
+      // Compute the jacobian of error w.r.t Ka.
       *HKa = vB.transpose() * E.matrix().transpose().leftCols<2>() * cA_H_Ka;
     }
 
     if (HKb) {
-      // compute the jacobian of error w.r.t Kb
+      // Compute the jacobian of error w.r.t Kb.
       *HKb = vA.transpose() * E.matrix().leftCols<2>() * cB_H_Kb;
     }
 
