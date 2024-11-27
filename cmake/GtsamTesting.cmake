@@ -237,8 +237,13 @@ macro(gtsamAddTestsGlob_impl groupName globPatterns excludedFiles linkLibraries)
 			# Add TOPSRCDIR
 			set_property(SOURCE ${script_srcs} APPEND PROPERTY COMPILE_DEFINITIONS "TOPSRCDIR=\"${GTSAM_SOURCE_DIR}\"")
 
+			if(QNX)
+			# Do not exclude from 'make all' and 'make install'
+			set_target_properties(${target_name} PROPERTIES EXCLUDE_FROM_ALL OFF)
+			else()
 			# Exclude from 'make all' and 'make install'
 			set_target_properties(${target_name} PROPERTIES EXCLUDE_FROM_ALL ON)
+			endif()
 
 			# Configure target folder (for MSVC and Xcode)
 			set_property(TARGET ${script_name} PROPERTY FOLDER "Unit tests")
