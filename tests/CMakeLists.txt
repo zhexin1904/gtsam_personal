@@ -14,3 +14,8 @@ if(MSVC)
 	set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/testSerializationSLAM.cpp"
 		APPEND PROPERTY COMPILE_FLAGS "/bigobj")
 endif()
+
+if(QNX)
+file(GLOB built_tests "${PROJECT_BINARY_DIR}/tests/test*")
+install(FILES ${built_tests} DESTINATION ${CMAKE_INSTALL_BINDIR}/gtsam_tests/)
+endif()

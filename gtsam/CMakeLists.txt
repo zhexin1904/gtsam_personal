@@ -82,6 +82,10 @@ IF(MSVC)
 ENDIF(MSVC)
 
 # Generate and install config and dllexport files
+#For config.in searches
+if(DEFINED ENV{QNX})
+set(QNX_TARGET_DATASET_DIR "$ENV{QNX_TARGET_DATASET_DIR}")
+endif()
 configure_file(config.h.in config.h)
 set(library_name GTSAM) # For substitution in dllexport.h.in
 configure_file("${GTSAM_SOURCE_DIR}/cmake/dllexport.h.in" "dllexport.h")
