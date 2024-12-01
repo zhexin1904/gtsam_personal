@@ -1,35 +1,30 @@
 # -*- cmake -*-
 
-# - Find Google perftools
-# Find the Google perftools includes and libraries
-# This module defines
-#  GOOGLE_PERFTOOLS_INCLUDE_DIR, where to find heap-profiler.h, etc.
-#  GOOGLE_PERFTOOLS_FOUND, If false, do not try to use Google perftools.
+# - Find GPerfTools (formerly Google perftools)
+# Find the GPerfTools libraries
+# If false, do not try to use Google perftools.
 # also defined for general use are
 #  TCMALLOC_LIBRARY, where to find the tcmalloc library.
 
-FIND_PATH(GOOGLE_PERFTOOLS_INCLUDE_DIR google/heap-profiler.h
-/usr/local/include
-/usr/include
-)
-
 SET(TCMALLOC_NAMES ${TCMALLOC_NAMES} tcmalloc)
-FIND_LIBRARY(TCMALLOC_LIBRARY
+find_library(TCMALLOC_LIBRARY
   NAMES ${TCMALLOC_NAMES}
   PATHS /usr/lib /usr/local/lib
-  )
+)
+find_library(GPERFTOOLS_PROFILER
+   NAMES profiler
+   PATHS /usr/lib /usr/local/lib
+)
 
-IF (TCMALLOC_LIBRARY AND GOOGLE_PERFTOOLS_INCLUDE_DIR)
+IF (TCMALLOC_LIBRARY AND GPERFTOOLS_PROFILER)
     SET(TCMALLOC_LIBRARIES ${TCMALLOC_LIBRARY})
     SET(GOOGLE_PERFTOOLS_FOUND "YES")
-ELSE (TCMALLOC_LIBRARY AND GOOGLE_PERFTOOLS_INCLUDE_DIR)
+ELSE (TCMALLOC_LIBRARY AND GPERFTOOLS_PROFILER)
   SET(GOOGLE_PERFTOOLS_FOUND "NO")
-ENDIF (TCMALLOC_LIBRARY AND GOOGLE_PERFTOOLS_INCLUDE_DIR)
+ENDIF (TCMALLOC_LIBRARY AND GPERFTOOLS_PROFILER)
 
 IF (GOOGLE_PERFTOOLS_FOUND)
-   IF (NOT GOOGLE_PERFTOOLS_FIND_QUIETLY)
-      MESSAGE(STATUS "Found Google perftools: ${GOOGLE_PERFTOOLS_LIBRARIES}")
-   ENDIF (NOT GOOGLE_PERFTOOLS_FIND_QUIETLY)
+   MESSAGE(STATUS "Found Google perftools: ${GPERFTOOLS_PROFILER}")
 ELSE (GOOGLE_PERFTOOLS_FOUND)
    IF (GOOGLE_PERFTOOLS_FIND_REQUIRED)
       MESSAGE(FATAL_ERROR "Could not find Google perftools library")
@@ -38,5 +33,5 @@ ENDIF (GOOGLE_PERFTOOLS_FOUND)
 
 MARK_AS_ADVANCED(
   TCMALLOC_LIBRARY
-  GOOGLE_PERFTOOLS_INCLUDE_DIR
-  )
+  GPERFTOOLS_PROFILER
+)
