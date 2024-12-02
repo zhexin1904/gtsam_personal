@@ -147,7 +147,7 @@ if (GTSAM_USE_EIGEN_MKL)
   target_include_directories(gtsam PUBLIC ${MKL_INCLUDE_DIR})
 endif()
 
-if (GOOGLE_PERFTOOLS_FOUND)
+if (GPERFTOOLS_FOUND)
   target_link_libraries(gtsam PRIVATE ${GPERFTOOLS_TCMALLOC} ${GPERFTOOLS_PROFILER})
 endif()
 
