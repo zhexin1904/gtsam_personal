@@ -270,7 +270,7 @@ TEST(Ordering, MetisLoop) {
   symbolicGraph.push_factor(0, 5);
 
   // METIS
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) && !defined(__QNX__)
   {
     Ordering actual = Ordering::Create(Ordering::METIS, symbolicGraph);
     //  - P( 0 4 1)

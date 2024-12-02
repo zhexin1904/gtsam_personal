@@ -731,7 +731,7 @@ TEST(SymbolicBayesTree, COLAMDvsMETIS) {
   {
     Ordering ordering = Ordering::Create(Ordering::METIS, sfg);
 // Linux and Mac split differently when using mettis
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) && !defined(__QNX__)
     EXPECT(assert_equal(Ordering(list_of(3)(2)(5)(0)(4)(1)), ordering));
 #else
     EXPECT(assert_equal(Ordering(list_of(5)(4)(2)(1)(0)(3)), ordering));
@@ -742,7 +742,7 @@ TEST(SymbolicBayesTree, COLAMDvsMETIS) {
     //  | | - P( 5 | 0 4)
     //  | - P( 2 | 1 3)
     SymbolicBayesTree expected;
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) && !defined(__QNX__)
     expected.insertRoot(
         MakeClique(list_of(2)(4)(1), 3,
             list_of(

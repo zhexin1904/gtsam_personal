@@ -69,9 +69,6 @@ string findExampleDataFile(const string &name) {
   // Constants below are defined by CMake, see gtsam/gtsam/CMakeLists.txt
   rootsToSearch.push_back(GTSAM_SOURCE_TREE_DATASET_DIR);
   rootsToSearch.push_back(GTSAM_INSTALLED_DATASET_DIR);
-  #ifdef __QNX__
-  rootsToSearch.push_back(QNX_INSTALLED_DATASET_DIR);
-  #endif
 
   // Search for filename as given, and with .graph and .txt extensions
   vector<string> namesToSearch;
