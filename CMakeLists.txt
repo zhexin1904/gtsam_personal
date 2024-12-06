@@ -112,10 +112,17 @@ add_subdirectory(CppUnitLite)
 add_subdirectory(gtsam)
 
 # Build Tests
-add_subdirectory(tests)
+option(BUILD_TESTS "Builds unit tests" ON)
+if (BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
+
 
 # Build examples
-add_subdirectory(examples)
+option(BUILD_EXAMPLES "Builds examples" ON)
+if (BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
 
 # Build timing
 add_subdirectory(timing)
