@@ -31,6 +31,7 @@
 
 // Include for test suite
 #include <CppUnitLite/TestHarness.h>
+
 #include <memory>
 
 using namespace std;
@@ -263,7 +264,7 @@ TEST(HybridBayesNet, Choose) {
   const Ordering ordering(s.linearizationPoint.keys());
 
   const auto [hybridBayesNet, remainingFactorGraph] =
-      s.linearizedFactorGraph.eliminatePartialSequential(ordering);
+      s.linearizedFactorGraph().eliminatePartialSequential(ordering);
 
   DiscreteValues assignment;
   assignment[M(0)] = 1;
@@ -292,7 +293,7 @@ TEST(HybridBayesNet, OptimizeAssignment) {
   const Ordering ordering(s.linearizationPoint.keys());
 
   const auto [hybridBayesNet, remainingFactorGraph] =
-      s.linearizedFactorGraph.eliminatePartialSequential(ordering);
+      s.linearizedFactorGraph().eliminatePartialSequential(ordering);
 
   DiscreteValues assignment;
   assignment[M(0)] = 1;
@@ -319,7 +320,7 @@ TEST(HybridBayesNet, Optimize) {
   Switching s(4, 1.0, 0.1, {0, 1, 2, 3}, "1/1 1/1");
 
   HybridBayesNet::shared_ptr hybridBayesNet =
-      s.linearizedFactorGraph.eliminateSequential();
+      s.linearizedFactorGraph().eliminateSequential();
 
   HybridValues delta = hybridBayesNet->optimize();
 
@@ -347,7 +348,7 @@ TEST(HybridBayesNet, Pruning) {
   Switching s(3);
 
   HybridBayesNet::shared_ptr posterior =
-      s.linearizedFactorGraph.eliminateSequential();
+      s.linearizedFactorGraph().eliminateSequential();
   EXPECT_LONGS_EQUAL(5, posterior->size());
 
   // Optimize
@@ -361,10 +362,6 @@ TEST(HybridBayesNet, Pruning) {
   std::vector<double> leaves = {0.095516068, 0.31800092, 0.27798511, 0.3084979};
   AlgebraicDecisionTree<Key> expected(s.modes, leaves);
   EXPECT(assert_equal(expected, discretePosterior, 1e-6));
-
-  // Prune and get probabilities
-  auto prunedBayesNet = posterior->prune(2);
-  auto prunedTree = prunedBayesNet.discretePosterior(delta.continuous());
 
   // Verify logProbability computation and check specific logProbability value
   const DiscreteValues discrete_values{{M(0), 1}, {M(1), 1}};
@@ -380,10 +377,21 @@ TEST(HybridBayesNet, Pruning) {
   EXPECT_DOUBLES_EQUAL(logProbability, posterior->logProbability(hybridValues),
                        1e-9);
 
+  double negLogConstant = posterior->negLogConstant(discrete_values);
+
+  // The sum of all the mode densities
+  double normalizer =
+      AlgebraicDecisionTree<Key>(posterior->errorTree(delta.continuous()),
+                                 [](double error) { return exp(-error); })
+          .sum();
+
   // Check agreement with discrete posterior
-  // double density = exp(logProbability);
-  // FAILS: EXPECT_DOUBLES_EQUAL(density, discretePosterior(discrete_values),
-  // 1e-6);
+  double density = exp(logProbability + negLogConstant) / normalizer;
+  EXPECT_DOUBLES_EQUAL(density, discretePosterior(discrete_values), 1e-6);
+
+  // Prune and get probabilities
+  auto prunedBayesNet = posterior->prune(2);
+  auto prunedTree = prunedBayesNet.discretePosterior(delta.continuous());
 
   // Regression test on pruned logProbability tree
   std::vector<double> pruned_leaves = {0.0, 0.50758422, 0.0, 0.49241578};
@@ -391,7 +399,26 @@ TEST(HybridBayesNet, Pruning) {
   EXPECT(assert_equal(expected_pruned, prunedTree, 1e-6));
 
   // Regression
-  // FAILS: EXPECT_DOUBLES_EQUAL(density, prunedTree(discrete_values), 1e-9);
+  double pruned_logProbability = 0;
+  pruned_logProbability +=
+      prunedBayesNet.at(0)->asDiscrete()->logProbability(hybridValues);
+  pruned_logProbability +=
+      prunedBayesNet.at(1)->asHybrid()->logProbability(hybridValues);
+  pruned_logProbability +=
+      prunedBayesNet.at(2)->asHybrid()->logProbability(hybridValues);
+  pruned_logProbability +=
+      prunedBayesNet.at(3)->asHybrid()->logProbability(hybridValues);
+
+  double pruned_negLogConstant = prunedBayesNet.negLogConstant(discrete_values);
+
+  // The sum of all the mode densities
+  double pruned_normalizer =
+      AlgebraicDecisionTree<Key>(prunedBayesNet.errorTree(delta.continuous()),
+                                 [](double error) { return exp(-error); })
+          .sum();
+  double pruned_density =
+      exp(pruned_logProbability + pruned_negLogConstant) / pruned_normalizer;
+  EXPECT_DOUBLES_EQUAL(pruned_density, prunedTree(discrete_values), 1e-9);
 }
 
 /* ****************************************************************************/
@@ -400,7 +427,7 @@ TEST(HybridBayesNet, Prune) {
   Switching s(4);
 
   HybridBayesNet::shared_ptr posterior =
-      s.linearizedFactorGraph.eliminateSequential();
+      s.linearizedFactorGraph().eliminateSequential();
   EXPECT_LONGS_EQUAL(7, posterior->size());
 
   HybridValues delta = posterior->optimize();
@@ -418,7 +445,7 @@ TEST(HybridBayesNet, UpdateDiscreteConditionals) {
   Switching s(4);
 
   HybridBayesNet::shared_ptr posterior =
-      s.linearizedFactorGraph.eliminateSequential();
+      s.linearizedFactorGraph().eliminateSequential();
   EXPECT_LONGS_EQUAL(7, posterior->size());
 
   DiscreteConditional joint;

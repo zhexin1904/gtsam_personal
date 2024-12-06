@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.9)
 if (POLICY CMP0082)
     cmake_policy(SET CMP0082 NEW) # install from sub-directories immediately
 endif()
@@ -11,6 +11,12 @@ endif()
 if (POLICY CMP0167)
 cmake_policy(SET CMP0167 OLD) # Don't complain about boost
 endif()
+
+# allow parent project to override options
+if (POLICY CMP0077)
+  cmake_policy(SET CMP0077 NEW)
+endif(POLICY CMP0077)
+
 
 # Set the version number for the library
 set (GTSAM_VERSION_MAJOR 4)

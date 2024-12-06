@@ -11,6 +11,7 @@ namespace gtsam {
 #include <gtsam/geometry/Cal3_S2.h>
 #include <gtsam/geometry/CalibratedCamera.h>
 #include <gtsam/geometry/EssentialMatrix.h>
+#include <gtsam/geometry/FundamentalMatrix.h>
 #include <gtsam/geometry/PinholeCamera.h>
 #include <gtsam/geometry/Point2.h>
 #include <gtsam/geometry/Point3.h>
@@ -74,13 +75,20 @@ class NonlinearFactorGraph {
                  gtsam::Pose2,
                  gtsam::Pose3,
                  gtsam::Cal3_S2,
+                 gtsam::Cal3f,
+                 gtsam::Cal3Bundler,
                  gtsam::Cal3Fisheye,
                  gtsam::Cal3Unified,
                  gtsam::CalibratedCamera,
+                 gtsam::EssentialMatrix,
+                 gtsam::FundamentalMatrix,
+                 gtsam::SimpleFundamentalMatrix,
                  gtsam::PinholeCamera<gtsam::Cal3_S2>,
+                 gtsam::PinholeCamera<gtsam::Cal3f>,
                  gtsam::PinholeCamera<gtsam::Cal3Bundler>,
                  gtsam::PinholeCamera<gtsam::Cal3Fisheye>,
                  gtsam::PinholeCamera<gtsam::Cal3Unified>,
+                 gtsam::PinholeCamera<gtsam::CalibratedCamera>,
                  gtsam::imuBias::ConstantBias}>
   void addPrior(size_t key, const T& prior,
                 const gtsam::noiseModel::Base* noiseModel);
@@ -536,7 +544,8 @@ class ISAM2 {
   gtsam::Values calculateEstimate() const;
   template <VALUE = {gtsam::Point2, gtsam::Rot2, gtsam::Pose2, gtsam::Point3,
                      gtsam::Rot3, gtsam::Pose3, gtsam::Cal3_S2, gtsam::Cal3DS2,
-                     gtsam::Cal3Bundler, gtsam::EssentialMatrix,
+                     gtsam::Cal3f, gtsam::Cal3Bundler, 
+                     gtsam::EssentialMatrix, gtsam::FundamentalMatrix, gtsam::SimpleFundamentalMatrix,
                      gtsam::PinholeCamera<gtsam::Cal3_S2>,
                      gtsam::PinholeCamera<gtsam::Cal3Bundler>,
                      gtsam::PinholeCamera<gtsam::Cal3Fisheye>,
@@ -706,6 +715,9 @@ virtual class BatchFixedLagSmoother : gtsam::FixedLagSmoother {
   void print(string s = "BatchFixedLagSmoother:\n") const;
 
   gtsam::LevenbergMarquardtParams params() const;
+
+  gtsam::NonlinearFactorGraph getFactors() const;
+
   template <VALUE = {gtsam::Point2, gtsam::Rot2, gtsam::Pose2, gtsam::Point3,
                      gtsam::Rot3, gtsam::Pose3, gtsam::Cal3_S2, gtsam::Cal3DS2,
                      gtsam::Vector, gtsam::Matrix}>
