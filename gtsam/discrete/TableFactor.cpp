@@ -135,7 +135,7 @@ bool TableFactor::equals(const DiscreteFactor& other, double tol) const {
 }
 
 /* ************************************************************************ */
-double TableFactor::operator()(const DiscreteValues& values) const {
+double TableFactor::operator()(const Assignment<Key>& values) const {
   // a b c d => D * (C * (B * (a) + b) + c) + d
   uint64_t idx = 0, card = 1;
   for (auto it = sorted_dkeys_.rbegin(); it != sorted_dkeys_.rend(); ++it) {

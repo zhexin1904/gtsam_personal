@@ -129,6 +129,9 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
   virtual DiscreteFactor::shared_ptr operator/(
       const DiscreteFactor::shared_ptr& f) const = 0;
 
+  /// Calculate probability for given values
+  virtual double evaluate(const Assignment<Key>& values) const = 0;
+
   /**
    * Get the number of non-zero values contained in this factor.
    * It could be much smaller than `prod_{key}(cardinality(key))`.

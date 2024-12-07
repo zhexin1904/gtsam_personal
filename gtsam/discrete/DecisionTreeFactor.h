@@ -129,9 +129,9 @@ namespace gtsam {
     /// @name Standard Interface
     /// @{
 
-    /// Calculate probability for given values `x`, 
+    /// Calculate probability for given values, 
     /// is just look up in AlgebraicDecisionTree.
-    double evaluate(const Assignment<Key>& values) const  {
+    double evaluate(const Assignment<Key>& values) const override {
       return ADT::operator()(values);
     }
 
