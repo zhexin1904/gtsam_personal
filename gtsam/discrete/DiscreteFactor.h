@@ -94,7 +94,7 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
   size_t cardinality(Key j) const { return cardinalities_.at(j); }
 
   /// Find value for given assignment of values to variables
-  virtual double operator()(const DiscreteValues&) const = 0;
+  virtual double operator()(const DiscreteValues& values) const = 0;
 
   /// Error is just -log(value)
   virtual double error(const DiscreteValues& values) const;
