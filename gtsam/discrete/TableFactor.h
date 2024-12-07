@@ -186,8 +186,9 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
     return apply(f, Ring::mul);
   };
 
-  /// multiply with DecisionTreeFactor
-  DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override;
+  /// multiply with DiscreteFactor
+  DiscreteFactor::shared_ptr operator*(
+      const DiscreteFactor::shared_ptr& f) const override;
 
   static double safe_div(const double& a, const double& b);
 

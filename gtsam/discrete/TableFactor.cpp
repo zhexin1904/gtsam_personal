@@ -169,8 +169,13 @@ double TableFactor::error(const HybridValues& values) const {
 }
 
 /* ************************************************************************ */
-DecisionTreeFactor TableFactor::operator*(const DecisionTreeFactor& f) const {
-  return toDecisionTreeFactor() * f;
+DiscreteFactor::shared_ptr TableFactor::operator*(
+    const DiscreteFactor::shared_ptr& f) const {
+  if (auto derived = std::dynamic_pointer_cast<TableFactor>(f)) {
+    return std::make_shared<TableFactor>(this->operator*(*derived));
+  } else {
+    throw std::runtime_error("Cannot convert DiscreteFactor to TableFactor");
+  }
 }
 
 /* ************************************************************************ */

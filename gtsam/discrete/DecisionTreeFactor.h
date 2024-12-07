@@ -144,9 +144,12 @@ namespace gtsam {
     double error(const DiscreteValues& values) const override;
 
     /// multiply two factors
-    DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override {
+    DecisionTreeFactor operator*(const DecisionTreeFactor& f) const {
       return apply(f, ADT::Ring::mul);
     }
+
+    DiscreteFactor::shared_ptr operator*(
+        const DiscreteFactor::shared_ptr& f) const override;
 
     static double safe_div(const double& a, const double& b);
 

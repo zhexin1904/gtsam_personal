@@ -107,9 +107,10 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
   /// Compute error for each assignment and return as a tree
   virtual AlgebraicDecisionTree<Key> errorTree() const;
 
-  /// Multiply in a DecisionTreeFactor and return the result as
-  /// DecisionTreeFactor
-  virtual DecisionTreeFactor operator*(const DecisionTreeFactor&) const = 0;
+  /// Multiply in a DiscreteFactor and return the result as
+  /// DiscreteFactor
+  virtual DiscreteFactor::shared_ptr operator*(
+      const DiscreteFactor::shared_ptr&) const = 0;
 
   virtual DecisionTreeFactor toDecisionTreeFactor() const = 0;
 
