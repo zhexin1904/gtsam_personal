@@ -22,6 +22,7 @@
 #include <gtsam/discrete/AlgebraicDecisionTree.h>
 #include <gtsam/discrete/DiscreteValues.h>
 #include <gtsam/inference/Factor.h>
+#include <gtsam/inference/Ordering.h>
 
 #include <string>
 namespace gtsam {
@@ -113,6 +114,22 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
       const DiscreteFactor::shared_ptr&) const = 0;
 
   virtual DecisionTreeFactor toDecisionTreeFactor() const = 0;
+
+  /// Create new factor by summing all values with the same separator values
+  virtual DiscreteFactor::shared_ptr sum(size_t nrFrontals) const = 0;
+
+  /// Create new factor by summing all values with the same separator values
+  virtual DiscreteFactor::shared_ptr sum(const Ordering& keys) const = 0;
+
+  /// Create new factor by maximizing over all values with the same separator.
+  virtual DiscreteFactor::shared_ptr max(size_t nrFrontals) const = 0;
+
+  /// Create new factor by maximizing over all values with the same separator.
+  virtual DiscreteFactor::shared_ptr max(const Ordering& keys) const = 0;
+
+  /// divide by factor f (safely)
+  virtual DiscreteFactor::shared_ptr operator/(
+      const DiscreteFactor::shared_ptr& f) const = 0;
 
   /**
    * Get the number of non-zero values contained in this factor.

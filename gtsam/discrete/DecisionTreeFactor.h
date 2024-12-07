@@ -158,26 +158,37 @@ namespace gtsam {
       return apply(f, safe_div);
     }
 
+    /// divide by factor f (pointer version)
+    DiscreteFactor::shared_ptr operator/(
+        const DiscreteFactor::shared_ptr& f) const override {
+      if (auto derived = std::dynamic_pointer_cast<DecisionTreeFactor>(f)) {
+        return std::make_shared<DecisionTreeFactor>(apply(*derived, safe_div));
+      } else {
+        throw std::runtime_error(
+            "Cannot convert DiscreteFactor to Table Factor");
+      }
+    }
+
     /// Convert into a decision tree
     DecisionTreeFactor toDecisionTreeFactor() const override { return *this; }
 
     /// Create new factor by summing all values with the same separator values
-    shared_ptr sum(size_t nrFrontals) const {
+    DiscreteFactor::shared_ptr sum(size_t nrFrontals) const override {
       return combine(nrFrontals, ADT::Ring::add);
     }
 
     /// Create new factor by summing all values with the same separator values
-    shared_ptr sum(const Ordering& keys) const {
+    DiscreteFactor::shared_ptr sum(const Ordering& keys) const override {
       return combine(keys, ADT::Ring::add);
     }
 
     /// Create new factor by maximizing over all values with the same separator.
-    shared_ptr max(size_t nrFrontals) const {
+    DiscreteFactor::shared_ptr max(size_t nrFrontals) const override {
       return combine(nrFrontals, ADT::Ring::max);
     }
 
     /// Create new factor by maximizing over all values with the same separator.
-    shared_ptr max(const Ordering& keys) const {
+    DiscreteFactor::shared_ptr max(const Ordering& keys) const override {
       return combine(keys, ADT::Ring::max);
     }
 
