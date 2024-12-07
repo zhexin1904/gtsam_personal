@@ -64,10 +64,16 @@ namespace gtsam {
   }
 
   /* ************************************************************************* */
-  DecisionTreeFactor DiscreteFactorGraph::product() const {
-    DecisionTreeFactor result;
-    for(const sharedFactor& factor: *this)
-      if (factor) result = (*factor) * result;
+  DiscreteFactor::shared_ptr DiscreteFactorGraph::product() const {
+    sharedFactor result = this->at(0);
+    for (size_t i = 1; i < this->size(); ++i) {
+      const sharedFactor factor = this->at(i);
+      if (factor) {
+        // Predicated on the fact that all discrete factors are of a single type
+        // so there is no type-conversion happening which can be expensive.
+        result = result->operator*(factor);
+      }
+    }
     return result;
   }
 
