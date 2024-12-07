@@ -112,7 +112,7 @@ namespace gtsam {
 
   /* ************************************************************************ */
   // Alternate eliminate function for MPE
-  std::pair<DiscreteConditional::shared_ptr, DecisionTreeFactor::shared_ptr>  //
+  std::pair<DiscreteConditional::shared_ptr, DiscreteFactor::shared_ptr>
   EliminateForMPE(const DiscreteFactorGraph& factors,
                   const Ordering& frontalKeys) {
     // PRODUCT: multiply all factors
@@ -201,7 +201,7 @@ namespace gtsam {
   }
 
   /* ************************************************************************ */
-  std::pair<DiscreteConditional::shared_ptr, DecisionTreeFactor::shared_ptr>  //
+  std::pair<DiscreteConditional::shared_ptr, DiscreteFactor::shared_ptr>
   EliminateDiscrete(const DiscreteFactorGraph& factors,
                     const Ordering& frontalKeys) {
     // PRODUCT: multiply all factors

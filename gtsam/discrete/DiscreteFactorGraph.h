@@ -48,7 +48,7 @@ class DiscreteJunctionTree;
  * @ingroup discrete
  */
 GTSAM_EXPORT
-std::pair<DiscreteConditional::shared_ptr, DecisionTreeFactor::shared_ptr>
+std::pair<DiscreteConditional::shared_ptr, DiscreteFactor::shared_ptr>
 EliminateDiscrete(const DiscreteFactorGraph& factors,
                   const Ordering& frontalKeys);
 
@@ -61,7 +61,7 @@ EliminateDiscrete(const DiscreteFactorGraph& factors,
  * @ingroup discrete
  */
 GTSAM_EXPORT
-std::pair<DiscreteConditional::shared_ptr, DecisionTreeFactor::shared_ptr>
+std::pair<DiscreteConditional::shared_ptr, DiscreteFactor::shared_ptr>
 EliminateForMPE(const DiscreteFactorGraph& factors,
                 const Ordering& frontalKeys);
 
@@ -133,6 +133,7 @@ class GTSAM_EXPORT DiscreteFactorGraph
 
   /// @}
 
+  //TODO(Varun): Make compatible with TableFactor
   /** Add a decision-tree factor */
   template <typename... Args>
   void add(Args&&... args) {
@@ -146,7 +147,7 @@ class GTSAM_EXPORT DiscreteFactorGraph
   DiscreteKeys discreteKeys() const;
 
   /** return product of all factors as a single factor */
-  DecisionTreeFactor product() const;
+  DiscreteFactor::shared_ptr product() const;
 
   /** 
    * Evaluates the factor graph given values, returns the joint probability of
