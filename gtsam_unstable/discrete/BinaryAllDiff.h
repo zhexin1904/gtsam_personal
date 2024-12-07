@@ -96,6 +96,9 @@ class BinaryAllDiff : public Constraint {
   AlgebraicDecisionTree<Key> errorTree() const override {
     throw std::runtime_error("BinaryAllDiff::error not implemented");
   }
+
+  /// Get the number of non-zero values contained in this factor.
+  uint64_t nrValues() const override { return 1; };
 };
 
 }  // namespace gtsam

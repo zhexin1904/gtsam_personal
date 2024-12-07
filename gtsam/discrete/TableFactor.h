@@ -324,6 +324,12 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
    */
   TableFactor prune(size_t maxNrAssignments) const;
 
+  /**
+   * Get the number of non-zero values contained in this factor.
+   * It could be much smaller than `prod_{key}(cardinality(key))`.
+   */
+  uint64_t nrValues() const override { return sparse_table_.nonZeros(); }
+
   /// @}
   /// @name Wrapper support
   /// @{

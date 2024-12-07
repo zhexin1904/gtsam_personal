@@ -113,6 +113,12 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
 
   virtual DecisionTreeFactor toDecisionTreeFactor() const = 0;
 
+  /**
+   * Get the number of non-zero values contained in this factor.
+   * It could be much smaller than `prod_{key}(cardinality(key))`.
+   */
+  virtual uint64_t nrValues() const = 0;
+
   /// @}
   /// @name Wrapper support
   /// @{

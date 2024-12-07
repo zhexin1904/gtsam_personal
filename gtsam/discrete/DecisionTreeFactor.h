@@ -255,6 +255,12 @@ namespace gtsam {
      */
     DecisionTreeFactor prune(size_t maxNrAssignments) const;
 
+    /**
+     * Get the number of non-zero values contained in this factor.
+     * It could be much smaller than `prod_{key}(cardinality(key))`.
+     */
+    uint64_t nrValues() const override { return nrLeaves(); }
+
     /// @}
     /// @name Wrapper support
     /// @{

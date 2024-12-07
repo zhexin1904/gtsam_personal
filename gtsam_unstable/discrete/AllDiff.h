@@ -72,6 +72,9 @@ class GTSAM_UNSTABLE_EXPORT AllDiff : public Constraint {
   /// Partially apply known values, domain version
   Constraint::shared_ptr partiallyApply(
       const Domains&) const override;
+
+  /// Get the number of non-zero values contained in this factor.
+  uint64_t nrValues() const override { return 1; };
 };
 
 }  // namespace gtsam
