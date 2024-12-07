@@ -72,7 +72,9 @@ TableFactor::TableFactor(const DiscreteKeys& dkeys,
  */
 std::vector<double> ComputeLeafOrdering(const DiscreteKeys& dkeys,
                                         const DecisionTreeFactor& dt) {
+  gttic_(ComputeLeafOrdering);
   std::vector<double> probs = dt.probabilities();
+  gttoc_(ComputeLeafOrdering);
   std::vector<double> ordered;
 
   size_t n = dkeys[0].second;
@@ -180,12 +182,16 @@ DiscreteFactor::shared_ptr TableFactor::operator*(
 
 /* ************************************************************************ */
 DecisionTreeFactor TableFactor::toDecisionTreeFactor() const {
+  gttic_(toDecisionTreeFactor);
   DiscreteKeys dkeys = discreteKeys();
   std::vector<double> table;
   for (auto i = 0; i < sparse_table_.size(); i++) {
     table.push_back(sparse_table_.coeff(i));
   }
+  gttoc_(toDecisionTreeFactor);
+  gttic_(toDecisionTreeFactor_Constructor);
   DecisionTreeFactor f(dkeys, table);
+  gttoc_(toDecisionTreeFactor_Constructor);
   return f;
 }
 

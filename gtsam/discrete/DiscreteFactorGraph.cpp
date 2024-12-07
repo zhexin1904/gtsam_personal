@@ -22,6 +22,7 @@
 #include <gtsam/discrete/DiscreteFactorGraph.h>
 #include <gtsam/discrete/DiscreteJunctionTree.h>
 #include <gtsam/discrete/DiscreteLookupDAG.h>
+#include <gtsam/discrete/TableFactor.h>
 #include <gtsam/inference/EliminateableFactorGraph-inst.h>
 #include <gtsam/inference/FactorGraph-inst.h>
 
@@ -144,12 +145,15 @@ namespace gtsam {
   EliminateForMPE(const DiscreteFactorGraph& factors,
                   const Ordering& frontalKeys) {
     // PRODUCT: multiply all factors
-    gttic(product);
+    gttic_(MPEProduct);
     DiscreteFactor::shared_ptr product = factors.product();
-    gttoc(product);
+    gttoc_(MPEProduct);
+
+    gttic_(Normalize);
 
     // Normalize the product
     product = Normalize(product);
+    gttoc_(Normalize);
 
     // max out frontals, this is the factor on the separator
     gttic(max);
@@ -229,17 +233,19 @@ namespace gtsam {
   EliminateDiscrete(const DiscreteFactorGraph& factors,
                     const Ordering& frontalKeys) {
     // PRODUCT: multiply all factors
-    gttic(product);
+    gttic_(product);
     DiscreteFactor::shared_ptr product = factors.product();
-    gttoc(product);
+    gttoc_(product);
 
-    // Normalize the product 
+    gttic_(Normalize);
+    // Normalize the product
     product = Normalize(product);
+    gttoc_(Normalize);
 
     // sum out frontals, this is the factor on the separator
-    gttic(sum);
+    gttic_(sum);
     DecisionTreeFactor::shared_ptr sum = product->sum(frontalKeys);
-    gttoc(sum);
+    gttoc_(sum);
 
     // Ordering keys for the conditional so that frontalKeys are really in front
     Ordering orderedKeys;
@@ -249,10 +255,10 @@ namespace gtsam {
                        sum->keys().end());
 
     // now divide product/sum to get conditional
-    gttic(divide);
+    gttic_(divide);
     auto conditional =
         std::make_shared<DiscreteConditional>(product, *sum, orderedKeys);
-    gttoc(divide);
+    gttoc_(divide);
 
     return {conditional, sum};
   }
