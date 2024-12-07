@@ -113,8 +113,6 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
   virtual DiscreteFactor::shared_ptr operator*(
       const DiscreteFactor::shared_ptr&) const = 0;
 
-  virtual DecisionTreeFactor toDecisionTreeFactor() const = 0;
-
   /// Create new factor by summing all values with the same separator values
   virtual DiscreteFactor::shared_ptr sum(size_t nrFrontals) const = 0;
 
