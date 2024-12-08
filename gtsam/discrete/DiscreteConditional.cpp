@@ -201,7 +201,7 @@ DiscreteConditional::shared_ptr DiscreteConditional::choose(
 }
 
 /* ************************************************************************** */
-DiscreteFactor::shared_ptr DiscreteConditional::likelihood(
+DecisionTreeFactor::shared_ptr DiscreteConditional::likelihood(
     const DiscreteValues& frontalValues) const {
   // Get the big decision tree with all the levels, and then go down the
   // branches based on the value of the frontal variables.
@@ -226,7 +226,7 @@ DiscreteFactor::shared_ptr DiscreteConditional::likelihood(
 }
 
 /* ****************************************************************************/
-DiscreteFactor::shared_ptr DiscreteConditional::likelihood(
+DecisionTreeFactor::shared_ptr DiscreteConditional::likelihood(
     size_t frontal) const {
   if (nrFrontals() != 1)
     throw std::invalid_argument(

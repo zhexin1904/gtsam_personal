@@ -188,11 +188,11 @@ class GTSAM_EXPORT DiscreteConditional
   shared_ptr choose(const DiscreteValues& given) const;
 
   /** Convert to a likelihood factor by providing value before bar. */
-  DiscreteFactor::shared_ptr likelihood(
+  DecisionTreeFactor::shared_ptr likelihood(
       const DiscreteValues& frontalValues) const;
 
   /** Single variable version of likelihood. */
-  DiscreteFactor::shared_ptr likelihood(size_t frontal) const;
+  DecisionTreeFactor::shared_ptr likelihood(size_t frontal) const;
 
   /**
    * sample
