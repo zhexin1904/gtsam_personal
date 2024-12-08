@@ -44,10 +44,6 @@ class GTSAM_EXPORT DiscreteDistribution : public DiscreteConditional {
   explicit DiscreteDistribution(const DecisionTreeFactor& f)
       : Base(f.size(), f) {}
 
-  /// Constructor from TableFactor.
-  explicit DiscreteDistribution(const TableFactor& f)
-      : Base(f.size(), f) {}
-
   /**
    * Construct from a Signature.
    *
