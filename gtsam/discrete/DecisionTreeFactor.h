@@ -156,6 +156,11 @@ namespace gtsam {
       return apply(f, safe_div);
     }
 
+    /// divide by DiscreteFactor::shared_ptr f (safely)
+    DecisionTreeFactor operator/(const DiscreteFactor::shared_ptr& f) const {
+      return apply(*std::dynamic_pointer_cast<DecisionTreeFactor>(f), safe_div);
+    }
+
     /// Convert into a decision tree
     DecisionTreeFactor toDecisionTreeFactor() const override { return *this; }
 
