@@ -43,7 +43,9 @@ template class GTSAM_EXPORT
 /* ************************************************************************** */
 DiscreteConditional::DiscreteConditional(const size_t nrFrontals,
                                          const DecisionTreeFactor& f)
-    : BaseFactor(f / (*f.sum(nrFrontals))), BaseConditional(nrFrontals) {}
+    : BaseFactor(f / (*std::dynamic_pointer_cast<DecisionTreeFactor>(
+                         f.sum(nrFrontals)))),
+      BaseConditional(nrFrontals) {}
 
 /* ************************************************************************** */
 DiscreteConditional::DiscreteConditional(size_t nrFrontals,
