@@ -22,7 +22,6 @@
 #include <gtsam/discrete/DiscreteFactorGraph.h>
 #include <gtsam/discrete/DiscreteJunctionTree.h>
 #include <gtsam/discrete/DiscreteLookupDAG.h>
-#include <gtsam/discrete/TableFactor.h>
 #include <gtsam/inference/EliminateableFactorGraph-inst.h>
 #include <gtsam/inference/FactorGraph-inst.h>
 
@@ -127,14 +126,14 @@ namespace gtsam {
   static DiscreteFactor::shared_ptr Normalize(
       const DiscreteFactor::shared_ptr& product) {
     // Max over all the potentials by pretending all keys are frontal:
-    gttic(DiscreteFindMax);
+    gttic_(DiscreteFindMax);
     auto normalization = product->max(product->size());
-    gttoc(DiscreteFindMax);
+    gttoc_(DiscreteFindMax);
 
-    gttic(DiscreteNormalization);
+    gttic_(DiscreteNormalization);
     // Normalize the product factor to prevent underflow.
     auto normalized_product = product->operator/(normalization);
-    gttoc(DiscreteNormalization);
+    gttoc_(DiscreteNormalization);
 
     return normalized_product;
   }
@@ -260,7 +259,7 @@ namespace gtsam {
     gttic_(divide);
     auto conditional =
         std::make_shared<DiscreteConditional>(product, sum, orderedKeys);
-    gttoc(divide);
+    gttoc_(divide);
 
     return {conditional, sum};
   }
