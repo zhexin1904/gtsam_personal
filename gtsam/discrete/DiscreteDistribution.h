@@ -86,7 +86,8 @@ class GTSAM_EXPORT DiscreteDistribution : public DiscreteConditional {
   double operator()(size_t value) const;
 
   /// We also want to keep the Base version, taking DiscreteValues:
-  using Base::operator();
+  // TODO(dellaert): does not play well with wrapper!
+  // using Base::operator();
 
   /// Return entire probability mass function.
   std::vector<double> pmf() const;
