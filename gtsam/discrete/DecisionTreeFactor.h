@@ -51,6 +51,7 @@ namespace gtsam {
     typedef std::shared_ptr<DecisionTreeFactor> shared_ptr;
     typedef AlgebraicDecisionTree<Key> ADT;
 
+    // Needed since we have definitions in both DiscreteFactor and DecisionTree
     using Base::Binary;
     using Base::Unary;
     using Base::UnaryAssignment;
