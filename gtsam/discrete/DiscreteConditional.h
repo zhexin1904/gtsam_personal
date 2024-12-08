@@ -168,8 +168,8 @@ class GTSAM_EXPORT DiscreteConditional
     static_cast<const BaseConditional*>(this)->print(s, formatter);
   }
 
-  using DecisionTreeFactor::error;       ///< DiscreteValues version
-  using DecisionTreeFactor::operator();  ///< DiscreteValues version
+  using BaseFactor::error;       ///< DiscreteValues version
+  using BaseFactor::operator();  ///< DiscreteValues version
 
   /**
    * @brief restrict to given *parent* values.
