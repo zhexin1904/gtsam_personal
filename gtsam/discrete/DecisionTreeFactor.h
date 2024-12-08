@@ -131,11 +131,6 @@ namespace gtsam {
 
     /// Calculate probability for given values, 
     /// is just look up in AlgebraicDecisionTree.
-    double evaluate(const Assignment<Key>& values) const override {
-      return ADT::operator()(values);
-    }
-
-    /// Evaluate probability distribution, sugar.
     double operator()(const Assignment<Key>& values) const override {
       return ADT::operator()(values);
     }
