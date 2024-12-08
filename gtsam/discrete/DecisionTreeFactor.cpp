@@ -83,17 +83,6 @@ namespace gtsam {
   }
 
   /* ************************************************************************ */
-  DiscreteFactor::shared_ptr DecisionTreeFactor::operator*(
-      const DiscreteFactor::shared_ptr& f) const {
-    if (auto derived = std::dynamic_pointer_cast<DecisionTreeFactor>(f)) {
-      return std::make_shared<DecisionTreeFactor>(this->operator*(*derived));
-    } else {
-      throw std::runtime_error(
-          "Cannot convert DiscreteFactor to DecisionTreeFactor");
-    }
-  }
-
-  /* ************************************************************************ */
   DecisionTreeFactor DecisionTreeFactor::apply(Unary op) const {
     // apply operand
     ADT result = ADT::apply(op);

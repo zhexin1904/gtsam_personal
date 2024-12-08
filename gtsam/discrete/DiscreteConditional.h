@@ -110,16 +110,16 @@ class GTSAM_EXPORT DiscreteConditional
    * @brief construct P(X|Y) = f(X,Y)/f(Y) from f(X,Y) and f(Y)
    * Assumes but *does not check* that f(Y)=sum_X f(X,Y).
    */
-  DiscreteConditional(const DiscreteFactor::shared_ptr& joint,
-                      const DiscreteFactor::shared_ptr& marginal);
+  DiscreteConditional(const DecisionTreeFactor& joint,
+                      const DecisionTreeFactor& marginal);
 
   /**
    * @brief construct P(X|Y) = f(X,Y)/f(Y) from f(X,Y) and f(Y)
    * Assumes but *does not check* that f(Y)=sum_X f(X,Y).
    * Makes sure the keys are ordered as given. Does not check orderedKeys.
    */
-  DiscreteConditional(const DiscreteFactor::shared_ptr& joint,
-                      const DiscreteFactor::shared_ptr& marginal,
+  DiscreteConditional(const DecisionTreeFactor& joint,
+                      const DecisionTreeFactor& marginal,
                       const Ordering& orderedKeys);
 
   /**

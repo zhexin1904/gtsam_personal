@@ -145,29 +145,15 @@ namespace gtsam {
     double error(const DiscreteValues& values) const override;
 
     /// multiply two factors
-    DecisionTreeFactor operator*(const DecisionTreeFactor& f) const {
+    DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override {
       return apply(f, Ring::mul);
     }
-
-    DiscreteFactor::shared_ptr operator*(
-        const DiscreteFactor::shared_ptr& f) const override;
 
     static double safe_div(const double& a, const double& b);
 
     /// divide by factor f (safely)
     DecisionTreeFactor operator/(const DecisionTreeFactor& f) const {
       return apply(f, safe_div);
-    }
-
-    /// divide by factor f (pointer version)
-    DiscreteFactor::shared_ptr operator/(
-        const DiscreteFactor::shared_ptr& f) const override {
-      if (auto derived = std::dynamic_pointer_cast<DecisionTreeFactor>(f)) {
-        return std::make_shared<DecisionTreeFactor>(apply(*derived, safe_div));
-      } else {
-        throw std::runtime_error(
-            "Cannot convert DiscreteFactor to Table Factor");
-      }
     }
 
     /// Convert into a decision tree

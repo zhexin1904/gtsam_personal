@@ -38,7 +38,8 @@ using std::vector;
 namespace gtsam {
 
 // Instantiate base class
-template class GTSAM_EXPORT Conditional<DecisionTreeFactor, DiscreteConditional>;
+template class GTSAM_EXPORT
+    Conditional<DecisionTreeFactor, DiscreteConditional>;
 
 /* ************************************************************************** */
 DiscreteConditional::DiscreteConditional(const size_t nrFrontals,
@@ -152,11 +153,11 @@ void DiscreteConditional::print(const string& s,
 /* ************************************************************************** */
 bool DiscreteConditional::equals(const DiscreteFactor& other,
                                  double tol) const {
-  if (!dynamic_cast<const DecisionTreeFactor*>(&other)) {
+  if (!dynamic_cast<const BaseFactor*>(&other)) {
     return false;
   } else {
-    const DecisionTreeFactor& f(static_cast<const DecisionTreeFactor&>(other));
-    return DecisionTreeFactor::equals(f, tol);
+    const BaseFactor& f(static_cast<const BaseFactor&>(other));
+    return BaseFactor::equals(f, tol);
   }
 }
 
@@ -377,7 +378,7 @@ std::string DiscreteConditional::markdown(const KeyFormatter& keyFormatter,
   ss << "*\n" << std::endl;
   if (nrParents() == 0) {
     // We have no parents, call factor method.
-    ss << DecisionTreeFactor::markdown(keyFormatter, names);
+    ss << BaseFactor::markdown(keyFormatter, names);
     return ss.str();
   }
 
@@ -429,7 +430,7 @@ string DiscreteConditional::html(const KeyFormatter& keyFormatter,
   ss << "</i></p>\n";
   if (nrParents() == 0) {
     // We have no parents, call factor method.
-    ss << DecisionTreeFactor::html(keyFormatter, names);
+    ss << BaseFactor::html(keyFormatter, names);
     return ss.str();
   }
 

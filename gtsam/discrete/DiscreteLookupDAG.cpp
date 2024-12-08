@@ -47,7 +47,7 @@ void DiscreteLookupTable::print(const std::string& s,
     }
   }
   cout << "):\n";
-  ADT::print("", formatter);
+  BaseFactor::print("", formatter);
   cout << endl;
 }
 
