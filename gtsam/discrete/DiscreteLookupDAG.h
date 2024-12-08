@@ -18,6 +18,7 @@
 #pragma once
 
 #include <gtsam/discrete/DiscreteDistribution.h>
+#include <gtsam/discrete/TableFactor.h>
 #include <gtsam/inference/BayesNet.h>
 #include <gtsam/inference/FactorGraph.h>
 
@@ -53,6 +54,12 @@ class GTSAM_EXPORT DiscreteLookupTable : public DiscreteConditional {
   DiscreteLookupTable(size_t nFrontals, const DiscreteKeys& keys,
                       const ADT& potentials)
       : DiscreteConditional(nFrontals, keys, potentials) {}
+
+  //TODO(Varun): Should accept a DiscreteFactor::shared_ptr
+  DiscreteLookupTable(size_t nFrontals, const DiscreteKeys& keys,
+                      const TableFactor& potentials)
+      : DiscreteConditional(nFrontals, keys,
+                            potentials.toDecisionTreeFactor()) {}
 
   /// GTSAM-style print
   void print(

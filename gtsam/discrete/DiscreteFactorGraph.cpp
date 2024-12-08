@@ -170,8 +170,10 @@ namespace gtsam {
     // Make lookup with product
     gttic(lookup);
     size_t nrFrontals = frontalKeys.size();
-    auto lookup = std::make_shared<DiscreteLookupTable>(nrFrontals,
-                                                          orderedKeys, product);
+    //TODO(Varun): Should accept a DiscreteFactor::shared_ptr
+    auto lookup = std::make_shared<DiscreteLookupTable>(
+        nrFrontals, orderedKeys,
+        *std::dynamic_pointer_cast<TableFactor>(product));
     gttoc(lookup);
 
     return {std::dynamic_pointer_cast<DiscreteConditional>(lookup), max};
