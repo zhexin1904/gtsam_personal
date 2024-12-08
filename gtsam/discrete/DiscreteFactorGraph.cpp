@@ -55,7 +55,7 @@ namespace gtsam {
   DiscreteKeys DiscreteFactorGraph::discreteKeys() const {
     DiscreteKeys result;
     for (auto&& factor : *this) {
-      if (auto p = std::dynamic_pointer_cast<DecisionTreeFactor>(factor)) {
+      if (auto p = std::dynamic_pointer_cast<DiscreteFactor>(factor)) {
         DiscreteKeys factor_keys = p->discreteKeys();
         result.insert(result.end(), factor_keys.begin(), factor_keys.end());
       }
@@ -157,7 +157,7 @@ namespace gtsam {
 
     // max out frontals, this is the factor on the separator
     gttic(max);
-    DecisionTreeFactor::shared_ptr max = product->max(frontalKeys);
+    DiscreteFactor::shared_ptr max = product->max(frontalKeys);
     gttoc(max);
 
     // Ordering keys for the conditional so that frontalKeys are really in front
@@ -244,7 +244,7 @@ namespace gtsam {
 
     // sum out frontals, this is the factor on the separator
     gttic_(sum);
-    DecisionTreeFactor::shared_ptr sum = product->sum(frontalKeys);
+    DiscreteFactor::shared_ptr sum = product->sum(frontalKeys);
     gttoc_(sum);
 
     // Ordering keys for the conditional so that frontalKeys are really in front
@@ -257,8 +257,8 @@ namespace gtsam {
     // now divide product/sum to get conditional
     gttic_(divide);
     auto conditional =
-        std::make_shared<DiscreteConditional>(product, *sum, orderedKeys);
-    gttoc_(divide);
+        std::make_shared<DiscreteConditional>(product, sum, orderedKeys);
+    gttoc(divide);
 
     return {conditional, sum};
   }
