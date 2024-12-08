@@ -94,7 +94,7 @@ namespace gtsam {
   }
 
   /* ************************************************************************ */
-  DecisionTreeFactor DecisionTreeFactor::apply(ADT::Unary op) const {
+  DecisionTreeFactor DecisionTreeFactor::apply(Unary op) const {
     // apply operand
     ADT result = ADT::apply(op);
     // Make a new factor
@@ -102,7 +102,7 @@ namespace gtsam {
   }
 
   /* ************************************************************************ */
-  DecisionTreeFactor DecisionTreeFactor::apply(ADT::UnaryAssignment op) const {
+  DecisionTreeFactor DecisionTreeFactor::apply(UnaryAssignment op) const {
     // apply operand
     ADT result = ADT::apply(op);
     // Make a new factor
@@ -111,7 +111,7 @@ namespace gtsam {
 
   /* ************************************************************************ */
   DecisionTreeFactor DecisionTreeFactor::apply(const DecisionTreeFactor& f,
-                                              ADT::Binary op) const {
+                                               Binary op) const {
     map<Key, size_t> cs;  // new cardinalities
     // make unique key-cardinality map
     for (Key j : keys()) cs[j] = cardinality(j);
@@ -129,8 +129,8 @@ namespace gtsam {
   }
 
   /* ************************************************************************ */
-  DecisionTreeFactor::shared_ptr DecisionTreeFactor::combine(
-      size_t nrFrontals, ADT::Binary op) const {
+  DecisionTreeFactor::shared_ptr DecisionTreeFactor::combine(size_t nrFrontals,
+                                                             Binary op) const {
     if (nrFrontals > size()) {
       throw invalid_argument(
           "DecisionTreeFactor::combine: invalid number of frontal "
@@ -157,7 +157,7 @@ namespace gtsam {
 
   /* ************************************************************************ */
   DecisionTreeFactor::shared_ptr DecisionTreeFactor::combine(
-      const Ordering& frontalKeys, ADT::Binary op) const {
+      const Ordering& frontalKeys, Binary op) const {
     if (frontalKeys.size() > size()) {
       throw invalid_argument(
           "DecisionTreeFactor::combine: invalid number of frontal "
