@@ -161,9 +161,8 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
     return apply(f, Ring::mul);
   };
 
-  /// multiply with DiscreteFactor
-  DiscreteFactor::shared_ptr operator*(
-      const DiscreteFactor::shared_ptr& f) const override;
+  /// multiply with DecisionTreeFactor
+  DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override;
 
   static double safe_div(const double& a, const double& b);
 
@@ -172,15 +171,6 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
     return apply(f, safe_div);
   }
 
-  /// divide by factor f (pointer version)
-  DiscreteFactor::shared_ptr operator/(
-      const DiscreteFactor::shared_ptr& f) const override {
-    if (auto derived = std::dynamic_pointer_cast<TableFactor>(f)) {
-      return std::make_shared<TableFactor>(apply(*derived, safe_div));
-    } else {
-      throw std::runtime_error("Cannot convert DiscreteFactor to Table Factor");
-    }
-  }
 
   /// Convert into a decisiontree
   DecisionTreeFactor toDecisionTreeFactor() const override;

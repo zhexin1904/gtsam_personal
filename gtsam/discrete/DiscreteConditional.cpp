@@ -55,17 +55,15 @@ DiscreteConditional::DiscreteConditional(size_t nrFrontals,
     : BaseFactor(keys, potentials), BaseConditional(nrFrontals) {}
 
 /* ************************************************************************** */
-DiscreteConditional::DiscreteConditional(
-    const DiscreteFactor::shared_ptr& joint,
-    const DiscreteFactor::shared_ptr& marginal)
-    : BaseFactor(*std::dynamic_pointer_cast<DecisionTreeFactor>(
-          joint->operator/(marginal))),
-      BaseConditional(joint->size() - marginal->size()) {}
+DiscreteConditional::DiscreteConditional(const DecisionTreeFactor& joint,
+                                         const DecisionTreeFactor& marginal)
+    : BaseFactor(joint / marginal),
+      BaseConditional(joint.size() - marginal.size()) {}
 
 /* ************************************************************************** */
-DiscreteConditional::DiscreteConditional(
-    const DiscreteFactor::shared_ptr& joint,
-    const DiscreteFactor::shared_ptr& marginal, const Ordering& orderedKeys)
+DiscreteConditional::DiscreteConditional(const DecisionTreeFactor& joint,
+                                         const DecisionTreeFactor& marginal,
+                                         const Ordering& orderedKeys)
     : DiscreteConditional(joint, marginal) {
   keys_.clear();
   keys_.insert(keys_.end(), orderedKeys.begin(), orderedKeys.end());
