@@ -110,16 +110,16 @@ class GTSAM_EXPORT DiscreteConditional
    * @brief construct P(X|Y) = f(X,Y)/f(Y) from f(X,Y) and f(Y)
    * Assumes but *does not check* that f(Y)=sum_X f(X,Y).
    */
-  DiscreteConditional(const DecisionTreeFactor& joint,
-                      const DecisionTreeFactor& marginal);
+  DiscreteConditional(const DiscreteFactor::shared_ptr& joint,
+                      const DiscreteFactor::shared_ptr& marginal);
 
   /**
    * @brief construct P(X|Y) = f(X,Y)/f(Y) from f(X,Y) and f(Y)
    * Assumes but *does not check* that f(Y)=sum_X f(X,Y).
    * Makes sure the keys are ordered as given. Does not check orderedKeys.
    */
-  DiscreteConditional(const DecisionTreeFactor& joint,
-                      const DecisionTreeFactor& marginal,
+  DiscreteConditional(const DiscreteFactor::shared_ptr& joint,
+                      const DiscreteFactor::shared_ptr& marginal,
                       const Ordering& orderedKeys);
 
   /**
@@ -173,8 +173,8 @@ class GTSAM_EXPORT DiscreteConditional
     return ADT::operator()(values);
   }
 
-  using DecisionTreeFactor::error;       ///< DiscreteValues version
-  using DecisionTreeFactor::operator();  ///< DiscreteValues version
+  using DiscreteFactor::error;       ///< DiscreteValues version
+  using DiscreteFactor::operator();  ///< DiscreteValues version
 
   /**
    * @brief restrict to given *parent* values.
@@ -192,11 +192,11 @@ class GTSAM_EXPORT DiscreteConditional
   shared_ptr choose(const DiscreteValues& given) const;
 
   /** Convert to a likelihood factor by providing value before bar. */
-  DecisionTreeFactor::shared_ptr likelihood(
+  DiscreteFactor::shared_ptr likelihood(
       const DiscreteValues& frontalValues) const;
 
   /** Single variable version of likelihood. */
-  DecisionTreeFactor::shared_ptr likelihood(size_t frontal) const;
+  DiscreteFactor::shared_ptr likelihood(size_t frontal) const;
 
   /**
    * sample
