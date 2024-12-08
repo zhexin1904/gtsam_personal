@@ -169,6 +169,9 @@ namespace gtsam {
       }
     }
 
+    /// Convert into a decision tree
+    DecisionTreeFactor toDecisionTreeFactor() const override { return *this; }
+
     /// Create new factor by summing all values with the same separator values
     DiscreteFactor::shared_ptr sum(size_t nrFrontals) const override {
       return combine(nrFrontals, ADT::Ring::add);
