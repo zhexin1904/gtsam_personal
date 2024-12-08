@@ -67,7 +67,7 @@ namespace gtsam {
   DecisionTreeFactor DiscreteFactorGraph::product() const {
     DecisionTreeFactor result;
     for (const sharedFactor& factor : *this) {
-      if (factor) result = result * (*factor);
+      if (factor) result = (*factor) * result;
     }
     return result;
   }
@@ -254,7 +254,7 @@ namespace gtsam {
     // now divide product/sum to get conditional
     gttic_(divide);
     auto conditional =
-        std::make_shared<DiscreteConditional>(product, sum, orderedKeys);
+        std::make_shared<DiscreteConditional>(product, *sum, orderedKeys);
     gttoc_(divide);
 
     return {conditional, sum};
