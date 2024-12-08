@@ -93,6 +93,9 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
 
   size_t cardinality(Key j) const { return cardinalities_.at(j); }
 
+  /// Calculate probability for given values
+  virtual double evaluate(const Assignment<Key>& values) const = 0;
+
   /// Find value for given assignment of values to variables
   virtual double operator()(const Assignment<Key>& values) const = 0;
 
@@ -130,9 +133,6 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
   /// divide by factor f (safely)
   virtual DiscreteFactor::shared_ptr operator/(
       const DiscreteFactor::shared_ptr& f) const = 0;
-
-  /// Calculate probability for given values
-  virtual double evaluate(const Assignment<Key>& values) const = 0;
 
   /**
    * Get the number of non-zero values contained in this factor.
