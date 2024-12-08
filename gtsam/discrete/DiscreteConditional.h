@@ -173,8 +173,8 @@ class GTSAM_EXPORT DiscreteConditional
     return ADT::operator()(values);
   }
 
-  using DiscreteFactor::error;       ///< DiscreteValues version
-  using DiscreteFactor::operator();  ///< DiscreteValues version
+  using DecisionTreeFactor::error;       ///< DiscreteValues version
+  using DecisionTreeFactor::operator();  ///< DiscreteValues version
 
   /**
    * @brief restrict to given *parent* values.
