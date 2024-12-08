@@ -113,12 +113,12 @@ TEST(DiscreteFactorGraph, test) {
   const Ordering frontalKeys{0};
   const auto [conditional, newFactorPtr] = EliminateDiscrete(graph, frontalKeys);
 
-  DecisionTreeFactor newFactor = *newFactorPtr;
+  auto newFactor = *std::dynamic_pointer_cast<DecisionTreeFactor>(newFactorPtr);
 
   // Normalize newFactor by max for comparison with expected
   auto normalization = newFactor.max(newFactor.size());
 
-  newFactor = newFactor / *normalization;
+  newFactor = newFactor / normalization;
 
   // Check Conditional
   CHECK(conditional);
@@ -132,7 +132,7 @@ TEST(DiscreteFactorGraph, test) {
   // Normalize by max.
   normalization = expectedFactor.max(expectedFactor.size());
   // Ensure normalization is correct.
-  expectedFactor = expectedFactor / *normalization;
+  expectedFactor = expectedFactor / normalization;
   EXPECT(assert_equal(expectedFactor, newFactor));
 
   // Test using elimination tree
