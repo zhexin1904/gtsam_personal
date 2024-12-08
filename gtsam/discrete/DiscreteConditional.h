@@ -169,7 +169,7 @@ class GTSAM_EXPORT DiscreteConditional
   }
 
   /// Evaluate, just look up in AlgebraicDecisionTree
-  double evaluate(const DiscreteValues& values) const {
+  double evaluate(const Assignment<Key>& values) const override {
     return ADT::operator()(values);
   }
 

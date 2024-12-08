@@ -136,7 +136,7 @@ namespace gtsam {
     }
 
     /// Evaluate probability distribution, sugar.
-    double operator()(const DiscreteValues& values) const override {
+    double operator()(const Assignment<Key>& values) const override {
       return ADT::operator()(values);
     }
 
