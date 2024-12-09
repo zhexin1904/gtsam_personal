@@ -171,7 +171,6 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
     return apply(f, safe_div);
   }
 
-
   /// Convert into a decisiontree
   DecisionTreeFactor toDecisionTreeFactor() const override;
 

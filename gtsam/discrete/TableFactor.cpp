@@ -72,9 +72,7 @@ TableFactor::TableFactor(const DiscreteKeys& dkeys,
  */
 std::vector<double> ComputeLeafOrdering(const DiscreteKeys& dkeys,
                                         const DecisionTreeFactor& dt) {
-  gttic_(ComputeLeafOrdering);
   std::vector<double> probs = dt.probabilities();
-  gttoc_(ComputeLeafOrdering);
   std::vector<double> ordered;
 
   size_t n = dkeys[0].second;
