@@ -144,7 +144,6 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
   /// Create new factor by maximizing over all values with the same separator.
   virtual DiscreteFactor::shared_ptr max(const Ordering& keys) const = 0;
 
-
   /**
    * Get the number of non-zero values contained in this factor.
    * It could be much smaller than `prod_{key}(cardinality(key))`.

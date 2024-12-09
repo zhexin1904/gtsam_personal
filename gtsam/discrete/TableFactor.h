@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <gtsam/discrete/DecisionTreeFactor.h>
 #include <gtsam/discrete/DiscreteFactor.h>
 #include <gtsam/discrete/DiscreteKey.h>
 #include <gtsam/discrete/Ring.h>
@@ -177,6 +178,8 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
       return apply(*tf, safe_div);
     } else if (auto dtf = std::dynamic_pointer_cast<DecisionTreeFactor>(f)) {
       return apply(TableFactor(f->discreteKeys(), *dtf), safe_div);
+    } else {
+      throw std::runtime_error("Unknown derived type for DiscreteFactor");
     }
   }
 
