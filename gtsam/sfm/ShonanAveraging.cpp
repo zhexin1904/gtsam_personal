@@ -632,7 +632,7 @@ static bool SparseMinimumEigenValue(
     Eigen::Index numLanczosVectors = 20) {
   // a. Estimate the largest-magnitude eigenvalue of this matrix using Lanczos
   MatrixProdFunctor lmOperator(A);
-  Spectra::SymEigsSolver lmEigenValueSolver(
+  Spectra::SymEigsSolver<MatrixProdFunctor> lmEigenValueSolver(
       lmOperator, 1, std::min(numLanczosVectors, A.rows()));
   lmEigenValueSolver.init();
 
@@ -666,7 +666,7 @@ static bool SparseMinimumEigenValue(
 
   MatrixProdFunctor minShiftedOperator(A, -2 * lmEigenValue);
 
-  Spectra::SymEigsSolver minEigenValueSolver(
+  Spectra::SymEigsSolver<MatrixProdFunctor> minEigenValueSolver(
       minShiftedOperator, 1, std::min(numLanczosVectors, A.rows()));
 
   // If S is a critical point of F, then S^T is also in the null space of S -
