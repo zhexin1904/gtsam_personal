@@ -61,8 +61,6 @@ class GTSAM_EXPORT DiscreteLookupTable : public DiscreteConditional {
    * @param nFrontals number of frontal variables
    * @param keys a sorted list of gtsam::Keys
    * @param potentials Discrete potentials as a TableFactor.
-   *
-   * //TODO(Varun): Should accept a DiscreteFactor::shared_ptr
    */
   DiscreteLookupTable(size_t nFrontals, const DiscreteKeys& keys,
                       const TableFactor& potentials)

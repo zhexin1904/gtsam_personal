@@ -180,10 +180,8 @@ DecisionTreeFactor TableFactor::toDecisionTreeFactor() const {
   for (auto i = 0; i < sparse_table_.size(); i++) {
     table.push_back(sparse_table_.coeff(i));
   }
-  gttic_(toDecisionTreeFactor_Constructor);
   // NOTE(Varun): This constructor is really expensive!!
   DecisionTreeFactor f(dkeys, table);
-  gttoc_(toDecisionTreeFactor_Constructor);
   return f;
 }
 
