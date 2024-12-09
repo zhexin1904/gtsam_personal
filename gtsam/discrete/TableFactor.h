@@ -171,6 +171,15 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
     return apply(f, safe_div);
   }
 
+  /// divide by DiscreteFactor::shared_ptr f (safely)
+  TableFactor operator/(const DiscreteFactor::shared_ptr& f) const {
+    if (auto tf = std::dynamic_pointer_cast<TableFactor>(f)) {
+      return apply(*tf, safe_div);
+    } else if (auto dtf = std::dynamic_pointer_cast<DecisionTreeFactor>(f)) {
+      return apply(TableFactor(f->discreteKeys(), *dtf), safe_div);
+    }
+  }
+
   /// Convert into a decisiontree
   DecisionTreeFactor toDecisionTreeFactor() const override;
 
