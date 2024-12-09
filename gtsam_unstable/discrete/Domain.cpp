@@ -30,7 +30,7 @@ string Domain::base1Str() const {
 }
 
 /* ************************************************************************* */
-double Domain::operator()(const DiscreteValues& values) const {
+double Domain::operator()(const Assignment<Key>& values) const {
   return contains(values.at(key()));
 }
 
