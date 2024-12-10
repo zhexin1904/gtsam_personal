@@ -14,6 +14,7 @@
  *  @date Feb 14, 2011
  *  @author Duy-Nguyen Ta
  *  @author Frank Dellaert
+ *  @author Varun Agrawal
  */
 
 #include <gtsam/discrete/DiscreteBayesTree.h>
@@ -134,7 +135,7 @@ namespace gtsam {
 
   /* ************************************************************************ */
   // Alternate eliminate function for MPE
-  std::pair<DiscreteConditional::shared_ptr, DecisionTreeFactor::shared_ptr>  //
+  std::pair<DiscreteConditional::shared_ptr, DiscreteFactor::shared_ptr>  //
   EliminateForMPE(const DiscreteFactorGraph& factors,
                   const Ordering& frontalKeys) {
     DecisionTreeFactor product = ProductAndNormalize(factors);
@@ -213,7 +214,7 @@ namespace gtsam {
   }
 
   /* ************************************************************************ */
-  std::pair<DiscreteConditional::shared_ptr, DecisionTreeFactor::shared_ptr>  //
+  std::pair<DiscreteConditional::shared_ptr, DiscreteFactor::shared_ptr>  //
   EliminateDiscrete(const DiscreteFactorGraph& factors,
                     const Ordering& frontalKeys) {
     DecisionTreeFactor product = ProductAndNormalize(factors);
