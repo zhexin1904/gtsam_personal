@@ -169,7 +169,7 @@ class GTSAM_EXPORT DiscreteConditional
   }
 
   using BaseFactor::error;       ///< DiscreteValues version
-  using BaseFactor::evaluate;  // DiscreteValues version
+  using BaseFactor::evaluate;    ///< DiscreteValues version
   using BaseFactor::operator();  ///< DiscreteValues version
 
   /**
