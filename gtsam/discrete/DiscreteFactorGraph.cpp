@@ -76,7 +76,7 @@ namespace gtsam {
   double DiscreteFactorGraph::operator()(const DiscreteValues& values) const {
     double product = 1.0;
     for (const sharedFactor& factor : factors_) {
-      product *= (*factor)(values);
+      if (factor) product *= (*factor)(values);
     }
     return product;
   }
