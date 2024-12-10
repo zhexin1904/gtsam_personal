@@ -41,7 +41,7 @@ virtual class DiscreteFactor : gtsam::Factor {
              const gtsam::KeyFormatter& keyFormatter =
                  gtsam::DefaultKeyFormatter) const;
   bool equals(const gtsam::DiscreteFactor& other, double tol = 1e-9) const;
-  double operator()(const gtsam::Assignment<gtsam::Key>& values) const;
+  double operator()(const gtsam::DiscreteValues& values) const;
 };
 
 #include <gtsam/discrete/DecisionTreeFactor.h>
@@ -61,15 +61,15 @@ virtual class DecisionTreeFactor : gtsam::DiscreteFactor {
   DecisionTreeFactor(const std::vector<gtsam::DiscreteKey>& keys, string table);
 
   DecisionTreeFactor(const gtsam::DiscreteConditional& c);
-  
+
   void print(string s = "DecisionTreeFactor\n",
              const gtsam::KeyFormatter& keyFormatter =
                  gtsam::DefaultKeyFormatter) const;
   bool equals(const gtsam::DecisionTreeFactor& other, double tol = 1e-9) const;
 
   size_t cardinality(gtsam::Key j) const;
-  
-  double operator()(const gtsam::Assignment<gtsam::Key>& values) const;
+
+  double operator()(const gtsam::DiscreteValues& values) const;
   gtsam::DecisionTreeFactor operator*(const gtsam::DecisionTreeFactor& f) const;
   size_t cardinality(gtsam::Key j) const;
   gtsam::DecisionTreeFactor operator/(const gtsam::DecisionTreeFactor& f) const;
@@ -248,6 +248,7 @@ class DiscreteBayesTree {
   void saveGraph(string s,
                 const gtsam::KeyFormatter& keyFormatter =
                  gtsam::DefaultKeyFormatter) const;
+  double operator()(const gtsam::DiscreteValues& values) const;
 
   string markdown(const gtsam::KeyFormatter& keyFormatter =
                  gtsam::DefaultKeyFormatter) const;

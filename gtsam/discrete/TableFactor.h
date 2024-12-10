@@ -152,7 +152,7 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
   // /// @{
 
   /// Evaluate probability distribution, is just look up in TableFactor.
-  double operator()(const Assignment<Key>& values) const override;
+  double evaluate(const Assignment<Key>& values) const override;
 
   /// Calculate error for DiscreteValues `x`, is -log(probability).
   double error(const DiscreteValues& values) const override;
