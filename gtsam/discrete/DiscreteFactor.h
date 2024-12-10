@@ -92,8 +92,21 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
 
   size_t cardinality(Key j) const { return cardinalities_.at(j); }
 
+  /**
+   * @brief Calculate probability for given values.
+   * Calls specialized evaluation under the hood.
+   *
+   * Note: Uses Assignment<Key> as it is the base class of DiscreteValues.
+   *
+   * @param values Discrete assignment.
+   * @return double
+   */
+  virtual double evaluate(const Assignment<Key>& values) const = 0;
+
   /// Find value for given assignment of values to variables
-  virtual double operator()(const DiscreteValues&) const = 0;
+  double operator()(const DiscreteValues& values) const {
+    return evaluate(values);
+  }
 
   /// Error is just -log(value)
   virtual double error(const DiscreteValues& values) const;
