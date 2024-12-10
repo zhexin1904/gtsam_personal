@@ -132,9 +132,12 @@ namespace gtsam {
 
     /// Calculate probability for given values, 
     /// is just look up in AlgebraicDecisionTree.
-    double operator()(const Assignment<Key>& values) const override {
+    virtual double evaluate(const Assignment<Key>& values) const override {
       return ADT::operator()(values);
     }
+
+    /// Disambiguate to use DiscreteFactor version. Mainly for wrapper
+    using DiscreteFactor::operator();
 
     /// Calculate error for DiscreteValues `x`, is -log(probability).
     double error(const DiscreteValues& values) const override;
