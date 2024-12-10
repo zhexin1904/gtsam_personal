@@ -36,13 +36,12 @@ namespace gtsam {
   template class FactorGraph<DiscreteFactor>;
   template class EliminateableFactorGraph<DiscreteFactorGraph>;
 
-  /* ************************************************************************* */
-  bool DiscreteFactorGraph::equals(const This& fg, double tol) const
-  {
+  /* ************************************************************************ */
+  bool DiscreteFactorGraph::equals(const This& fg, double tol) const {
     return Base::equals(fg, tol);
   }
 
-  /* ************************************************************************* */
+  /* ************************************************************************ */
   KeySet DiscreteFactorGraph::keys() const {
     KeySet keys;
     for (const sharedFactor& factor : *this) {
@@ -51,7 +50,7 @@ namespace gtsam {
     return keys;
   }
 
-  /* ************************************************************************* */
+  /* ************************************************************************ */
   DiscreteKeys DiscreteFactorGraph::discreteKeys() const {
     DiscreteKeys result;
     for (auto&& factor : *this) {
@@ -64,7 +63,7 @@ namespace gtsam {
     return result;
   }
 
-  /* ************************************************************************* */
+  /* ************************************************************************ */
   DecisionTreeFactor DiscreteFactorGraph::product() const {
     DecisionTreeFactor result;
     for (const sharedFactor& factor : *this) {
@@ -73,9 +72,8 @@ namespace gtsam {
     return result;
   }
 
-  /* ************************************************************************* */
-  double DiscreteFactorGraph::operator()(
-      const DiscreteValues &values) const {
+  /* ************************************************************************ */
+  double DiscreteFactorGraph::operator()(const DiscreteValues& values) const {
     double product = 1.0;
     for (const sharedFactor& factor : factors_) {
       product *= (*factor)(values);
@@ -83,9 +81,9 @@ namespace gtsam {
     return product;
   }
 
-  /* ************************************************************************* */
+  /* ************************************************************************ */
   void DiscreteFactorGraph::print(const string& s,
-      const KeyFormatter& formatter) const {
+                                  const KeyFormatter& formatter) const {
     std::cout << s << std::endl;
     std::cout << "size: " << size() << std::endl;
     for (size_t i = 0; i < factors_.size(); i++) {
@@ -120,7 +118,8 @@ namespace gtsam {
    * @param factors The factors to multiply as a DiscreteFactorGraph.
    * @return DecisionTreeFactor
    */
-  static DecisionTreeFactor ProductAndNormalize(const DiscreteFactorGraph& factors) {
+  static DecisionTreeFactor ProductAndNormalize(
+      const DiscreteFactorGraph& factors) {
     // PRODUCT: multiply all factors
     gttic(product);
     DecisionTreeFactor product = factors.product();
@@ -155,8 +154,8 @@ namespace gtsam {
     // Make lookup with product
     gttic(lookup);
     size_t nrFrontals = frontalKeys.size();
-    auto lookup = std::make_shared<DiscreteLookupTable>(nrFrontals,
-                                                          orderedKeys, product);
+    auto lookup =
+        std::make_shared<DiscreteLookupTable>(nrFrontals, orderedKeys, product);
     gttoc(lookup);
 
     return {std::dynamic_pointer_cast<DiscreteConditional>(lookup), max};
