@@ -130,6 +130,8 @@ namespace gtsam {
 
     // Normalize the product factor to prevent underflow.
     product = product / (*normalization);
+
+    return product;
   }
 
   /* ************************************************************************ */
