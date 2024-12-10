@@ -46,6 +46,11 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
 
   using Values = DiscreteValues;  ///< backwards compatibility
 
+  using Unary = std::function<double(const double&)>;
+  using UnaryAssignment =
+      std::function<double(const Assignment<Key>&, const double&)>;
+  using Binary = std::function<double(const double, const double)>;
+
  protected:
   /// Map of Keys and their cardinalities.
   std::map<Key, size_t> cardinalities_;

@@ -51,6 +51,11 @@ namespace gtsam {
     typedef std::shared_ptr<DecisionTreeFactor> shared_ptr;
     typedef AlgebraicDecisionTree<Key> ADT;
 
+    // Needed since we have definitions in both DiscreteFactor and DecisionTree
+    using Base::Binary;
+    using Base::Unary;
+    using Base::UnaryAssignment;
+
     /// @name Standard Constructors
     /// @{
 
@@ -185,21 +190,21 @@ namespace gtsam {
      * Apply unary operator (*this) "op" f
      * @param op a unary operator that operates on AlgebraicDecisionTree
      */
-    DecisionTreeFactor apply(ADT::Unary op) const;
+    DecisionTreeFactor apply(Unary op) const;
 
     /**
      * Apply unary operator (*this) "op" f
      * @param op a unary operator that operates on AlgebraicDecisionTree. Takes
      * both the assignment and the value.
      */
-    DecisionTreeFactor apply(ADT::UnaryAssignment op) const;
+    DecisionTreeFactor apply(UnaryAssignment op) const;
 
     /**
      * Apply binary operator (*this) "op" f
      * @param f the second argument for op
      * @param op a binary operator that operates on AlgebraicDecisionTree
      */
-    DecisionTreeFactor apply(const DecisionTreeFactor& f, ADT::Binary op) const;
+    DecisionTreeFactor apply(const DecisionTreeFactor& f, Binary op) const;
 
     /**
      * Combine frontal variables using binary operator "op"
@@ -207,7 +212,7 @@ namespace gtsam {
      * @param op a binary operator that operates on AlgebraicDecisionTree
      * @return shared pointer to newly created DecisionTreeFactor
      */
-    shared_ptr combine(size_t nrFrontals, ADT::Binary op) const;
+    shared_ptr combine(size_t nrFrontals, Binary op) const;
 
     /**
      * Combine frontal variables in an Ordering using binary operator "op"
@@ -215,7 +220,7 @@ namespace gtsam {
      * @param op a binary operator that operates on AlgebraicDecisionTree
      * @return shared pointer to newly created DecisionTreeFactor
      */
-    shared_ptr combine(const Ordering& keys, ADT::Binary op) const;
+    shared_ptr combine(const Ordering& keys, Binary op) const;
 
     /// Enumerate all values into a map from values to double.
     std::vector<std::pair<DiscreteValues, double>> enumerate() const;

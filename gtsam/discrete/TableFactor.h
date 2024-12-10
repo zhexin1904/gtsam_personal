@@ -94,10 +94,6 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
   typedef std::shared_ptr<TableFactor> shared_ptr;
   typedef Eigen::SparseVector<double>::InnerIterator SparseIt;
   typedef std::vector<std::pair<DiscreteValues, double>> AssignValList;
-  using Unary = std::function<double(const double&)>;
-  using UnaryAssignment =
-      std::function<double(const Assignment<Key>&, const double&)>;
-  using Binary = std::function<double(const double, const double)>;
 
  public:
   /// @name Standard Constructors
