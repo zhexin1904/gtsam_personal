@@ -66,8 +66,9 @@ namespace gtsam {
   /* ************************************************************************* */
   DecisionTreeFactor DiscreteFactorGraph::product() const {
     DecisionTreeFactor result;
-    for(const sharedFactor& factor: *this)
+    for (const sharedFactor& factor : *this) {
       if (factor) result = (*factor) * result;
+    }
     return result;
   }
 
@@ -75,8 +76,9 @@ namespace gtsam {
   double DiscreteFactorGraph::operator()(
       const DiscreteValues &values) const {
     double product = 1.0;
-    for( const sharedFactor& factor: factors_ )
+    for (const sharedFactor& factor : factors_) {
       product *= (*factor)(values);
+    }
     return product;
   }
 
@@ -117,8 +119,7 @@ namespace gtsam {
                   const Ordering& frontalKeys) {
     // PRODUCT: multiply all factors
     gttic(product);
-    DecisionTreeFactor product;
-    for (auto&& factor : factors) product = (*factor) * product;
+    DecisionTreeFactor product = factors.product();
     gttoc(product);
 
     // Max over all the potentials by pretending all keys are frontal:
@@ -206,8 +207,7 @@ namespace gtsam {
                     const Ordering& frontalKeys) {
     // PRODUCT: multiply all factors
     gttic(product);
-    DecisionTreeFactor product;
-    for (auto&& factor : factors) product = (*factor) * product;
+    DecisionTreeFactor product = factors.product();
     gttoc(product);
 
     // Max over all the potentials by pretending all keys are frontal:
