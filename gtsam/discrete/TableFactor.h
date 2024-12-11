@@ -19,6 +19,7 @@
 
 #include <gtsam/discrete/DiscreteFactor.h>
 #include <gtsam/discrete/DiscreteKey.h>
+#include <gtsam/discrete/Ring.h>
 #include <gtsam/inference/Ordering.h>
 
 #include <Eigen/Sparse>
@@ -93,27 +94,8 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
   typedef std::shared_ptr<TableFactor> shared_ptr;
   typedef Eigen::SparseVector<double>::InnerIterator SparseIt;
   typedef std::vector<std::pair<DiscreteValues, double>> AssignValList;
-  using Unary = std::function<double(const double&)>;
-  using UnaryAssignment =
-      std::function<double(const Assignment<Key>&, const double&)>;
-  using Binary = std::function<double(const double, const double)>;
 
  public:
-  /** The Real ring with addition and multiplication */
-  struct Ring {
-    static inline double zero() { return 0.0; }
-    static inline double one() { return 1.0; }
-    static inline double add(const double& a, const double& b) { return a + b; }
-    static inline double max(const double& a, const double& b) {
-      return std::max(a, b);
-    }
-    static inline double mul(const double& a, const double& b) { return a * b; }
-    static inline double div(const double& a, const double& b) {
-      return (a == 0 || b == 0) ? 0 : (a / b);
-    }
-    static inline double id(const double& x) { return x; }
-  };
-
   /// @name Standard Constructors
   /// @{
 
@@ -169,14 +151,8 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
   // /// @name Standard Interface
   // /// @{
 
-  /// Calculate probability for given values `x`,
-  /// is just look up in TableFactor.
-  double evaluate(const DiscreteValues& values) const {
-    return operator()(values);
-  }
-
-  /// Evaluate probability distribution, sugar.
-  double operator()(const DiscreteValues& values) const override;
+  /// Evaluate probability distribution, is just look up in TableFactor.
+  double evaluate(const Assignment<Key>& values) const override;
 
   /// Calculate error for DiscreteValues `x`, is -log(probability).
   double error(const DiscreteValues& values) const override;

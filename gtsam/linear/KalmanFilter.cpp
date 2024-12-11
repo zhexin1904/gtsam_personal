@@ -20,12 +20,16 @@
  * @author Frank Dellaert
  */
 
+
+#include <gtsam/linear/KalmanFilter.h>
+
 #include <gtsam/base/Testable.h>
 #include <gtsam/linear/GaussianBayesNet.h>
 #include <gtsam/linear/JacobianFactor.h>
-#include <gtsam/linear/KalmanFilter.h>
 
-#include "gtsam/base/Matrix.h"
+#ifndef NDEBUG
+#include <cassert>
+#endif
 
 // In the code below we often get a covariance matrix Q, and we need to create a
 // JacobianFactor with cost 0.5 * |Ax - b|^T Q^{-1} |Ax - b|. Factorizing Q as
