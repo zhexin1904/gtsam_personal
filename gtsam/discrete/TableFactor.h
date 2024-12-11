@@ -80,12 +80,16 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
     return DiscreteKey(keys_[i], cardinalities_.at(keys_[i]));
   }
 
-  /// Convert probability table given as doubles to SparseVector.
-  /// Example) {0, 1, 1, 0, 0, 1, 0} -> values: {1, 1, 1}, indices: {1, 2, 5}
-  static Eigen::SparseVector<double> Convert(const std::vector<double>& table);
+  /**
+   * Convert probability table given as doubles to SparseVector.
+   * Example: {0, 1, 1, 0, 0, 1, 0} -> values: {1, 1, 1}, indices: {1, 2, 5}
+   */
+  static Eigen::SparseVector<double> Convert(const DiscreteKeys& keys,
+                                             const std::vector<double>& table);
 
   /// Convert probability table given as string to SparseVector.
-  static Eigen::SparseVector<double> Convert(const std::string& table);
+  static Eigen::SparseVector<double> Convert(const DiscreteKeys& keys,
+                                             const std::string& table);
 
  public:
   // typedefs needed to play nice with gtsam
@@ -111,11 +115,11 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
 
   /** Constructor from doubles */
   TableFactor(const DiscreteKeys& keys, const std::vector<double>& table)
-      : TableFactor(keys, Convert(table)) {}
+      : TableFactor(keys, Convert(keys, table)) {}
 
   /** Constructor from string */
   TableFactor(const DiscreteKeys& keys, const std::string& table)
-      : TableFactor(keys, Convert(table)) {}
+      : TableFactor(keys, Convert(keys, table)) {}
 
   /// Single-key specialization
   template <class SOURCE>
