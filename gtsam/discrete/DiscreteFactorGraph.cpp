@@ -224,10 +224,10 @@ namespace gtsam {
     DecisionTreeFactor product = ProductAndNormalize(factors);
 
     // sum out frontals, this is the factor on the separator
-    gttic_(sum);
+    gttic(sum);
     DecisionTreeFactor::shared_ptr sum = std::dynamic_pointer_cast<DecisionTreeFactor>(
         product.sum(frontalKeys));
-    gttoc_(sum);
+    gttoc(sum);
 
     // Ordering keys for the conditional so that frontalKeys are really in front
     Ordering orderedKeys;
@@ -237,10 +237,10 @@ namespace gtsam {
                        sum->keys().end());
 
     // now divide product/sum to get conditional
-    gttic_(divide);
+    gttic(divide);
     auto conditional =
         std::make_shared<DiscreteConditional>(product, *sum, orderedKeys);
-    gttoc_(divide);
+    gttoc(divide);
 
     return {conditional, sum};
   }
