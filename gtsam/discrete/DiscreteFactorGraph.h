@@ -14,6 +14,7 @@
  * @date Feb 14, 2011
  * @author Duy-Nguyen Ta
  * @author Frank Dellaert
+ * @author Varun Agrawal
  */
 
 #pragma once

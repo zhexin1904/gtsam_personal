@@ -113,7 +113,8 @@ TEST(DiscreteFactorGraph, test) {
   const Ordering frontalKeys{0};
   const auto [conditional, newFactorPtr] = EliminateDiscrete(graph, frontalKeys);
 
-  auto newFactor = *std::dynamic_pointer_cast<DecisionTreeFactor>(newFactorPtr);
+  DecisionTreeFactor newFactor =
+      *std::dynamic_pointer_cast<DecisionTreeFactor>(newFactorPtr);
 
   // Normalize newFactor by max for comparison with expected
   auto normalization = newFactor.max(newFactor.size());
