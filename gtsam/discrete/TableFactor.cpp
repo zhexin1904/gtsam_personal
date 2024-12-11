@@ -144,7 +144,8 @@ bool TableFactor::equals(const DiscreteFactor& other, double tol) const {
     return false;
   } else {
     const auto& f(static_cast<const TableFactor&>(other));
-    return sparse_table_.isApprox(f.sparse_table_, tol);
+    return Base::equals(other, tol) &&
+           sparse_table_.isApprox(f.sparse_table_, tol);
   }
 }
 
