@@ -25,22 +25,27 @@
 #include <gtsam/linear/JacobianFactor.h>
 #include <gtsam/linear/KalmanFilter.h>
 
-using namespace std;
+#include "gtsam/base/Matrix.h"
+
+// In the code below we often get a covariance matrix Q, and we need to create a
+// JacobianFactor with cost 0.5 * |Ax - b|^T Q^{-1} |Ax - b|. Factorizing Q as
+//   Q = L L^T
+// and hence
+//   Q^{-1} = L^{-T} L^{-1} = M^T M, with M = L^{-1}
+// We then have
+//   0.5 * |Ax - b|^T Q^{-1} |Ax - b|
+// = 0.5 * |Ax - b|^T M^T M |Ax - b|
+// = 0.5 * |MAx - Mb|^T |MAx - Mb|
+// The functor below efficiently multiplies with M by calling L.solve().
+namespace {
+using Matrix = gtsam::Matrix;
+struct InverseL : public Eigen::LLT<Matrix> {
+  InverseL(const Matrix& Q) : Eigen::LLT<Matrix>(Q) {}
+  Matrix operator*(const Matrix& A) const { return matrixL().solve(A); }
+};
+}  // namespace
 
 namespace gtsam {
-
-// In the code below we often need to multiply matrices with R, the Cholesky
-// factor of the information matrix Q^{-1}, when given a covariance matrix Q.
-// We can do this efficiently using Eigen, as we have:
-//   Q = L L^T
-//   => Q^{-1} = L^{-T}L^{-1} = R^T R
-//   => L^{-1} = R
-// Rather than explicitly calculate R and do R*A, we should use L.solve(A)
-// The following macro makes L available in the scope where it is used:
-#define FACTORIZE_Q_INTO_L(Q)       \
-  Eigen::LLT<Matrix> llt(Q); \
-  auto L = llt.matrixL();
-
 /* ************************************************************************* */
 // Auxiliary function to solve factor graph and return pointer to root
 // conditional
@@ -85,19 +90,19 @@ KalmanFilter::State KalmanFilter::init(const Vector& x0,
   // Create a factor graph f(x0), eliminate it into P(x0)
   GaussianFactorGraph factorGraph;
 
-  // Perform Cholesky decomposition of P0
-  FACTORIZE_Q_INTO_L(P0)
+  // Perform Cholesky decomposition of P0 = LL^T
+  InverseL M(P0);
 
-  // Premultiply I and x0 with R
-  const Matrix R = L.solve(I_);  // = R
-  const Vector b = L.solve(x0);  // = R*x0
-  factorGraph.emplace_shared<JacobianFactor>(0, R, b);
+  // Premultiply I and x0 with M=L^{-1}
+  const Matrix A = M * I_;  // = M
+  const Vector b = M * x0;  // = M*x0
+  factorGraph.emplace_shared<JacobianFactor>(0, A, b);
   return solve(factorGraph);
 }
 
 /* ************************************************************************* */
-void KalmanFilter::print(const string& s) const {
-  cout << "KalmanFilter " << s << ", dim = " << n_ << endl;
+void KalmanFilter::print(const std::string& s) const {
+  std::cout << "KalmanFilter " << s << ", dim = " << n_ << std::endl;
 }
 
 /* ************************************************************************* */
@@ -126,13 +131,13 @@ KalmanFilter::State KalmanFilter::predictQ(const State& p, const Matrix& F,
   assert(Q.cols() == n);
 #endif
 
-  // Perform Cholesky decomposition of Q
-  FACTORIZE_Q_INTO_L(Q)
+  // Perform Cholesky decomposition of Q = LL^T
+  InverseL M(Q);
 
-  // Premultiply A1 = -F and A2 = I, b = B * u with R
-  const Matrix A1 = -L.solve(F);    // = -R*F
-  const Matrix A2 = L.solve(I_);    // = R
-  const Vector b = L.solve(B * u);  // = R * (B * u)
+  // Premultiply -F, I, and B * u with M=L^{-1}
+  const Matrix A1 = -(M * F);
+  const Matrix A2 = M * I_;
+  const Vector b = M * (B * u);
   return predict2(p, A1, A2, b);
 }
 
@@ -163,14 +168,13 @@ KalmanFilter::State KalmanFilter::updateQ(const State& p, const Matrix& H,
                                           const Matrix& Q) const {
   Key k = step(p);
 
-  // Perform Cholesky decomposition of Q
-  FACTORIZE_Q_INTO_L(Q)
+  // Perform Cholesky decomposition of Q = LL^T
+  InverseL M(Q);
 
-  // Pre-multiply H and z with R, respectively
-  const Matrix RtH = L.solve(H);  // = R * H
-  const Vector b = L.solve(z);    // = R * z
-
-  return fuse(p, std::make_shared<JacobianFactor>(k, RtH, b));
+  // Pre-multiply H and z with M=L^{-1}, respectively
+  const Matrix A = M * H;
+  const Vector b = M * z;
+  return fuse(p, std::make_shared<JacobianFactor>(k, A, b));
 }
 
 /* ************************************************************************* */
