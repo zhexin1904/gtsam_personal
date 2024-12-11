@@ -144,7 +144,7 @@ TEST(TableFactor, constructors) {
   EXPECT(assert_equal(expected_f5, f5, 1e-6));
 
   TableFactor f5_with_wrong_keys(V & O, expected_values);
-  EXPECT(!assert_equal(f5_with_wrong_keys, f5, 1e-9));
+  EXPECT(assert_inequal(f5_with_wrong_keys, f5, 1e-9));
 }
 
 /* ************************************************************************* */
