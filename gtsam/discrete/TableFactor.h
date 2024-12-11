@@ -132,6 +132,7 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
 
   /// Constructor from DecisionTreeFactor
   TableFactor(const DiscreteKeys& keys, const DecisionTreeFactor& dtf);
+  TableFactor(const DecisionTreeFactor& dtf);
 
   /// Constructor from DecisionTree<Key, double>/AlgebraicDecisionTree
   TableFactor(const DiscreteKeys& keys, const DecisionTree<Key, double>& dtree);

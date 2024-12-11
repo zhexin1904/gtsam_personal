@@ -93,6 +93,11 @@ TableFactor::TableFactor(const DiscreteKeys& dkeys,
     : TableFactor(dkeys, ComputeLeafOrdering(dkeys, dtf)) {}
 
 /* ************************************************************************ */
+TableFactor::TableFactor(const DecisionTreeFactor& dtf)
+    : TableFactor(dtf.discreteKeys(),
+                  ComputeLeafOrdering(dtf.discreteKeys(), dtf)) {}
+
+/* ************************************************************************ */
 TableFactor::TableFactor(const DiscreteConditional& c)
     : TableFactor(c.discreteKeys(), c) {}
 
