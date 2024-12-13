@@ -170,10 +170,8 @@ TEST(TableFactor, Conversion) {
       dkeys, std::vector<double>{0, 0, 0, 0.14649446, 0, 0.14648756, 0.14649446,
                                  0.23918345});
 
-  // dtf.print();
   TableFactor tf(dtf.discreteKeys(), dtf);
-  // tf.print();
-  // tf.toDecisionTreeFactor().print();
+
   EXPECT(assert_equal(dtf, tf.toDecisionTreeFactor()));
 }
 
