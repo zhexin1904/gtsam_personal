@@ -19,6 +19,7 @@
 #include <gtsam/navigation/NavState.h>
 
 #include <string>
+#include "gtsam/geometry/Rot3.h"
 
 namespace gtsam {
 
@@ -114,28 +115,27 @@ NavState NavState::inverse() const {
 
 //------------------------------------------------------------------------------
 NavState NavState::Expmap(const Vector9& xi, OptionalJacobian<9, 9> Hxi) {
-  if (Hxi) *Hxi = ExpmapDerivative(xi);
+  // Get angular velocity w, translational velocity v, and acceleration a
+  Vector3 w = xi.head<3>();
+  Vector3 rho = xi.segment<3>(3);
+  Vector3 nu = xi.tail<3>();
 
-  // Order is rotation, position, velocity, represented by ω,ρ,ν
-  Vector3 omega(xi(0), xi(1), xi(2)), rho(xi(3), xi(4), xi(5)),
-      nu(xi(6), xi(7), xi(8));
+  // Compute rotation using Expmap
+  Rot3 R = Rot3::Expmap(w);
 
-  Rot3 R = Rot3::Expmap(omega);
+  // Compute translations and optionally their Jacobians
+  Matrix3 Qt, Qv;
+  Vector3 t = Pose3::ExpmapTranslation(w, rho, Hxi ? &Qt : nullptr, R);
+  Vector3 v = Pose3::ExpmapTranslation(w,  nu, Hxi ? &Qv : nullptr, R);
 
-  double omega_norm = omega.norm();
-
-  if (omega_norm < 1e-8) {
-    return NavState(Rot3(), Point3(rho), Point3(nu));
-
-  } else {
-    Matrix W = skewSymmetric(omega);
-    double omega_norm2 = omega_norm * omega_norm;
-    double omega_norm3 = omega_norm2 * omega_norm;
-    Matrix A = I_3x3 + ((1 - cos(omega_norm)) / omega_norm2) * W +
-               ((omega_norm - sin(omega_norm)) / omega_norm3) * (W * W);
-
-    return NavState(Rot3::Expmap(omega), Point3(A * rho), Point3(A * nu));
+  if (Hxi) {
+    const Matrix3 Jw = Rot3::ExpmapDerivative(w);
+    *Hxi << Jw, Z_3x3, Z_3x3,
+            Qt,    Jw, Z_3x3,
+            Qv, Z_3x3,    Jw;
   }
+
+  return NavState(R, t, v);
 }
 
 //------------------------------------------------------------------------------
@@ -220,64 +220,10 @@ Vector9 NavState::adjoint(const Vector9& xi, const Vector9& y,
   return ad_xi * y;
 }
 
-/* ************************************************************************* */
-Matrix63 NavState::ComputeQforExpmapDerivative(const Vector9& xi,
-                                               double nearZeroThreshold) {
-  const auto omega = xi.head<3>();
-  const auto nu = xi.segment<3>(3);
-  const auto rho = xi.tail<3>();
-  const Matrix3 V = skewSymmetric(nu);
-  const Matrix3 P = skewSymmetric(rho);
-  const Matrix3 W = skewSymmetric(omega);
-
-  Matrix3 Qv, Qp;
-  Matrix63 Q;
-
-  // The closed-form formula in Barfoot14tro eq. (102)
-  double phi = omega.norm();
-  if (std::abs(phi) > 1e-5) {
-    const double sinPhi = sin(phi), cosPhi = cos(phi);
-    const double phi2 = phi * phi, phi3 = phi2 * phi, phi4 = phi3 * phi,
-                 phi5 = phi4 * phi;
-    // Invert the sign of odd-order terms to have the right Jacobian
-    Qv = -0.5 * V + (phi - sinPhi) / phi3 * (W * V + V * W - W * V * W) +
-         (1 - phi2 / 2 - cosPhi) / phi4 *
-             (W * W * V + V * W * W - 3 * W * V * W) -
-         0.5 *
-             ((1 - phi2 / 2 - cosPhi) / phi4 -
-              3 * (phi - sinPhi - phi3 / 6.) / phi5) *
-             (W * V * W * W + W * W * V * W);
-    Qp = -0.5 * P + (phi - sinPhi) / phi3 * (W * P + P * W - W * P * W) +
-         (1 - phi2 / 2 - cosPhi) / phi4 *
-             (W * W * P + P * W * W - 3 * W * P * W) -
-         0.5 *
-             ((1 - phi2 / 2 - cosPhi) / phi4 -
-              3 * (phi - sinPhi - phi3 / 6.) / phi5) *
-             (W * P * W * W + W * W * P * W);
-  } else {
-    Qv = -0.5 * V + 1. / 6. * (W * V + V * W - W * V * W) +
-         1. / 24. * (W * W * V + V * W * W - 3 * W * V * W) -
-         0.5 * (1. / 24. + 3. / 120.) * (W * V * W * W + W * W * V * W);
-    Qp = -0.5 * P + 1. / 6. * (W * P + P * W - W * P * W) +
-         1. / 24. * (W * W * P + P * W * W - 3 * W * P * W) -
-         0.5 * (1. / 24. + 3. / 120.) * (W * P * W * W + W * W * P * W);
-  }
-
-  Q << Qv, Qp;
-  return Q;
-}
-
 //------------------------------------------------------------------------------
 Matrix9 NavState::ExpmapDerivative(const Vector9& xi) {
-  const Vector3 w = xi.head<3>();
-  const Matrix3 Jw = Rot3::ExpmapDerivative(w);
-  const Matrix63 Q = ComputeQforExpmapDerivative(xi);
-  const Matrix3 Qv = Q.topRows<3>();
-  const Matrix3 Qp = Q.bottomRows<3>();
-
   Matrix9 J;
-  J << Jw, Z_3x3, Z_3x3, Qv, Jw, Z_3x3, Qp, Z_3x3, Jw;
-
+  Expmap(xi, J);
   return J;
 }
 
@@ -285,15 +231,21 @@ Matrix9 NavState::ExpmapDerivative(const Vector9& xi) {
 Matrix9 NavState::LogmapDerivative(const NavState& state) {
   const Vector9 xi = Logmap(state);
   const Vector3 w = xi.head<3>();
+  Vector3 rho = xi.segment<3>(3);
+  Vector3 nu = xi.tail<3>();
+  
+  Matrix3 Qt, Qv;
+  const Rot3 R = Rot3::Expmap(w);
+  Pose3::ExpmapTranslation(w, rho, Qt, R);
+  Pose3::ExpmapTranslation(w,  nu, Qv, R);
   const Matrix3 Jw = Rot3::LogmapDerivative(w);
-  const Matrix63 Q = ComputeQforExpmapDerivative(xi);
-  const Matrix3 Qv = Q.topRows<3>();
-  const Matrix3 Qp = Q.bottomRows<3>();
+  const Matrix3 Qt2 = -Jw * Qt * Jw;
   const Matrix3 Qv2 = -Jw * Qv * Jw;
-  const Matrix3 Qp2 = -Jw * Qp * Jw;
 
   Matrix9 J;
-  J << Jw, Z_3x3, Z_3x3, Qv2, Jw, Z_3x3, Qp2, Z_3x3, Jw;
+  J <<  Jw, Z_3x3, Z_3x3, 
+       Qt2,    Jw, Z_3x3,
+       Qv2, Z_3x3,    Jw;
   return J;
 }
 

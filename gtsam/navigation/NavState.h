@@ -242,13 +242,6 @@ public:
     static Vector9 Local(const NavState& state, ChartJacobian Hstate = {});
   };
 
-  /**
-   * Compute the 6x3 bottom-left block Qs of the SE_2(3) Expmap derivative
-   * matrix
-   */
-  static Matrix63 ComputeQforExpmapDerivative(const Vector9& xi,
-                                              double nearZeroThreshold = 1e-5);
-
   /// @}
   /// @name Dynamics
   /// @{
