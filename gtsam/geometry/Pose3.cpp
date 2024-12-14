@@ -246,33 +246,34 @@ class ExpmapFunctor : public so3::DexpFunctor {
   static constexpr double one_one_hundred_twentieth = 1.0 / 120.0;
 
  public:
-  ExpmapFunctor(const Vector3& omega, bool nearZeroApprox = false)
-      : so3::DexpFunctor(omega, nearZeroApprox) {}
+  ExpmapFunctor(const Vector3& omega, bool nearZeroApprox = false,
+                bool includeHigherOrder = false)
+      : so3::DexpFunctor(omega, nearZeroApprox),
+        includeHigherOrder(includeHigherOrder) {}
 
-  // Compute the Jacobian Q with respect to w
   Matrix3 computeQ(const Vector3& v) const {
     const Matrix3 V = skewSymmetric(v);
     const Matrix3 WVW = W * V * W;
 
     if (!nearZero) {
-      const double theta3 = theta2 * theta;
-      const double theta4 = theta2 * theta2;
-      const double theta5 = theta4 * theta;
-      const double s = sin_theta;
-      const double a = one_minus_cos - theta2 / 2;
-
-      // The closed-form formula in Barfoot14tro eq. (102)
-      return -0.5 * V + (theta - s) / theta3 * (W * V + V * W - WVW) +
-             a / theta4 * (WW * V + V * WW - 3 * WVW) -
-             0.5 *
-                 (a / theta4 - 3 * (theta - s - theta3 * one_sixth) / theta5) *
-                 (WVW * W + W * WVW);
+      // Simplified from closed-form formula in Barfoot14tro eq. (102)
+      // Note dexp = I_3x3 - B * W + C * WW and t = dexp * v
+      return -0.5 * V + C * (W * V + V * W - WVW) +
+             (B - 0.5) / theta2 * (WW * V + V * WW - 3 * WVW) -
+             0.5 * (B - 3 * C) / theta2 * (WVW * W + W * WVW);
     } else {
-      return -0.5 * V + one_sixth * (W * V + V * W - WVW) -
-             one_twenty_fourth * (WW * V + V * WW - 3 * WVW) +
-             one_one_hundred_twentieth * (WVW * W + W * WVW);
+      Matrix3 Q = -0.5 * V + one_sixth * (W * V + V * W - WVW);
+      Q -= one_twenty_fourth * (WW * V + V * WW - 3 * WVW);
+
+      if (includeHigherOrder) {
+        Q += one_one_hundred_twentieth * (WVW * W + W * WVW);
+      }
+      return Q;
     }
   }
+
+ private:
+  bool includeHigherOrder;
 };
 }  // namespace pose3
 

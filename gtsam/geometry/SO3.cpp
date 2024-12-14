@@ -85,7 +85,7 @@ SO3 ExpmapFunctor::expmap() const {
 
 Matrix3 DexpFunctor::leftJacobian() const {
   if (nearZero) {
-    return I_3x3 + 0.5 * W + one_sixth * WW;
+    return I_3x3 + 0.5 * W;  // + one_sixth * WW;
   } else {
     return I_3x3 + B * W + C * WW;
   }
@@ -94,7 +94,7 @@ Matrix3 DexpFunctor::leftJacobian() const {
 DexpFunctor::DexpFunctor(const Vector3& omega, bool nearZeroApprox)
     : ExpmapFunctor(omega, nearZeroApprox), omega(omega) {
   if (nearZero) {
-    rightJacobian_ = I_3x3 - 0.5 * W + one_sixth * WW;
+    rightJacobian_ = I_3x3 - 0.5 * W;  // + one_sixth * WW;
   } else {
     C = (1 - A) / theta2;
     rightJacobian_ = I_3x3 - B * W + C * WW;
@@ -104,18 +104,15 @@ DexpFunctor::DexpFunctor(const Vector3& omega, bool nearZeroApprox)
 Vector3 DexpFunctor::applyDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
                                OptionalJacobian<3, 3> H2) const {
   if (H1) {
+    const Matrix3 V = skewSymmetric(v);
     if (nearZero) {
-      *H1 = 0.5 * skewSymmetric(v);
+      *H1 = 0.5 * V;
     } else {
       // TODO(frank): Iserles hints that there should be a form I + c*K + d*KK
-      double a = B * theta;
-      double b = C * theta2;
-      const Vector3 Kv = W * v / theta;
-      const double Da = (sin_theta - 2.0 * a) / theta2;
-      const double Db = (one_minus_cos - 3.0 * b) / theta2;
-      *H1 = (Db * W / theta - Da * I_3x3) * Kv * omega.transpose() -
-            skewSymmetric(Kv * b / theta) +
-            (a * I_3x3 - b * W / theta) * skewSymmetric(v / theta);
+      const double Da = (A - 2.0 * B) / theta2;
+      const double Db = (B - 3.0 * C) / theta2;
+      *H1 = (Db * WW - Da * W) * v * omega.transpose() -
+            C * skewSymmetric(W * v) + B * V - C * W * V;
     }
   }
   if (H2) *H2 = rightJacobian_;
