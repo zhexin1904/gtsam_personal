@@ -239,13 +239,49 @@ Vector6 Pose3::ChartAtOrigin::Local(const Pose3& pose, ChartJacobian Hpose) {
 }
 
 /* ************************************************************************* */
+namespace pose3 {
+class ExpmapFunctor : public so3::DexpFunctor {
+ private:
+  static constexpr double one_twenty_fourth = 1.0 / 24.0;
+  static constexpr double one_one_hundred_twentieth = 1.0 / 120.0;
+
+ public:
+  ExpmapFunctor(const Vector3& omega, bool nearZeroApprox = false)
+      : so3::DexpFunctor(omega, nearZeroApprox) {}
+
+  // Compute the Jacobian Q with respect to w
+  Matrix3 computeQ(const Vector3& v) const {
+    const Matrix3 V = skewSymmetric(v);
+    const Matrix3 WVW = W * V * W;
+
+    if (!nearZero) {
+      const double theta3 = theta2 * theta;
+      const double theta4 = theta2 * theta2;
+      const double theta5 = theta4 * theta;
+      const double s = sin_theta;
+      const double a = one_minus_cos - theta2 / 2;
+
+      // The closed-form formula in Barfoot14tro eq. (102)
+      return -0.5 * V + (theta - s) / theta3 * (W * V + V * W - WVW) +
+             a / theta4 * (WW * V + V * WW - 3 * WVW) -
+             0.5 *
+                 (a / theta4 - 3 * (theta - s - theta3 * one_sixth) / theta5) *
+                 (WVW * W + W * WVW);
+    } else {
+      return -0.5 * V + one_sixth * (W * V + V * W - WVW) -
+             one_twenty_fourth * (WW * V + V * WW - 3 * WVW) +
+             one_one_hundred_twentieth * (WVW * W + W * WVW);
+    }
+  }
+};
+}  // namespace pose3
+
+/* ************************************************************************* */
 Matrix3 Pose3::ComputeQforExpmapDerivative(const Vector6& xi,
                                            double nearZeroThreshold) {
-  Matrix3 Q;
   const auto w = xi.head<3>();
   const auto v = xi.tail<3>();
-  ExpmapTranslation(w, v, Q, {}, nearZeroThreshold);
-  return Q;
+  return pose3::ExpmapFunctor(w).computeQ(v);
 }
 
 /* ************************************************************************* */
@@ -256,39 +292,12 @@ Vector3 Pose3::ExpmapTranslation(const Vector3& w, const Vector3& v,
   const double theta2 = w.dot(w);
   bool nearZero = (theta2 <= nearZeroThreshold);
 
-  if (Q) {
-    const Matrix3 V = skewSymmetric(v);
-    const Matrix3 W = skewSymmetric(w);
-    const Matrix3 WVW = W * V * W;
-    const double theta = w.norm();
+  if (Q) *Q = pose3::ExpmapFunctor(w, nearZero).computeQ(v);
 
-    if (nearZero) {
-      static constexpr double one_sixth = 1. / 6.;
-      static constexpr double one_twenty_fourth = 1. / 24.;
-      static constexpr double one_one_hundred_twentieth = 1. / 120.;
-
-      *Q = -0.5 * V + one_sixth * (W * V + V * W - WVW) -
-           one_twenty_fourth * (W * W * V + V * W * W - 3 * WVW) +
-           one_one_hundred_twentieth * (WVW * W + W * WVW);
-    } else {
-      const double s = sin(theta), c = cos(theta);
-      const double theta3 = theta2 * theta, theta4 = theta3 * theta,
-                   theta5 = theta4 * theta;
-
-      // Invert the sign of odd-order terms to have the right Jacobian
-      *Q = -0.5 * V + (theta - s) / theta3 * (W * V + V * W - WVW) +
-           (1 - theta2 / 2 - c) / theta4 * (W * W * V + V * W * W - 3 * WVW) -
-           0.5 *
-               ((1 - theta2 / 2 - c) / theta4 -
-                3 * (theta - s - theta3 / 6.) / theta5) *
-               (WVW * W + W * WVW);
-    }
-  }
-
-  // TODO(Frank): this threshold is *different*. Why?
   if (nearZero) {
     return v + 0.5 * w.cross(v);
   } else {
+    // Geometric intuition and faster than using functor.
     Vector3 t_parallel = w * w.dot(v);  // translation parallel to axis
     Vector3 w_cross_v = w.cross(v);     // translation orthogonal to axis
     Rot3 rotation = R.value_or(Rot3::Expmap(w));
