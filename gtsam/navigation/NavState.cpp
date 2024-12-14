@@ -19,7 +19,6 @@
 #include <gtsam/navigation/NavState.h>
 
 #include <string>
-#include "gtsam/geometry/Rot3.h"
 
 namespace gtsam {
 
