@@ -136,7 +136,8 @@ GTSAM_EXPORT Matrix99 Dcompose(const SO3& R);
 class GTSAM_EXPORT ExpmapFunctor {
  protected:
   const double theta2;
-  Matrix3 W, K, KK;
+  Matrix3 W, WW;
+  double A, B; // Ethan Eade's constants
   bool nearZero;
   double theta, sin_theta, one_minus_cos;  // only defined if !nearZero
 
@@ -155,13 +156,16 @@ class GTSAM_EXPORT ExpmapFunctor {
 
 /// Functor that implements Exponential map *and* its derivatives
 class DexpFunctor : public ExpmapFunctor {
+ protected:
+  static constexpr double one_sixth = 1.0 / 6.0;
   const Vector3 omega;
-  double a, b;
-  Matrix3 dexp_;
+  double C;  // Ethan Eade's C constant
+  Matrix3 rightJacobian_;
 
  public:
   /// Constructor with element of Lie algebra so(3)
-  GTSAM_EXPORT explicit DexpFunctor(const Vector3& omega, bool nearZeroApprox = false);
+  GTSAM_EXPORT explicit DexpFunctor(const Vector3& omega,
+                                    bool nearZeroApprox = false);
 
   // NOTE(luca): Right Jacobian for Exponential map in SO(3) - equation
   // (10.86) and following equations in G.S. Chirikjian, "Stochastic Models,
@@ -169,16 +173,21 @@ class DexpFunctor : public ExpmapFunctor {
   //   expmap(omega + v) \approx expmap(omega) * expmap(dexp * v)
   // This maps a perturbation v in the tangent space to
   // a perturbation on the manifold Expmap(dexp * v) */
-  const Matrix3& dexp() const { return dexp_; }
+  const Matrix3& dexp() const { return rightJacobian_; }
 
   /// Multiplies with dexp(), with optional derivatives
-  GTSAM_EXPORT Vector3 applyDexp(const Vector3& v, OptionalJacobian<3, 3> H1 = {},
-                    OptionalJacobian<3, 3> H2 = {}) const;
+  GTSAM_EXPORT Vector3 applyDexp(const Vector3& v,
+                                 OptionalJacobian<3, 3> H1 = {},
+                                 OptionalJacobian<3, 3> H2 = {}) const;
 
   /// Multiplies with dexp().inverse(), with optional derivatives
   GTSAM_EXPORT Vector3 applyInvDexp(const Vector3& v,
-                       OptionalJacobian<3, 3> H1 = {},
-                       OptionalJacobian<3, 3> H2 = {}) const;
+                                    OptionalJacobian<3, 3> H1 = {},
+                                    OptionalJacobian<3, 3> H2 = {}) const;
+
+  // Compute the left Jacobian for Exponential map in SO(3)
+  // Note precomputed, as not used as much
+  Matrix3 leftJacobian() const;
 };
 }  //  namespace so3
 
