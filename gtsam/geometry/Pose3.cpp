@@ -168,14 +168,14 @@ Pose3 Pose3::Expmap(const Vector6& xi, OptionalJacobian<6, 6> Hxi) {
   const Vector3 w = xi.head<3>(), v = xi.tail<3>();
 
   // Compute rotation using Expmap
-  Rot3 R = Rot3::Expmap(w);
+  Matrix3 Jw;
+  Rot3 R = Rot3::Expmap(w, Hxi ? &Jw : nullptr);
 
   // Compute translation and optionally its Jacobian in w
   Matrix3 Q;
   const Vector3 t = ExpmapTranslation(w, v, Hxi ? &Q : nullptr, R);
 
   if (Hxi) {
-    const Matrix3 Jw = Rot3::ExpmapDerivative(w);
     *Hxi << Jw, Z_3x3,
              Q, Jw;
   }
@@ -246,34 +246,27 @@ class ExpmapFunctor : public so3::DexpFunctor {
   static constexpr double one_one_hundred_twentieth = 1.0 / 120.0;
 
  public:
-  ExpmapFunctor(const Vector3& omega, bool nearZeroApprox = false,
-                bool includeHigherOrder = false)
-      : so3::DexpFunctor(omega, nearZeroApprox),
-        includeHigherOrder(includeHigherOrder) {}
+  ExpmapFunctor(const Vector3& omega, bool nearZeroApprox = false)
+      : so3::DexpFunctor(omega, nearZeroApprox) {}
 
+  // Compute the bottom-left 3x3 block of the SE(3) Expmap derivative
+  // TODO(Frank): t = applyLeftJacobian(v), it would be nice to understand
+  // how to compute mess below from its derivatives in w and v.
   Matrix3 computeQ(const Vector3& v) const {
     const Matrix3 V = skewSymmetric(v);
     const Matrix3 WVW = W * V * W;
 
     if (!nearZero) {
       // Simplified from closed-form formula in Barfoot14tro eq. (102)
-      // Note dexp = I_3x3 - B * W + C * WW and t = dexp * v
       return -0.5 * V + C * (W * V + V * W - WVW) +
              (B - 0.5) / theta2 * (WW * V + V * WW - 3 * WVW) -
              0.5 * (B - 3 * C) / theta2 * (WVW * W + W * WVW);
     } else {
-      Matrix3 Q = -0.5 * V + one_sixth * (W * V + V * W - WVW);
-      Q -= one_twenty_fourth * (WW * V + V * WW - 3 * WVW);
-
-      if (includeHigherOrder) {
-        Q += one_one_hundred_twentieth * (WVW * W + W * WVW);
-      }
-      return Q;
+      return -0.5 * V + one_sixth * (W * V + V * W - WVW) -
+             one_twenty_fourth * (WW * V + V * WW - 3 * WVW) +
+             one_one_hundred_twentieth * (WVW * W + W * WVW);
     }
   }
-
- private:
-  bool includeHigherOrder;
 };
 }  // namespace pose3
 
@@ -298,7 +291,8 @@ Vector3 Pose3::ExpmapTranslation(const Vector3& w, const Vector3& v,
   if (nearZero) {
     return v + 0.5 * w.cross(v);
   } else {
-    // Geometric intuition and faster than using functor.
+    // NOTE(Frank): t can also be computed by calling applyLeftJacobian(v), but
+    // formulas below convey geometric insight and creating functor is not free.
     Vector3 t_parallel = w * w.dot(v);  // translation parallel to axis
     Vector3 w_cross_v = w.cross(v);     // translation orthogonal to axis
     Rot3 rotation = R.value_or(Rot3::Expmap(w));

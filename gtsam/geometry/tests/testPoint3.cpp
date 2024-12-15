@@ -18,8 +18,6 @@
 #include <gtsam/base/Testable.h>
 #include <gtsam/base/numericalDerivative.h>
 #include <gtsam/geometry/Point3.h>
-#include "gtsam/base/Matrix.h"
-#include "gtsam/base/OptionalJacobian.h"
 
 using namespace std::placeholders;
 using namespace gtsam;
