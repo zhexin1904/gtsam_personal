@@ -160,6 +160,12 @@ class DexpFunctor : public ExpmapFunctor {
   const Vector3 omega;
   double C;  // Ethan Eade's C constant
 
+  /// Computes B * (omega x v).
+  Vector3 cross(const Vector3& v, OptionalJacobian<3, 3> H = {}) const;
+
+  /// Computes C * (omega x (omega x v)).
+  Vector3 doubleCross(const Vector3& v, OptionalJacobian<3, 3> H = {}) const;
+
  public:
   /// Constructor with element of Lie algebra so(3)
   GTSAM_EXPORT explicit DexpFunctor(const Vector3& omega,

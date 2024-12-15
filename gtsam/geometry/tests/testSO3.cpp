@@ -19,6 +19,7 @@
 #include <gtsam/base/Testable.h>
 #include <gtsam/base/testLie.h>
 #include <gtsam/geometry/SO3.h>
+#include <iostream>
 
 using namespace std::placeholders;
 using namespace std;
@@ -321,6 +322,29 @@ TEST(SO3, ApplyDexp) {
         EXPECT(assert_equal(numericalDerivative21(f, omega, v), aH1));
         EXPECT(assert_equal(numericalDerivative22(f, omega, v), aH2));
         EXPECT(assert_equal(local.dexp(), aH2));
+      }
+    }
+  }
+}
+
+//******************************************************************************
+TEST(SO3, ApplyLeftJacobian) {
+  Matrix aH1, aH2;
+  for (bool nearZeroApprox : {false, true}) {
+    std::function<Vector3(const Vector3&, const Vector3&)> f =
+        [=](const Vector3& omega, const Vector3& v) {
+          return so3::DexpFunctor(omega, nearZeroApprox).applyLeftJacobian(v);
+        };
+    for (Vector3 omega : {Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 1, 0),
+                          Vector3(0, 0, 1), Vector3(0.1, 0.2, 0.3)}) {
+      so3::DexpFunctor local(omega, nearZeroApprox);
+      for (Vector3 v : {Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1),
+                        Vector3(0.4, 0.3, 0.2)}) {
+        CHECK(assert_equal(Vector3(local.leftJacobian() * v),
+                            local.applyLeftJacobian(v, aH1, aH2)));
+        CHECK(assert_equal(numericalDerivative21(f, omega, v), aH1));
+        CHECK(assert_equal(numericalDerivative22(f, omega, v), aH2));
+        CHECK(assert_equal(local.leftJacobian(), aH2));
       }
     }
   }
