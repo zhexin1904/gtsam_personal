@@ -153,8 +153,7 @@ TableFactor::TableFactor(const DiscreteKeys& dkeys,
 
 /* ************************************************************************ */
 TableFactor::TableFactor(const DecisionTreeFactor& dtf)
-    : TableFactor(dtf.discreteKeys(),
-                  ComputeSparseTable(dtf.discreteKeys(), dtf)) {}
+    : TableFactor(dtf.discreteKeys(), dtf) {}
 
 /* ************************************************************************ */
 TableFactor::TableFactor(const DiscreteConditional& c)
@@ -278,7 +277,8 @@ DecisionTreeFactor TableFactor::toDecisionTreeFactor() const {
                   table.push_back(pair.second);
                 });
 
-  DecisionTreeFactor f(rdkeys, table);
+  AlgebraicDecisionTree<Key> tree(rdkeys, table);
+  DecisionTreeFactor f(dkeys, tree);
   return f;
 }
 
