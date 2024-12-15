@@ -490,7 +490,7 @@ TEST(NavState, Expmap_b) {
       (Vector(9) << 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0).finished());
   NavState expected(Rot3::Rodrigues(0.0, 0.0, 0.1), Point3(-100.0, 0.0, 0.0),
                     Point3(100.0, 0.0, 0.0));
-  EXPECT(assert_equal(expected, p2, 1e-2));
+  EXPECT(assert_equal(expected, p2));
 }
 
 /* ************************************************************************* */
@@ -566,7 +566,7 @@ TEST(NavState, retract_localCoordinates2) {
   EXPECT(assert_equal(t2, t1.retract(d12)));
   Vector d21 = t2.localCoordinates(t1);
   EXPECT(assert_equal(t1, t2.retract(d21)));
-  // EXPECT(assert_equal(d12, -d21));
+  // NOTE(FRANK): d12 !== -d21 for arbitrary retractions.
 }
 /* ************************************************************************* */
 TEST(NavState, manifold_expmap) {
@@ -675,9 +675,9 @@ TEST(NavState, ChartDerivatives) {
   NavState id;
   if (ROT3_DEFAULT_COORDINATES_MODE == Rot3::EXPMAP) {
     CHECK_CHART_DERIVATIVES(id, id);
-      //  CHECK_CHART_DERIVATIVES(id,T2);
-      //  CHECK_CHART_DERIVATIVES(T2,id);
-      //  CHECK_CHART_DERIVATIVES(T2,T3);
+    CHECK_CHART_DERIVATIVES(id,T2);
+    CHECK_CHART_DERIVATIVES(T2,id);
+    CHECK_CHART_DERIVATIVES(T2,T3);
   }
 }
 
