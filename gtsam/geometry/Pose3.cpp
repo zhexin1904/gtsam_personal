@@ -21,7 +21,6 @@
 
 #include <cmath>
 #include <iostream>
-#include <limits>
 #include <string>
 
 namespace gtsam {
@@ -254,44 +253,47 @@ Vector3 Pose3::ExpmapTranslation(const Vector3& w, const Vector3& v,
                                  OptionalJacobian<3, 3> Q,
                                  const std::optional<Rot3>& R,
                                  double nearZeroThreshold) {
-  double phi2 = w.dot(w);
+  const double theta2 = w.dot(w);
+  bool nearZero = (theta2 <= nearZeroThreshold);
 
   if (Q) {
     const Matrix3 V = skewSymmetric(v);
     const Matrix3 W = skewSymmetric(w);
     const Matrix3 WVW = W * V * W;
-    const double phi = w.norm();
+    const double theta = w.norm();
 
-    if (std::abs(phi) > nearZeroThreshold) {
-      const double s = sin(phi), c = cos(phi);
-      const double phi3 = phi2 * phi, phi4 = phi3 * phi, phi5 = phi4 * phi;
-
-      // Invert the sign of odd-order terms to have the right Jacobian
-      *Q = -0.5 * V + (phi - s) / phi3 * (W * V + V * W - WVW) +
-           (1 - phi2 / 2 - c) / phi4 * (W * W * V + V * W * W - 3 * WVW) -
-           0.5 *
-               ((1 - phi2 / 2 - c) / phi4 - 3 * (phi - s - phi3 / 6.) / phi5) *
-               (WVW * W + W * WVW);
-    } else {
-      constexpr double one_sixth = 1. / 6.;
-      constexpr double one_twenty_fourth = 1. / 24.;
-      constexpr double one_one_hundred_twentieth = 1. / 120.;
+    if (nearZero) {
+      static constexpr double one_sixth = 1. / 6.;
+      static constexpr double one_twenty_fourth = 1. / 24.;
+      static constexpr double one_one_hundred_twentieth = 1. / 120.;
 
       *Q = -0.5 * V + one_sixth * (W * V + V * W - WVW) -
            one_twenty_fourth * (W * W * V + V * W * W - 3 * WVW) +
            one_one_hundred_twentieth * (WVW * W + W * WVW);
+    } else {
+      const double s = sin(theta), c = cos(theta);
+      const double theta3 = theta2 * theta, theta4 = theta3 * theta,
+                   theta5 = theta4 * theta;
+
+      // Invert the sign of odd-order terms to have the right Jacobian
+      *Q = -0.5 * V + (theta - s) / theta3 * (W * V + V * W - WVW) +
+           (1 - theta2 / 2 - c) / theta4 * (W * W * V + V * W * W - 3 * WVW) -
+           0.5 *
+               ((1 - theta2 / 2 - c) / theta4 -
+                3 * (theta - s - theta3 / 6.) / theta5) *
+               (WVW * W + W * WVW);
     }
   }
 
   // TODO(Frank): this threshold is *different*. Why?
-  if (phi2 > std::numeric_limits<double>::epsilon()) {
+  if (nearZero) {
+    return v + 0.5 * w.cross(v);
+  } else {
     Vector3 t_parallel = w * w.dot(v);  // translation parallel to axis
     Vector3 w_cross_v = w.cross(v);     // translation orthogonal to axis
     Rot3 rotation = R.value_or(Rot3::Expmap(w));
-    Vector3 t = (w_cross_v - rotation * w_cross_v + t_parallel) / phi2;
+    Vector3 t = (w_cross_v - rotation * w_cross_v + t_parallel) / theta2;
     return t;
-  } else {
-    return v;
   }
 }
 
