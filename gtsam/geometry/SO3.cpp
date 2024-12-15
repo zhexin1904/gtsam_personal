@@ -18,13 +18,14 @@
  * @date    December 2014
  */
 
+#include <gtsam/base/Matrix.h>
+#include <gtsam/base/Vector.h>
 #include <gtsam/base/concepts.h>
+#include <gtsam/geometry/Point3.h>
 #include <gtsam/geometry/SO3.h>
 
 #include <Eigen/SVD>
-
 #include <cmath>
-#include <iostream>
 #include <limits>
 
 namespace gtsam {
@@ -41,7 +42,8 @@ GTSAM_EXPORT Matrix99 Dcompose(const SO3& Q) {
   return H;
 }
 
-GTSAM_EXPORT Matrix3 compose(const Matrix3& M, const SO3& R, OptionalJacobian<9, 9> H) {
+GTSAM_EXPORT Matrix3 compose(const Matrix3& M, const SO3& R,
+                             OptionalJacobian<9, 9> H) {
   Matrix3 MR = M * R.matrix();
   if (H) *H = Dcompose(R);
   return MR;
@@ -83,45 +85,54 @@ SO3 ExpmapFunctor::expmap() const {
     return SO3(I_3x3 + A * W + B * WW);
 }
 
-Matrix3 DexpFunctor::leftJacobian() const {
-  if (nearZero) {
-    return I_3x3 + 0.5 * W;  // + one_sixth * WW;
-  } else {
-    return I_3x3 + B * W + C * WW;
-  }
-}
-
 DexpFunctor::DexpFunctor(const Vector3& omega, bool nearZeroApprox)
     : ExpmapFunctor(omega, nearZeroApprox), omega(omega) {
+  C = (1 - A) / theta2;
+}
+
+Matrix3 DexpFunctor::rightJacobian() const {
   if (nearZero) {
-    rightJacobian_ = I_3x3 - 0.5 * W;  // + one_sixth * WW;
+    return I_3x3 - 0.5 * W;  // + one_sixth * WW;
   } else {
-    C = (1 - A) / theta2;
-    rightJacobian_ = I_3x3 - B * W + C * WW;
+    return I_3x3 - B * W + C * WW;
   }
 }
 
+// Derivative of w x w x v in w:
+static Matrix3 doubleCrossJacobian(const Vector3& w, const Vector3& v) {
+  return v.dot(w) * I_3x3 + w * v.transpose() - 2 * v * w.transpose();
+}
+
+// Multiplies v with left Jacobian through vector operations only.
+// When Jacobian H1 wrt omega is requested, product rule is invoked twice, once
+// for (B * Wv) and (C * WWv). The Jacobian H2 wrt v is just the right Jacobian.
 Vector3 DexpFunctor::applyDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
                                OptionalJacobian<3, 3> H2) const {
-  if (H1) {
-    const Matrix3 V = skewSymmetric(v);
-    if (nearZero) {
-      *H1 = 0.5 * V;
-    } else {
-      // TODO(frank): Iserles hints that there should be a form I + c*K + d*KK
-      const double Da = (A - 2.0 * B) / theta2;
-      const double Db = (B - 3.0 * C) / theta2;
-      *H1 = (Db * WW - Da * W) * v * omega.transpose() -
-            C * skewSymmetric(W * v) + B * V - C * W * V;
+  // Wv = omega x * v, with Jacobian -V in w
+  const Vector3 Wv = gtsam::cross(omega, v);
+
+  if (nearZero) {
+    if (H1) *H1 = 0.5 * skewSymmetric(v);
+    if (H2) *H2 = I_3x3 - 0.5 * W;
+    return v - 0.5 * Wv;
+  } else {
+    // WWv = omega x (omega x * v), with Jacobian doubleCrossJacobian
+    const Vector3 WWv = gtsam::cross(omega, Wv);
+    if (H1) {
+      // 1x3 Jacobians of B and C with respect to theta
+      const Matrix13 HB = (A - 2.0 * B) / theta2 * omega.transpose();
+      const Matrix13 HC = (B - 3.0 * C) / theta2 * omega.transpose();
+      *H1 = -Wv * HB + B * skewSymmetric(v) +
+            C * doubleCrossJacobian(omega, v) + WWv * HC;
     }
+    if (H2) *H2 = rightJacobian();
+    return v - B * Wv + C * WWv;
   }
-  if (H2) *H2 = rightJacobian_;
-  return rightJacobian_ * v;
 }
 
 Vector3 DexpFunctor::applyInvDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
                                   OptionalJacobian<3, 3> H2) const {
-  const Matrix3 invDexp = rightJacobian_.inverse();
+  const Matrix3 invDexp = rightJacobian().inverse();
   const Vector3 c = invDexp * v;
   if (H1) {
     Matrix3 D_dexpv_omega;
@@ -130,6 +141,23 @@ Vector3 DexpFunctor::applyInvDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
   }
   if (H2) *H2 = invDexp;
   return c;
+}
+
+Matrix3 DexpFunctor::leftJacobian() const {
+  if (nearZero) {
+    return I_3x3 + 0.5 * W;  // + one_sixth * WW;
+  } else {
+    return I_3x3 + B * W + C * WW;
+  }
+}
+
+Vector3 DexpFunctor::applyLeftJacobian(const Vector3& v,
+                                       OptionalJacobian<3, 3> H1,
+                                       OptionalJacobian<3, 3> H2) const {
+  const Matrix3 Jw = leftJacobian();
+  if (H1) H1->setZero();
+  if (H2) *H2 = Jw;
+  return Jw * v;
 }
 
 }  // namespace so3

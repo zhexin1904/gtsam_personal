@@ -26,7 +26,6 @@
 #include <gtsam/base/Matrix.h>
 #include <gtsam/dllexport.h>
 
-#include <cmath>
 #include <vector>
 
 namespace gtsam {
@@ -160,7 +159,6 @@ class DexpFunctor : public ExpmapFunctor {
   static constexpr double one_sixth = 1.0 / 6.0;
   const Vector3 omega;
   double C;  // Ethan Eade's C constant
-  Matrix3 rightJacobian_;
 
  public:
   /// Constructor with element of Lie algebra so(3)
@@ -172,8 +170,11 @@ class DexpFunctor : public ExpmapFunctor {
   // Information Theory, and Lie Groups", Volume 2, 2008.
   //   expmap(omega + v) \approx expmap(omega) * expmap(dexp * v)
   // This maps a perturbation v in the tangent space to
-  // a perturbation on the manifold Expmap(dexp * v) */
-  const Matrix3& dexp() const { return rightJacobian_; }
+  // a perturbation on the manifold Expmap(dexp * v)
+  GTSAM_EXPORT Matrix3 rightJacobian() const;
+
+  /// differential of expmap == right Jacobian
+  GTSAM_EXPORT Matrix3 dexp() const { return rightJacobian(); }
 
   /// Multiplies with dexp(), with optional derivatives
   GTSAM_EXPORT Vector3 applyDexp(const Vector3& v,
@@ -186,8 +187,12 @@ class DexpFunctor : public ExpmapFunctor {
                                     OptionalJacobian<3, 3> H2 = {}) const;
 
   // Compute the left Jacobian for Exponential map in SO(3)
-  // Note precomputed, as not used as much
-  Matrix3 leftJacobian() const;
+  GTSAM_EXPORT Matrix3 leftJacobian() const;
+
+  /// Multiplies with leftJacobian(), with optional derivatives
+  GTSAM_EXPORT Vector3 applyLeftJacobian(const Vector3& v,
+                                         OptionalJacobian<3, 3> H1 = {},
+                                         OptionalJacobian<3, 3> H2 = {}) const;
 };
 }  //  namespace so3
 
