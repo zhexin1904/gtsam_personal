@@ -134,11 +134,12 @@ GTSAM_EXPORT Matrix99 Dcompose(const SO3& R);
 /// Functor implementing Exponential map
 class GTSAM_EXPORT ExpmapFunctor {
  protected:
-  const double theta2;
-  Matrix3 W, WW;
-  double A, B; // Ethan Eade's constants
+  const double theta2, theta;
+  const Matrix3 W, WW;
   bool nearZero;
-  double theta, sin_theta, one_minus_cos;  // only defined if !nearZero
+  // Ethan Eade's constants:
+  double A; // A = sin(theta) / theta or 1 for theta->0
+  double B; // B = (1 - cos(theta)) / theta^2 or 0.5 for theta->0
 
   void init(bool nearZeroApprox = false);
 
@@ -156,17 +157,19 @@ class GTSAM_EXPORT ExpmapFunctor {
 /// Functor that implements Exponential map *and* its derivatives
 class DexpFunctor : public ExpmapFunctor {
  protected:
-  static constexpr double one_sixth = 1.0 / 6.0;
   const Vector3 omega;
-  double C;  // Ethan Eade's C constant
+  double C;  // Ethan's C constant: (1 - A) / theta^2 or 1/6 for theta->0
+  // Constants used in cross and doubleCross
+  double D;  // (A - 2.0 * B) / theta2 or -1/12 for theta->0
+  double E;  // (B - 3.0 * C) / theta2 or -1/60 for theta->0
 
+ public:
   /// Computes B * (omega x v).
   Vector3 cross(const Vector3& v, OptionalJacobian<3, 3> H = {}) const;
 
   /// Computes C * (omega x (omega x v)).
   Vector3 doubleCross(const Vector3& v, OptionalJacobian<3, 3> H = {}) const;
 
- public:
   /// Constructor with element of Lie algebra so(3)
   GTSAM_EXPORT explicit DexpFunctor(const Vector3& omega,
                                     bool nearZeroApprox = false);
@@ -199,6 +202,11 @@ class DexpFunctor : public ExpmapFunctor {
   GTSAM_EXPORT Vector3 applyLeftJacobian(const Vector3& v,
                                          OptionalJacobian<3, 3> H1 = {},
                                          OptionalJacobian<3, 3> H2 = {}) const;
+
+ protected:
+  static constexpr double one_sixth = 1.0 / 6.0;
+  static constexpr double _one_twelfth = -1.0 / 12.0;
+  static constexpr double _one_sixtieth = -1.0 / 60.0;
 };
 }  //  namespace so3
 

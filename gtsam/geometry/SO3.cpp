@@ -51,49 +51,51 @@ GTSAM_EXPORT Matrix3 compose(const Matrix3& M, const SO3& R,
 }
 
 void ExpmapFunctor::init(bool nearZeroApprox) {
-  WW = W * W;
   nearZero =
       nearZeroApprox || (theta2 <= std::numeric_limits<double>::epsilon());
   if (!nearZero) {
-    sin_theta = std::sin(theta);
-    const double s2 = std::sin(theta / 2.0);
-    one_minus_cos = 2.0 * s2 * s2;  // numerically better than [1 - cos(theta)]
+    const double sin_theta = std::sin(theta);
     A = sin_theta / theta;
+    const double s2 = std::sin(theta / 2.0);
+    const double one_minus_cos =
+        2.0 * s2 * s2;  // numerically better than [1 - cos(theta)]
     B = one_minus_cos / theta2;
+  } else {
+    // Limits as theta -> 0:
+    A = 1.0;
+    B = 0.5;
   }
 }
 
 ExpmapFunctor::ExpmapFunctor(const Vector3& omega, bool nearZeroApprox)
-    : theta2(omega.dot(omega)), theta(std::sqrt(theta2)) {
-  const double wx = omega.x(), wy = omega.y(), wz = omega.z();
-  W << 0.0, -wz, +wy, +wz, 0.0, -wx, -wy, +wx, 0.0;
+    : theta2(omega.dot(omega)),
+      theta(std::sqrt(theta2)),
+      W(skewSymmetric(omega)),
+      WW(W * W) {
   init(nearZeroApprox);
 }
 
 ExpmapFunctor::ExpmapFunctor(const Vector3& axis, double angle,
                              bool nearZeroApprox)
-    : theta2(angle * angle), theta(angle) {
-  const double ax = axis.x(), ay = axis.y(), az = axis.z();
-  W << 0.0, -az, +ay, +az, 0.0, -ax, -ay, +ax, 0.0;
-  W *= angle;
+    : theta2(angle * angle),
+      theta(angle),
+      W(skewSymmetric(axis * angle)),
+      WW(W * W) {
   init(nearZeroApprox);
 }
 
-SO3 ExpmapFunctor::expmap() const {
-  if (nearZero)
-    return SO3(I_3x3 + W + 0.5 * WW);
-  else
-    return SO3(I_3x3 + A * W + B * WW);
-}
+SO3 ExpmapFunctor::expmap() const { return SO3(I_3x3 + A * W + B * WW); }
 
 DexpFunctor::DexpFunctor(const Vector3& omega, bool nearZeroApprox)
     : ExpmapFunctor(omega, nearZeroApprox), omega(omega) {
-  C = (1 - A) / theta2;
+  C = nearZero ? one_sixth : (1 - A) / theta2;
+  D = nearZero ? _one_twelfth : (A - 2.0 * B) / theta2;
+  E = nearZero ? _one_sixtieth : (B - 3.0 * C) / theta2;
 }
 
 Matrix3 DexpFunctor::rightJacobian() const {
   if (nearZero) {
-    return I_3x3 - 0.5 * W;  // + one_sixth * WW;
+    return I_3x3 - B * W;  // + C * WW;
   } else {
     return I_3x3 - B * W + C * WW;
   }
@@ -103,10 +105,10 @@ Vector3 DexpFunctor::cross(const Vector3& v, OptionalJacobian<3, 3> H) const {
   // Wv = omega x * v
   const Vector3 Wv = gtsam::cross(omega, v);
   if (H) {
-    // 1x3 Jacobian of B with respect to omega
-    const Matrix13 HB = (A - 2.0 * B) / theta2 * omega.transpose();
     // Apply product rule:
-    *H = Wv * HB - B * skewSymmetric(v);
+    // D * omega.transpose() is 1x3 Jacobian of B with respect to omega
+    // - skewSymmetric(v) is 3x3 Jacobian of B gtsam::cross(omega, v)
+    *H = Wv * D * omega.transpose() - B * skewSymmetric(v);
   }
   return B * Wv;
 }
@@ -118,10 +120,10 @@ Vector3 DexpFunctor::doubleCross(const Vector3& v,
   const Vector3 WWv =
       gtsam::doubleCross(omega, v, H ? &doubleCrossJacobian : nullptr);
   if (H) {
-    // 1x3 Jacobian of C with respect to omega
-    const Matrix13 HC = (B - 3.0 * C) / theta2 * omega.transpose();
     // Apply product rule:
-    *H = WWv * HC + C * doubleCrossJacobian;
+    // E * omega.transpose() is 1x3 Jacobian of C with respect to omega
+    // doubleCrossJacobian is 3x3 Jacobian of C gtsam::doubleCross(omega, v)
+    *H = WWv * E * omega.transpose() + C * doubleCrossJacobian;
   }
   return C * WWv;
 }
@@ -134,12 +136,12 @@ Vector3 DexpFunctor::applyDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
     if (H2) *H2 = I_3x3 - 0.5 * W;
     return v - 0.5 * gtsam::cross(omega, v);
   } else {
-    Matrix3 D_BWv_omega, D_CWWv_omega;
+  Matrix3 D_BWv_omega, D_CWWv_omega;
     const Vector3 BWv = cross(v, D_BWv_omega);
     const Vector3 CWWv = doubleCross(v, D_CWWv_omega);
     if (H1) *H1 = - D_BWv_omega + D_CWWv_omega;
-    if (H2) *H2 = rightJacobian();
-    return v - BWv + CWWv;
+  if (H2) *H2 = rightJacobian();
+  return v - BWv + CWWv;
   }
 }
 
@@ -219,12 +221,7 @@ SO3 SO3::ChordalMean(const std::vector<SO3>& rotations) {
 template <>
 GTSAM_EXPORT
 Matrix3 SO3::Hat(const Vector3& xi) {
-  // skew symmetric matrix X = xi^
-  Matrix3 Y = Z_3x3;
-  Y(0, 1) = -xi(2);
-  Y(0, 2) = +xi(1);
-  Y(1, 2) = -xi(0);
-  return Y - Y.transpose();
+  return skewSymmetric(xi);
 }
 
 //******************************************************************************
