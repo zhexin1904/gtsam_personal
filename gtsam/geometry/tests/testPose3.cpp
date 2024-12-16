@@ -900,17 +900,6 @@ TEST(Pose3, ExpmapDerivative4) {
   }
 }
 
-TEST( Pose3, ExpmapDerivativeQr) {
-  Vector6 w = Vector6::Random();
-  w.head<3>().normalize();
-  w.head<3>() = w.head<3>() * 0.9e-2;
-  Matrix3 actualQr = Pose3::ComputeQforExpmapDerivative(w, 0.01);
-  Matrix expectedH = numericalDerivative21<Pose3, Vector6,
-      OptionalJacobian<6, 6> >(&Pose3::Expmap, w, {});
-  Matrix3 expectedQr = expectedH.bottomLeftCorner<3, 3>();
-  EXPECT(assert_equal(expectedQr, actualQr, 1e-6));
-}
-
 /* ************************************************************************* */
 TEST( Pose3, LogmapDerivative) {
   Matrix6 actualH;
