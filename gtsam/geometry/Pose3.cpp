@@ -240,18 +240,16 @@ Vector6 Pose3::ChartAtOrigin::Local(const Pose3& pose, ChartJacobian Hpose) {
 
 /* ************************************************************************* */
 namespace pose3 {
-class ExpmapFunctor : public so3::DexpFunctor {
- private:
-  static constexpr double one_twenty_fourth = 1.0 / 24.0;
-
+class GTSAM_EXPORT ExpmapFunctor : public so3::DexpFunctor {
+ protected:
   // Constant used in computeQ
   double F;  // (B - 0.5) / theta2 or -1/24 for theta->0
 
  public:
   ExpmapFunctor(const Vector3& omega, bool nearZeroApprox = false)
       : so3::DexpFunctor(omega, nearZeroApprox) {
-        F = nearZero ? - one_twenty_fourth : (B - 0.5) / theta2;
-      }
+    F = nearZero ? _one_twenty_fourth : (B - 0.5) / theta2;
+  }
 
   // Compute the bottom-left 3x3 block of the SE(3) Expmap derivative
   // TODO(Frank): t = applyLeftJacobian(v), it would be nice to understand
@@ -262,6 +260,9 @@ class ExpmapFunctor : public so3::DexpFunctor {
     return -0.5 * V + C * (W * V + V * W - WVW) +
            F * (WW * V + V * WW - 3 * WVW) - 0.5 * E * (WVW * W + W * WVW);
   }
+
+ protected:
+  static constexpr double _one_twenty_fourth = - 1.0 / 24.0;
 };
 }  // namespace pose3
 
