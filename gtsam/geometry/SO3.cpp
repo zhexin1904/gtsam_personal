@@ -87,19 +87,29 @@ SO3 ExpmapFunctor::expmap() const { return SO3(I_3x3 + A * W + B * WW); }
 
 DexpFunctor::DexpFunctor(const Vector3& omega, bool nearZeroApprox)
     : ExpmapFunctor(omega, nearZeroApprox), omega(omega) {
-  C = nearZero ? one_sixth : (1 - A) / theta2;
-  D = nearZero ? _one_twelfth : (A - 2.0 * B) / theta2;
-  E = nearZero ? _one_sixtieth : (B - 3.0 * C) / theta2;
+  if (!nearZero) {
+    C = (1 - A) / theta2;
+    D = (1.0 - A / (2.0 * B)) / theta2;
+    E = (2.0 * B - A) / theta2;
+    F = (3.0 * C - B) / theta2;
+  } else {
+    // Limit as theta -> 0
+    // TODO(Frank): flipping signs here does not trigger any tests: harden!
+    C = one_sixth;
+    D = one_twelfth;
+    E = one_twelfth;
+    F = one_sixtieth;
+  }
 }
 
 Vector3 DexpFunctor::crossB(const Vector3& v, OptionalJacobian<3, 3> H) const {
   // Wv = omega x v
   const Vector3 Wv = gtsam::cross(omega, v);
   if (H) {
-    // Apply product rule:
-    // D * omega.transpose() is 1x3 Jacobian of B with respect to omega
-    // - skewSymmetric(v) is 3x3 Jacobian of B gtsam::cross(omega, v)
-    *H = Wv * D * omega.transpose() - B * skewSymmetric(v);
+    // Apply product rule to (B Wv)
+    // - E * omega.transpose() is 1x3 Jacobian of B with respect to omega
+    // - skewSymmetric(v) is 3x3 Jacobian of Wv = gtsam::cross(omega, v)
+    *H = - Wv * E * omega.transpose() - B * skewSymmetric(v);
   }
   return B * Wv;
 }
@@ -111,10 +121,10 @@ Vector3 DexpFunctor::doubleCrossC(const Vector3& v,
   const Vector3 WWv =
       gtsam::doubleCross(omega, v, H ? &doubleCrossJacobian : nullptr);
   if (H) {
-    // Apply product rule:
-    // E * omega.transpose() is 1x3 Jacobian of C with respect to omega
-    // doubleCrossJacobian is 3x3 Jacobian of C gtsam::doubleCross(omega, v)
-    *H = WWv * E * omega.transpose() + C * doubleCrossJacobian;
+    // Apply product rule to (C WWv)
+    // - F * omega.transpose() is 1x3 Jacobian of C with respect to omega
+    // doubleCrossJacobian is 3x3 Jacobian of WWv = gtsam::doubleCross(omega, v)
+    *H = - WWv * F * omega.transpose() + C * doubleCrossJacobian;
   }
   return C * WWv;
 }

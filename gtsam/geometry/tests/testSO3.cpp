@@ -19,6 +19,7 @@
 #include <gtsam/base/Testable.h>
 #include <gtsam/base/testLie.h>
 #include <gtsam/geometry/SO3.h>
+#include <iostream>
 
 using namespace std::placeholders;
 using namespace std;
@@ -304,12 +305,28 @@ TEST(SO3, JacobianLogmap) {
 }
 
 namespace test_cases {
-std::vector<Vector3> small{{0, 0, 0}, {1e-5, 0, 0}, {0, 1e-5, 0}, {0, 0, 1e-5}};
+std::vector<Vector3> small{{0, 0, 0},                                 //
+                           {1e-5, 0, 0}, {0, 1e-5, 0}, {0, 0, 1e-5},  //,
+                           {1e-4, 0, 0}, {0, 1e-4, 0}, {0, 0, 1e-4}};
 std::vector<Vector3> large{
     {0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {0.1, 0.2, 0.3}};
 auto omegas = [](bool nearZero) { return nearZero ? small : large; };
 std::vector<Vector3> vs{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {0.4, 0.3, 0.2}};
 }  // namespace test_cases
+
+//******************************************************************************
+TEST(SO3, JacobianInverses) {
+  Matrix HR, HL;
+  for (bool nearZero : {true, false}) {
+    for (const Vector3& omega : test_cases::omegas(nearZero)) {
+      so3::DexpFunctor local(omega, nearZero);
+      EXPECT(assert_equal<Matrix3>(local.rightJacobian().inverse(),
+                                   local.rightJacobianInverse()));
+      EXPECT(assert_equal<Matrix3>(local.leftJacobian().inverse(),
+                                   local.leftJacobianInverse()));
+    }
+  }
+}
 
 //******************************************************************************
 TEST(SO3, CrossB) {
