@@ -262,16 +262,21 @@ DecisionTreeFactor TableFactor::toDecisionTreeFactor() const {
     // k will be in reverse key order already
     uint64_t k;
     ss >> k;
-    std::cout << "ss: " << ss.str() << ", k=" << k << std::endl;
+    std::cout << "ss: " << ss.str() << ", k=" << k
+              << ", v=" << sparse_table_.coeff(i) << std::endl;
     pair_table.push_back(std::make_pair(k, sparse_table_.coeff(i)));
   }
 
-  // Sort based on key so we get values in reverse key order.
+  // Sort based on key assignment so we get values in reverse key order.
   std::sort(
       pair_table.begin(), pair_table.end(),
       [](const std::pair<uint64_t, double>& a,
          const std::pair<uint64_t, double>& b) { return a.first <= b.first; });
 
+  std::cout << "Sorted pair_table:" << std::endl;
+  for (auto&& [k, v] : pair_table) {
+    std::cout << "k=" << k << ", v=" << v << std::endl;
+  }
   // Create the table vector
   std::vector<double> table;
   std::for_each(pair_table.begin(), pair_table.end(),
