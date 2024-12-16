@@ -162,7 +162,7 @@ struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   double C;  // (1 - A) / theta^2 or 1/6 for theta->0
 
   // Constant used in inverse Jacobians
-  double D;  // 1.0 - A / (2.0 * B)) / theta2 or 1/12 for theta->0
+  double D;  // (1 - A/2B) / theta2 or 1/12 for theta->0
 
   // Constants used in cross and doubleCross
   double E;  // (A - 2.0 * B) / theta2 or -1/12 for theta->0
@@ -211,6 +211,11 @@ struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   /// Multiplies with leftJacobian(), with optional derivatives
   Vector3 applyLeftJacobian(const Vector3& v, OptionalJacobian<3, 3> H1 = {},
                             OptionalJacobian<3, 3> H2 = {}) const;
+
+  /// Multiplies with leftJacobianInverse(), with optional derivatives
+  Vector3 applyLeftJacobianInverse(const Vector3& v,
+                                   OptionalJacobian<3, 3> H1 = {},
+                                   OptionalJacobian<3, 3> H2 = {}) const;
 
   static constexpr double one_sixth = 1.0 / 6.0;
   static constexpr double one_twelfth = 1.0 / 12.0;

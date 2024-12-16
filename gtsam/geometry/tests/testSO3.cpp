@@ -386,6 +386,28 @@ TEST(SO3, ApplyDexp) {
 }
 
 //******************************************************************************
+TEST(SO3, ApplyInvDexp) {
+  Matrix aH1, aH2;
+  for (bool nearZero : {true, false}) {
+    std::function<Vector3(const Vector3&, const Vector3&)> f =
+        [=](const Vector3& omega, const Vector3& v) {
+          return so3::DexpFunctor(omega, nearZero).applyInvDexp(v);
+        };
+    for (const Vector3& omega : test_cases::omegas(nearZero)) {
+      so3::DexpFunctor local(omega, nearZero);
+      Matrix invJr = local.rightJacobianInverse();
+      for (const Vector3& v : test_cases::vs) {
+        EXPECT(
+            assert_equal(Vector3(invJr * v), local.applyInvDexp(v, aH1, aH2)));
+        EXPECT(assert_equal(numericalDerivative21(f, omega, v), aH1));
+        EXPECT(assert_equal(numericalDerivative22(f, omega, v), aH2));
+        EXPECT(assert_equal(invJr, aH2));
+      }
+    }
+  }
+}
+
+//******************************************************************************
 TEST(SO3, ApplyLeftJacobian) {
   Matrix aH1, aH2;
   for (bool nearZero : {true, false}) {
@@ -407,22 +429,22 @@ TEST(SO3, ApplyLeftJacobian) {
 }
 
 //******************************************************************************
-TEST(SO3, ApplyInvDexp) {
+TEST(SO3, ApplyLeftJacobianInverse) {
   Matrix aH1, aH2;
   for (bool nearZero : {true, false}) {
     std::function<Vector3(const Vector3&, const Vector3&)> f =
         [=](const Vector3& omega, const Vector3& v) {
-          return so3::DexpFunctor(omega, nearZero).applyInvDexp(v);
+          return so3::DexpFunctor(omega, nearZero).applyLeftJacobianInverse(v);
         };
     for (const Vector3& omega : test_cases::omegas(nearZero)) {
       so3::DexpFunctor local(omega, nearZero);
-      Matrix invDexp = local.dexp().inverse();
+      Matrix invJl = local.leftJacobianInverse();
       for (const Vector3& v : test_cases::vs) {
-        EXPECT(assert_equal(Vector3(invDexp * v),
-                            local.applyInvDexp(v, aH1, aH2)));
+        EXPECT(assert_equal(Vector3(invJl * v),
+                            local.applyLeftJacobianInverse(v, aH1, aH2)));
         EXPECT(assert_equal(numericalDerivative21(f, omega, v), aH1));
         EXPECT(assert_equal(numericalDerivative22(f, omega, v), aH2));
-        EXPECT(assert_equal(invDexp, aH2));
+        EXPECT(assert_equal(invJl, aH2));
       }
     }
   }

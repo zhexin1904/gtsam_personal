@@ -142,14 +142,14 @@ Vector3 DexpFunctor::applyDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
 
 Vector3 DexpFunctor::applyInvDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
                                   OptionalJacobian<3, 3> H2) const {
-  const Matrix3 invDexp = rightJacobian().inverse();
-  const Vector3 c = invDexp * v;
+  const Matrix3 invJr = rightJacobianInverse();
+  const Vector3 c = invJr * v;
   if (H1) {
-    Matrix3 D_dexpv_w;
-    applyDexp(c, D_dexpv_w);  // get derivative H of forward mapping
-    *H1 = -invDexp * D_dexpv_w;
+    Matrix3 H;
+    applyDexp(c, H);  // get derivative H of forward mapping
+    *H1 = -invJr * H;
   }
-  if (H2) *H2 = invDexp;
+  if (H2) *H2 = invJr;
   return c;
 }
 
@@ -162,6 +162,20 @@ Vector3 DexpFunctor::applyLeftJacobian(const Vector3& v,
   if (H1) *H1 = D_BWv_w + D_CWWv_w;
   if (H2) *H2 = leftJacobian();
   return v + BWv + CWWv;
+}
+
+Vector3 DexpFunctor::applyLeftJacobianInverse(const Vector3& v,
+                                              OptionalJacobian<3, 3> H1,
+                                              OptionalJacobian<3, 3> H2) const {
+  const Matrix3 invJl = leftJacobianInverse();
+  const Vector3 c = invJl * v;
+  if (H1) {
+    Matrix3 H;
+    applyLeftJacobian(c, H);  // get derivative H of forward mapping
+    *H1 = -invJl * H;
+  }
+  if (H2) *H2 = invJl;
+  return c;
 }
 
 }  // namespace so3
