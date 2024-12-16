@@ -164,22 +164,22 @@ Pose3 Pose3::interpolateRt(const Pose3& T, double t) const {
 }
 
 /* ************************************************************************* */
-/** Modified from Murray94book version (which assumes w and v normalized?) */
 Pose3 Pose3::Expmap(const Vector6& xi, OptionalJacobian<6, 6> Hxi) {
   // Get angular velocity omega and translational velocity v from twist xi
   const Vector3 w = xi.head<3>(), v = xi.tail<3>();
 
   // Compute rotation using Expmap
-  Matrix3 Jw;
-  Rot3 R = Rot3::Expmap(w, Hxi ? &Jw : nullptr);
+  Matrix3 Jr;
+  Rot3 R = Rot3::Expmap(w, Hxi ? &Jr : nullptr);
 
-  // Compute translation and optionally its Jacobian in w
+  // Compute translation and optionally its Jacobian Q in w
+  // The Jacobian in v is the right Jacobian Jr of SO(3), which we already have.
   Matrix3 Q;
-  const Vector3 t = ExpmapTranslation(w, v, Hxi ? &Q : nullptr, R);
+  const Vector3 t = ExpmapTranslation(w, v, Hxi ? &Q : nullptr);
 
   if (Hxi) {
-    *Hxi << Jw, Z_3x3,
-             Q, Jw;
+    *Hxi << Jr, Z_3x3,  //
+        Q, Jr;
   }
 
   return Pose3(R, t);
@@ -251,35 +251,39 @@ Matrix3 Pose3::ComputeQforExpmapDerivative(const Vector6& xi,
 }
 
 /* ************************************************************************* */
+// NOTE(Frank): t = applyLeftJacobian(v) does the same as the intuitive formulas
+//   t_parallel = w * w.dot(v);  // translation parallel to axis
+//   w_cross_v = w.cross(v);     // translation orthogonal to axis
+//   t = (w_cross_v - Rot3::Expmap(w) * w_cross_v + t_parallel) / theta2;
+// but functor does not need R, deals automatically with the case where theta2
+// is near zero, and also gives us the machinery for the Jacobians.
 Vector3 Pose3::ExpmapTranslation(const Vector3& w, const Vector3& v,
                                  OptionalJacobian<3, 3> Q,
-                                 const std::optional<Rot3>& R,
+                                 OptionalJacobian<3, 3> J,
                                  double nearZeroThreshold) {
   const double theta2 = w.dot(w);
   bool nearZero = (theta2 <= nearZeroThreshold);
 
+  // Instantiate functor for Dexp-related operations:
+  so3::DexpFunctor local(w, nearZero);
+
+  // Call applyLeftJacobian which is faster than local.leftJacobian() * v if you
+  // don't need Jacobians, and returns Jacobian of t with respect to w if asked.
+  Matrix3 H;
+  Vector t = local.applyLeftJacobian(v, Q ? &H : nullptr);
+
+  // We return Jacobians for use in Expmap, so we multiply with X, that
+  // translates from left to right for our right expmap convention:
   if (Q) {
-    // Instantiate functor for Dexp-related operations:
-    so3::DexpFunctor local(w, nearZero);
-    // X translate from left to right for our right expmap convention:
     Matrix3 X = local.rightJacobian() * local.leftJacobianInverse();
-    Matrix3 H;
-    Vector t = local.applyLeftJacobian(v, H);
     *Q = X * H;
-    return t;
-  } else if (nearZero) {
-    // (I_3x3 + B * W + C * WW) * v with B->0.5, C->1/6
-    Vector3 Wv = w.cross(v);
-    return v + 0.5 * Wv + w.cross(Wv) * so3::DexpFunctor::one_sixth;
-  } else {
-    // NOTE(Frank): if Q is not asked we use formulas below instead of calling
-    // applyLeftJacobian(v), as they convey geometric insight and are faster.
-    Vector3 t_parallel = w * w.dot(v);  // translation parallel to axis
-    Vector3 w_cross_v = w.cross(v);     // translation orthogonal to axis
-    Rot3 rotation = R.value_or(Rot3::Expmap(w));
-    Vector3 t = (w_cross_v - rotation * w_cross_v + t_parallel) / theta2;
-    return t;
   }
+
+  if (J) {
+    *J = local.rightJacobian();  // = X * local.leftJacobian();
+  }
+
+  return t;
 }
 
 /* ************************************************************************* */

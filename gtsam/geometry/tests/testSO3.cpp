@@ -304,6 +304,7 @@ TEST(SO3, JacobianLogmap) {
   EXPECT(assert_equal(Jexpected, Jactual));
 }
 
+//******************************************************************************
 namespace test_cases {
 std::vector<Vector3> small{{0, 0, 0},                                 //
                            {1e-5, 0, 0}, {0, 1e-5, 0}, {0, 0, 1e-5},  //,
