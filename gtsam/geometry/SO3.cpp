@@ -26,7 +26,6 @@
 
 #include <Eigen/SVD>
 #include <cmath>
-#include <iostream>
 #include <limits>
 
 namespace gtsam {
@@ -94,7 +93,7 @@ DexpFunctor::DexpFunctor(const Vector3& omega, bool nearZeroApprox)
 }
 
 Vector3 DexpFunctor::crossB(const Vector3& v, OptionalJacobian<3, 3> H) const {
-  // Wv = omega x * v
+  // Wv = omega x v
   const Vector3 Wv = gtsam::cross(omega, v);
   if (H) {
     // Apply product rule:
@@ -123,10 +122,10 @@ Vector3 DexpFunctor::doubleCrossC(const Vector3& v,
 // Multiplies v with left Jacobian through vector operations only.
 Vector3 DexpFunctor::applyDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
                                OptionalJacobian<3, 3> H2) const {
-  Matrix3 D_BWv_omega, D_CWWv_omega;
-  const Vector3 BWv = crossB(v, D_BWv_omega);
-  const Vector3 CWWv = doubleCrossC(v, D_CWWv_omega);
-  if (H1) *H1 = -D_BWv_omega + D_CWWv_omega;
+  Matrix3 D_BWv_w, D_CWWv_w;
+  const Vector3 BWv = crossB(v, H1 ? &D_BWv_w : nullptr);
+  const Vector3 CWWv = doubleCrossC(v, H1 ? &D_CWWv_w : nullptr);
+  if (H1) *H1 = -D_BWv_w + D_CWWv_w;
   if (H2) *H2 = rightJacobian();
   return v - BWv + CWWv;
 }
@@ -136,9 +135,9 @@ Vector3 DexpFunctor::applyInvDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
   const Matrix3 invDexp = rightJacobian().inverse();
   const Vector3 c = invDexp * v;
   if (H1) {
-    Matrix3 D_dexpv_omega;
-    applyDexp(c, D_dexpv_omega);  // get derivative H of forward mapping
-    *H1 = -invDexp * D_dexpv_omega;
+    Matrix3 D_dexpv_w;
+    applyDexp(c, D_dexpv_w);  // get derivative H of forward mapping
+    *H1 = -invDexp * D_dexpv_w;
   }
   if (H2) *H2 = invDexp;
   return c;
@@ -147,10 +146,10 @@ Vector3 DexpFunctor::applyInvDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
 Vector3 DexpFunctor::applyLeftJacobian(const Vector3& v,
                                        OptionalJacobian<3, 3> H1,
                                        OptionalJacobian<3, 3> H2) const {
-  Matrix3 D_BWv_omega, D_CWWv_omega;
-  const Vector3 BWv = crossB(v, D_BWv_omega);
-  const Vector3 CWWv = doubleCrossC(v, D_CWWv_omega);
-  if (H1) *H1 = D_BWv_omega + D_CWWv_omega;
+  Matrix3 D_BWv_w, D_CWWv_w;
+  const Vector3 BWv = crossB(v, H1 ? &D_BWv_w : nullptr);
+  const Vector3 CWWv = doubleCrossC(v, H1 ? &D_CWWv_w : nullptr);
+  if (H1) *H1 = D_BWv_w + D_CWWv_w;
   if (H2) *H2 = leftJacobian();
   return v + BWv + CWWv;
 }

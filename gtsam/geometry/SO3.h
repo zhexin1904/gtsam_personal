@@ -132,18 +132,15 @@ GTSAM_EXPORT Matrix99 Dcompose(const SO3& R);
 // functor also implements dedicated methods to apply dexp and/or inv(dexp).
 
 /// Functor implementing Exponential map
-class GTSAM_EXPORT ExpmapFunctor {
- protected:
+struct GTSAM_EXPORT ExpmapFunctor {
   const double theta2, theta;
   const Matrix3 W, WW;
   bool nearZero;
+
   // Ethan Eade's constants:
-  double A; // A = sin(theta) / theta or 1 for theta->0
-  double B; // B = (1 - cos(theta)) / theta^2 or 0.5 for theta->0
+  double A;  // A = sin(theta) / theta or 1 for theta->0
+  double B;  // B = (1 - cos(theta)) / theta^2 or 0.5 for theta->0
 
-  void init(bool nearZeroApprox = false);
-
- public:
   /// Constructor with element of Lie algebra so(3)
   explicit ExpmapFunctor(const Vector3& omega, bool nearZeroApprox = false);
 
@@ -152,33 +149,34 @@ class GTSAM_EXPORT ExpmapFunctor {
 
   /// Rodrigues formula
   SO3 expmap() const;
+
+ protected:
+  void init(bool nearZeroApprox = false);
 };
 
 /// Functor that implements Exponential map *and* its derivatives
-class GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
- protected:
+struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   const Vector3 omega;
   double C;  // Ethan's C constant: (1 - A) / theta^2 or 1/6 for theta->0
   // Constants used in cross and doubleCross
   double D;  // (A - 2.0 * B) / theta2 or -1/12 for theta->0
   double E;  // (B - 3.0 * C) / theta2 or -1/60 for theta->0
 
- public:
   /// Constructor with element of Lie algebra so(3)
   explicit DexpFunctor(const Vector3& omega, bool nearZeroApprox = false);
 
   // NOTE(luca): Right Jacobian for Exponential map in SO(3) - equation
   // (10.86) and following equations in G.S. Chirikjian, "Stochastic Models,
   // Information Theory, and Lie Groups", Volume 2, 2008.
-  //   expmap(omega + v) \approx expmap(omega) * expmap(dexp * v)
-  // This maps a perturbation v in the tangent space to
-  // a perturbation on the manifold Expmap(dexp * v)
+  //   Expmap(xi + dxi) \approx Expmap(xi) * Expmap(dexp * dxi)
+  // This maps a perturbation dxi=(w,v) in the tangent space to
+  // a perturbation on the manifold Expmap(dexp * xi)
   Matrix3 rightJacobian() const { return I_3x3 - B * W + C * WW; }
 
   // Compute the left Jacobian for Exponential map in SO(3)
   Matrix3 leftJacobian() const { return I_3x3 + B * W + C * WW; }
 
-  /// differential of expmap == right Jacobian
+  /// Differential of expmap == right Jacobian
   inline Matrix3 dexp() const { return rightJacobian(); }
 
   /// Computes B * (omega x v).
@@ -199,7 +197,6 @@ class GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   Vector3 applyLeftJacobian(const Vector3& v, OptionalJacobian<3, 3> H1 = {},
                             OptionalJacobian<3, 3> H2 = {}) const;
 
- protected:
   static constexpr double one_sixth = 1.0 / 6.0;
   static constexpr double _one_twelfth = -1.0 / 12.0;
   static constexpr double _one_sixtieth = -1.0 / 60.0;
