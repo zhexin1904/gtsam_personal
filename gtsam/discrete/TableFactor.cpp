@@ -271,7 +271,7 @@ DecisionTreeFactor TableFactor::toDecisionTreeFactor() const {
   std::sort(
       pair_table.begin(), pair_table.end(),
       [](const std::pair<uint64_t, double>& a,
-         const std::pair<uint64_t, double>& b) { return a.first <= b.first; });
+         const std::pair<uint64_t, double>& b) { return a.first < b.first; });
 
   std::cout << "Sorted pair_table:" << std::endl;
   for (auto&& [k, v] : pair_table) {
