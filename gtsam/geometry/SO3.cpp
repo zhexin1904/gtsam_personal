@@ -33,6 +33,15 @@ namespace gtsam {
 //******************************************************************************
 namespace so3 {
 
+static constexpr double one_6th = 1.0 / 6.0;
+static constexpr double one_12th = 1.0 / 12.0;
+static constexpr double one_24th = 1.0 / 24.0;
+static constexpr double one_60th = 1.0 / 60.0;
+static constexpr double one_120th = 1.0 / 120.0;
+static constexpr double one_180th = 1.0 / 180.0;
+static constexpr double one_720th = 1.0 / 720.0;
+static constexpr double one_1260th = 1.0 / 1260.0;
+
 GTSAM_EXPORT Matrix99 Dcompose(const SO3& Q) {
   Matrix99 H;
   auto R = Q.matrix();
@@ -60,9 +69,9 @@ void ExpmapFunctor::init(bool nearZeroApprox) {
         2.0 * s2 * s2;  // numerically better than [1 - cos(theta)]
     B = one_minus_cos / theta2;
   } else {
-    // Limits as theta -> 0:
-    A = 1.0;
-    B = 0.5;
+    // Taylor expansion at 0
+    A = 1.0 - theta2 * one_6th;
+    B = 0.5 - theta2 * one_24th;
   }
 }
 
@@ -93,12 +102,12 @@ DexpFunctor::DexpFunctor(const Vector3& omega, bool nearZeroApprox)
     E = (2.0 * B - A) / theta2;
     F = (3.0 * C - B) / theta2;
   } else {
-    // Limit as theta -> 0
+    // Taylor expansion at 0
     // TODO(Frank): flipping signs here does not trigger any tests: harden!
-    C = one_sixth;
-    D = one_twelfth;
-    E = one_twelfth;
-    F = one_sixtieth;
+    C = one_6th - theta2 * one_120th;
+    D = one_12th + theta2 * one_720th;
+    E = one_12th - theta2 * one_180th;
+    F = one_60th - theta2 * one_1260th;
   }
 }
 

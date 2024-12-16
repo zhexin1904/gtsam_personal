@@ -138,8 +138,8 @@ struct GTSAM_EXPORT ExpmapFunctor {
   bool nearZero;
 
   // Ethan Eade's constants:
-  double A;  // A = sin(theta) / theta or 1 for theta->0
-  double B;  // B = (1 - cos(theta)) / theta^2 or 0.5 for theta->0
+  double A;  // A = sin(theta) / theta
+  double B;  // B = (1 - cos(theta))
 
   /// Constructor with element of Lie algebra so(3)
   explicit ExpmapFunctor(const Vector3& omega, bool nearZeroApprox = false);
@@ -159,14 +159,14 @@ struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   const Vector3 omega;
 
   // Ethan's C constant used in Jacobians
-  double C;  // (1 - A) / theta^2 or 1/6 for theta->0
+  double C;  // (1 - A) / theta^2
 
   // Constant used in inverse Jacobians
-  double D;  // (1 - A/2B) / theta2 or 1/12 for theta->0
+  double D;  // (1 - A/2B) / theta2
 
   // Constants used in cross and doubleCross
-  double E;  // (A - 2.0 * B) / theta2 or -1/12 for theta->0
-  double F;  // (B - 3.0 * C) / theta2 or -1/60 for theta->0
+  double E;  // (2B - A) / theta2
+  double F;  // (3C - B) / theta2
 
   /// Constructor with element of Lie algebra so(3)
   explicit DexpFunctor(const Vector3& omega, bool nearZeroApprox = false);
@@ -216,10 +216,6 @@ struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   Vector3 applyLeftJacobianInverse(const Vector3& v,
                                    OptionalJacobian<3, 3> H1 = {},
                                    OptionalJacobian<3, 3> H2 = {}) const;
-
-  static constexpr double one_sixth = 1.0 / 6.0;
-  static constexpr double one_twelfth = 1.0 / 12.0;
-  static constexpr double one_sixtieth = 1.0 / 60.0;
 };
 }  //  namespace so3
 

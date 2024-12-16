@@ -835,38 +835,7 @@ TEST(Pose3, Align2) {
 }
 
 /* ************************************************************************* */
-TEST( Pose3, ExpmapDerivative1) {
-  Matrix6 actualH;
-  Vector6 w; w << 0.1, 0.2, 0.3, 4.0, 5.0, 6.0;
-  Pose3::Expmap(w,actualH);
-  Matrix expectedH = numericalDerivative21<Pose3, Vector6,
-      OptionalJacobian<6, 6> >(&Pose3::Expmap, w, {});
-  EXPECT(assert_equal(expectedH, actualH));
-}
-
-/* ************************************************************************* */
-TEST( Pose3, ExpmapDerivative2) {
-  Matrix6 actualH;
-  Vector6 w; w << 1.0, -2.0, 3.0, -10.0, -20.0, 30.0;
-  Pose3::Expmap(w,actualH);
-  Matrix expectedH = numericalDerivative21<Pose3, Vector6,
-      OptionalJacobian<6, 6> >(&Pose3::Expmap, w, {});
-  EXPECT(assert_equal(expectedH, actualH));
-}
-
-/* ************************************************************************* */
-TEST( Pose3, ExpmapDerivative3) {
-  Matrix6 actualH;
-  Vector6 w; w << 0.0, 0.0, 0.0, -10.0, -20.0, 30.0;
-  Pose3::Expmap(w,actualH);
-  Matrix expectedH = numericalDerivative21<Pose3, Vector6,
-      OptionalJacobian<6, 6> >(&Pose3::Expmap, w, {});
-  // Small angle approximation is not as precise as numerical derivative?
-  EXPECT(assert_equal(expectedH, actualH, 1e-5));
-}
-
-/* ************************************************************************* */
-TEST(Pose3, ExpmapDerivative4) {
+TEST(Pose3, ExpmapDerivative) {
   // Iserles05an (Lie-group Methods) says:
   // scalar is easy: d exp(a(t)) / dt = exp(a(t)) a'(t)
   // matrix is hard: d exp(A(t)) / dt = exp(A(t)) dexp[-A(t)] A'(t)
@@ -900,15 +869,65 @@ TEST(Pose3, ExpmapDerivative4) {
   }
 }
 
-/* ************************************************************************* */
-TEST( Pose3, LogmapDerivative) {
-  Matrix6 actualH;
-  Vector6 w; w << 0.1, 0.2, 0.3, 4.0, 5.0, 6.0;
-  Pose3 p = Pose3::Expmap(w);
-  EXPECT(assert_equal(w, Pose3::Logmap(p,actualH), 1e-5));
-  Matrix expectedH = numericalDerivative21<Vector6, Pose3,
-      OptionalJacobian<6, 6> >(&Pose3::Logmap, p, {});
-  EXPECT(assert_equal(expectedH, actualH));
+//******************************************************************************
+namespace test_cases {
+std::vector<Vector3> small{{0, 0, 0},                                 //
+                           {1e-5, 0, 0}, {0, 1e-5, 0}, {0, 0, 1e-5},  //,
+                           {1e-4, 0, 0}, {0, 1e-4, 0}, {0, 0, 1e-4}};
+std::vector<Vector3> large{{0, 0, 0}, {1, 0, 0},    {0, 1, 0},
+                           {0, 0, 1}, {.1, .2, .3}, {1, -2, 3}};
+auto omegas = [](bool nearZero) { return nearZero ? small : large; };
+std::vector<Vector3> vs{{1, 0, 0},    {0, 1, 0}, {0, 0, 1},
+                        {.4, .3, .2}, {4, 5, 6}, {-10, -20, 30}};
+}  // namespace test_cases
+
+//******************************************************************************
+TEST(Pose3, ExpmapDerivatives) {
+  for (bool nearZero : {true, false}) {
+    for (const Vector3& w : test_cases::omegas(nearZero)) {
+      for (Vector3 v : test_cases::vs) {
+        const Vector6 xi = (Vector6() << w, v).finished();
+        const Matrix6 expectedH =
+            numericalDerivative21<Pose3, Vector6, OptionalJacobian<6, 6> >(
+                &Pose3::Expmap, xi, {});
+        Matrix actualH;
+        Pose3::Expmap(xi, actualH);
+        EXPECT(assert_equal(expectedH, actualH));
+      }
+    }
+  }
+}
+
+//******************************************************************************
+// Check logmap for all small values, as we don't want wrapping.
+TEST(Pose3, Logmap) {
+  static constexpr bool nearZero = true;
+  for (const Vector3& w : test_cases::omegas(nearZero)) {
+    for (Vector3 v : test_cases::vs) {
+      const Vector6 xi = (Vector6() << w, v).finished();
+      Pose3 pose = Pose3::Expmap(xi);
+      EXPECT(assert_equal(xi, Pose3::Logmap(pose), 1e-5));
+    }
+  }
+}
+
+//******************************************************************************
+// Check logmap derivatives for all values
+TEST(Pose3, LogmapDerivatives) {
+  for (bool nearZero : {true, false}) {
+    for (const Vector3& w : test_cases::omegas(nearZero)) {
+      for (Vector3 v : test_cases::vs) {
+        const Vector6 xi = (Vector6() << w, v).finished();
+        Pose3 pose = Pose3::Expmap(xi);
+        const Matrix6 expectedH =
+            numericalDerivative21<Vector6, Pose3, OptionalJacobian<6, 6> >(
+                &Pose3::Logmap, pose, {});
+        Matrix actualH;
+        Pose3::Logmap(pose, actualH);
+        EXPECT(assert_equal(expectedH, actualH));
+      }
+    }
+  }
 }
 
 /* ************************************************************************* */
