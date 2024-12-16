@@ -155,7 +155,7 @@ class GTSAM_EXPORT ExpmapFunctor {
 };
 
 /// Functor that implements Exponential map *and* its derivatives
-class DexpFunctor : public ExpmapFunctor {
+class GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
  protected:
   const Vector3 omega;
   double C;  // Ethan's C constant: (1 - A) / theta^2 or 1/6 for theta->0
@@ -164,15 +164,8 @@ class DexpFunctor : public ExpmapFunctor {
   double E;  // (B - 3.0 * C) / theta2 or -1/60 for theta->0
 
  public:
-  /// Computes B * (omega x v).
-  Vector3 cross(const Vector3& v, OptionalJacobian<3, 3> H = {}) const;
-
-  /// Computes C * (omega x (omega x v)).
-  Vector3 doubleCross(const Vector3& v, OptionalJacobian<3, 3> H = {}) const;
-
   /// Constructor with element of Lie algebra so(3)
-  GTSAM_EXPORT explicit DexpFunctor(const Vector3& omega,
-                                    bool nearZeroApprox = false);
+  explicit DexpFunctor(const Vector3& omega, bool nearZeroApprox = false);
 
   // NOTE(luca): Right Jacobian for Exponential map in SO(3) - equation
   // (10.86) and following equations in G.S. Chirikjian, "Stochastic Models,
@@ -180,28 +173,31 @@ class DexpFunctor : public ExpmapFunctor {
   //   expmap(omega + v) \approx expmap(omega) * expmap(dexp * v)
   // This maps a perturbation v in the tangent space to
   // a perturbation on the manifold Expmap(dexp * v)
-  GTSAM_EXPORT Matrix3 rightJacobian() const;
-
-  /// differential of expmap == right Jacobian
-  GTSAM_EXPORT Matrix3 dexp() const { return rightJacobian(); }
-
-  /// Multiplies with dexp(), with optional derivatives
-  GTSAM_EXPORT Vector3 applyDexp(const Vector3& v,
-                                 OptionalJacobian<3, 3> H1 = {},
-                                 OptionalJacobian<3, 3> H2 = {}) const;
-
-  /// Multiplies with dexp().inverse(), with optional derivatives
-  GTSAM_EXPORT Vector3 applyInvDexp(const Vector3& v,
-                                    OptionalJacobian<3, 3> H1 = {},
-                                    OptionalJacobian<3, 3> H2 = {}) const;
+  Matrix3 rightJacobian() const { return I_3x3 - B * W + C * WW; }
 
   // Compute the left Jacobian for Exponential map in SO(3)
-  GTSAM_EXPORT Matrix3 leftJacobian() const;
+  Matrix3 leftJacobian() const { return I_3x3 + B * W + C * WW; }
+
+  /// differential of expmap == right Jacobian
+  inline Matrix3 dexp() const { return rightJacobian(); }
+
+  /// Computes B * (omega x v).
+  Vector3 crossB(const Vector3& v, OptionalJacobian<3, 3> H = {}) const;
+
+  /// Computes C * (omega x (omega x v)).
+  Vector3 doubleCrossC(const Vector3& v, OptionalJacobian<3, 3> H = {}) const;
+
+  /// Multiplies with dexp(), with optional derivatives
+  Vector3 applyDexp(const Vector3& v, OptionalJacobian<3, 3> H1 = {},
+                    OptionalJacobian<3, 3> H2 = {}) const;
+
+  /// Multiplies with dexp().inverse(), with optional derivatives
+  Vector3 applyInvDexp(const Vector3& v, OptionalJacobian<3, 3> H1 = {},
+                       OptionalJacobian<3, 3> H2 = {}) const;
 
   /// Multiplies with leftJacobian(), with optional derivatives
-  GTSAM_EXPORT Vector3 applyLeftJacobian(const Vector3& v,
-                                         OptionalJacobian<3, 3> H1 = {},
-                                         OptionalJacobian<3, 3> H2 = {}) const;
+  Vector3 applyLeftJacobian(const Vector3& v, OptionalJacobian<3, 3> H1 = {},
+                            OptionalJacobian<3, 3> H2 = {}) const;
 
  protected:
   static constexpr double one_sixth = 1.0 / 6.0;

@@ -93,15 +93,7 @@ DexpFunctor::DexpFunctor(const Vector3& omega, bool nearZeroApprox)
   E = nearZero ? _one_sixtieth : (B - 3.0 * C) / theta2;
 }
 
-Matrix3 DexpFunctor::rightJacobian() const {
-  if (nearZero) {
-    return I_3x3 - B * W;  // + C * WW;
-  } else {
-    return I_3x3 - B * W + C * WW;
-  }
-}
-
-Vector3 DexpFunctor::cross(const Vector3& v, OptionalJacobian<3, 3> H) const {
+Vector3 DexpFunctor::crossB(const Vector3& v, OptionalJacobian<3, 3> H) const {
   // Wv = omega x * v
   const Vector3 Wv = gtsam::cross(omega, v);
   if (H) {
@@ -113,8 +105,8 @@ Vector3 DexpFunctor::cross(const Vector3& v, OptionalJacobian<3, 3> H) const {
   return B * Wv;
 }
 
-Vector3 DexpFunctor::doubleCross(const Vector3& v,
-                                 OptionalJacobian<3, 3> H) const {
+Vector3 DexpFunctor::doubleCrossC(const Vector3& v,
+                                  OptionalJacobian<3, 3> H) const {
   // WWv = omega x (omega x * v)
   Matrix3 doubleCrossJacobian;
   const Vector3 WWv =
@@ -131,18 +123,12 @@ Vector3 DexpFunctor::doubleCross(const Vector3& v,
 // Multiplies v with left Jacobian through vector operations only.
 Vector3 DexpFunctor::applyDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
                                OptionalJacobian<3, 3> H2) const {
-  if (nearZero) {
-    if (H1) *H1 = 0.5 * skewSymmetric(v);
-    if (H2) *H2 = I_3x3 - 0.5 * W;
-    return v - 0.5 * gtsam::cross(omega, v);
-  } else {
   Matrix3 D_BWv_omega, D_CWWv_omega;
-    const Vector3 BWv = cross(v, D_BWv_omega);
-    const Vector3 CWWv = doubleCross(v, D_CWWv_omega);
-    if (H1) *H1 = - D_BWv_omega + D_CWWv_omega;
+  const Vector3 BWv = crossB(v, D_BWv_omega);
+  const Vector3 CWWv = doubleCrossC(v, D_CWWv_omega);
+  if (H1) *H1 = -D_BWv_omega + D_CWWv_omega;
   if (H2) *H2 = rightJacobian();
   return v - BWv + CWWv;
-  }
 }
 
 Vector3 DexpFunctor::applyInvDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
@@ -158,29 +144,15 @@ Vector3 DexpFunctor::applyInvDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
   return c;
 }
 
-Matrix3 DexpFunctor::leftJacobian() const {
-  if (nearZero) {
-    return I_3x3 + 0.5 * W;  // + one_sixth * WW;
-  } else {
-    return I_3x3 + B * W + C * WW;
-  }
-}
-
 Vector3 DexpFunctor::applyLeftJacobian(const Vector3& v,
                                        OptionalJacobian<3, 3> H1,
                                        OptionalJacobian<3, 3> H2) const {
-  if (nearZero) {
-    if (H1) *H1 = - 0.5 * skewSymmetric(v);
-    if (H2) *H2 = I_3x3 + 0.5 * W;
-    return v + 0.5 * gtsam::cross(omega, v);
-  } else {
-    Matrix3 D_BWv_omega, D_CWWv_omega;
-    const Vector3 BWv = cross(v, D_BWv_omega);
-    const Vector3 CWWv = doubleCross(v, D_CWWv_omega);
-    if (H1) *H1 = D_BWv_omega + D_CWWv_omega;
-    if (H2) *H2 = leftJacobian();
-    return v + BWv + CWWv;
-  }
+  Matrix3 D_BWv_omega, D_CWWv_omega;
+  const Vector3 BWv = crossB(v, D_BWv_omega);
+  const Vector3 CWWv = doubleCrossC(v, D_CWWv_omega);
+  if (H1) *H1 = D_BWv_omega + D_CWWv_omega;
+  if (H2) *H2 = leftJacobian();
+  return v + BWv + CWWv;
 }
 
 }  // namespace so3
