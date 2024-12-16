@@ -260,7 +260,9 @@ DecisionTreeFactor TableFactor::toDecisionTreeFactor() const {
       ss << keyValueForIndex(key, i);
     }
     // k will be in reverse key order already
-    uint64_t k = std::stoll(ss.str().c_str());
+    uint64_t k;
+    ss >> k;
+    std::cout << "ss: " << ss.str() << ", k=" << k << std::endl;
     pair_table.push_back(std::make_pair(k, sparse_table_.coeff(i)));
   }
 
