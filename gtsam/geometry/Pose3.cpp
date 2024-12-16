@@ -22,6 +22,7 @@
 #include <cmath>
 #include <iostream>
 #include <string>
+#include "gtsam/geometry/Rot3.h"
 
 namespace gtsam {
 
@@ -241,25 +242,18 @@ Vector6 Pose3::ChartAtOrigin::Local(const Pose3& pose, ChartJacobian Hpose) {
 /* ************************************************************************* */
 namespace pose3 {
 struct GTSAM_EXPORT ExpmapFunctor : public so3::DexpFunctor {
-  // Constant used in computeQ
-  double F;  // (B - 0.5) / theta2 or -1/24 for theta->0
-
   ExpmapFunctor(const Vector3& omega, bool nearZeroApprox = false)
       : so3::DexpFunctor(omega, nearZeroApprox) {
-    F = nearZero ? _one_twenty_fourth : (B - 0.5) / theta2;
   }
 
-  // Compute the bottom-left 3x3 block of the SE(3) Expmap derivative
-  // TODO(Frank): t = applyLeftJacobian(v), it would be nice to understand
-  // how to compute mess below from applyLeftJacobian derivatives in w and v.
+  // Compute the bottom-left 3x3 block of the SE(3) Expmap derivative.
   Matrix3 computeQ(const Vector3& v) const {
-    const Matrix3 V = skewSymmetric(v);
-    const Matrix3 WVW = W * V * W;
-    return -0.5 * V + C * (W * V + V * W - WVW) +
-           F * (WW * V + V * WW - 3 * WVW) - 0.5 * E * (WVW * W + W * WVW);
+    // X translate from left to right for our right expmap convention:
+    Matrix X = rightJacobian() * leftJacobianInverse();
+    Matrix3 H;
+    applyLeftJacobian(v, H);
+    return X * H;
   }
-
-  static constexpr double _one_twenty_fourth = - 1.0 / 24.0;
 };
 }  // namespace pose3
 
