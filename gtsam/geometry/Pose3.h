@@ -11,7 +11,7 @@
 
 /**
  *@file  Pose3.h
- *@brief 3D Pose
+ * @brief 3D Pose manifold SO(3) x R^3 and group SE(3)
  */
 
 // \callgraph

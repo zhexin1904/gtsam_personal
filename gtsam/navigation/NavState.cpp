@@ -114,7 +114,7 @@ NavState NavState::inverse() const {
 
 //------------------------------------------------------------------------------
 NavState NavState::Expmap(const Vector9& xi, OptionalJacobian<9, 9> Hxi) {
-  // Get angular velocity w and components rho and nu from xi
+  // Get angular velocity w and components rho (for t) and nu (for v) from xi
   Vector3 w = xi.head<3>(), rho = xi.segment<3>(3), nu = xi.tail<3>();
 
   // Compute rotation using Expmap

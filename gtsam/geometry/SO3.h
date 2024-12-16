@@ -132,6 +132,8 @@ GTSAM_EXPORT Matrix99 Dcompose(const SO3& R);
 // functor also implements dedicated methods to apply dexp and/or inv(dexp).
 
 /// Functor implementing Exponential map
+/// Math is based on Ethan Eade's elegant Lie group document, at
+/// https://www.ethaneade.org/lie.pdf.
 struct GTSAM_EXPORT ExpmapFunctor {
   const double theta2, theta;
   const Matrix3 W, WW;
@@ -155,6 +157,8 @@ struct GTSAM_EXPORT ExpmapFunctor {
 };
 
 /// Functor that implements Exponential map *and* its derivatives
+/// Math extends Ethan theme of elegant I + aW + bWW expressions.
+/// See https://www.ethaneade.org/lie.pdf expmap (82) and left Jacobian (83).
 struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   const Vector3 omega;
 

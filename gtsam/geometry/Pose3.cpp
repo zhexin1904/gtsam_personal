@@ -11,19 +11,18 @@
 
 /**
  * @file  Pose3.cpp
- * @brief 3D Pose
+ * @brief 3D Pose manifold SO(3) x R^3 and group SE(3)
  */
 
-#include <gtsam/geometry/Pose3.h>
-#include <gtsam/geometry/Pose2.h>
-#include <gtsam/geometry/concepts.h>
 #include <gtsam/base/concepts.h>
+#include <gtsam/geometry/Pose2.h>
+#include <gtsam/geometry/Pose3.h>
+#include <gtsam/geometry/Rot3.h>
+#include <gtsam/geometry/concepts.h>
 
 #include <cmath>
 #include <iostream>
 #include <string>
-
-#include "gtsam/geometry/Rot3.h"
 
 namespace gtsam {
 
@@ -164,6 +163,8 @@ Pose3 Pose3::interpolateRt(const Pose3& T, double t) const {
 }
 
 /* ************************************************************************* */
+// Expmap is implemented in so3::ExpmapFunctor::expmap, based on Ethan Eade's
+// elegant Lie group document, at https://www.ethaneade.org/lie.pdf.
 Pose3 Pose3::Expmap(const Vector6& xi, OptionalJacobian<6, 6> Hxi) {
   // Get angular velocity omega and translational velocity v from twist xi
   const Vector3 w = xi.head<3>(), v = xi.tail<3>();
