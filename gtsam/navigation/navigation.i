@@ -77,6 +77,9 @@ virtual class PreintegratedRotationParams {
 
   std::optional<gtsam::Vector> getOmegaCoriolis() const;
   std::optional<gtsam::Pose3> getBodyPSensor() const;
+
+  // enabling serialization functionality
+  void serialize() const;
 };
 
 #include <gtsam/navigation/PreintegrationParams.h>
@@ -170,22 +173,26 @@ virtual class PreintegrationCombinedParams : gtsam::PreintegrationParams {
   gtsam::Matrix getBiasAccCovariance() const ;
   gtsam::Matrix getBiasOmegaCovariance() const ;
   gtsam::Matrix getBiasAccOmegaInit() const;
- 
+
+  // enabling serialization functionality
+  void serialize() const;
 };
 
 class PreintegratedCombinedMeasurements {
-// Constructors
-  PreintegratedCombinedMeasurements(const gtsam::PreintegrationCombinedParams* params);
-  PreintegratedCombinedMeasurements(const gtsam::PreintegrationCombinedParams* params,
-				    const gtsam::imuBias::ConstantBias& bias);
+  // Constructors
+  PreintegratedCombinedMeasurements(
+      const gtsam::PreintegrationCombinedParams* params);
+  PreintegratedCombinedMeasurements(
+      const gtsam::PreintegrationCombinedParams* params,
+      const gtsam::imuBias::ConstantBias& bias);
   // Testable
   void print(string s = "Preintegrated Measurements:") const;
   bool equals(const gtsam::PreintegratedCombinedMeasurements& expected,
-      double tol);
+              double tol);
 
   // Standard Interface
-  void integrateMeasurement(gtsam::Vector measuredAcc, gtsam::Vector measuredOmega,
-      double deltaT);
+  void integrateMeasurement(gtsam::Vector measuredAcc,
+                            gtsam::Vector measuredOmega, double deltaT);
   void resetIntegration();
   void resetIntegrationAndSetBias(const gtsam::imuBias::ConstantBias& biasHat);
 
@@ -197,7 +204,10 @@ class PreintegratedCombinedMeasurements {
   gtsam::imuBias::ConstantBias biasHat() const;
   gtsam::Vector biasHatVector() const;
   gtsam::NavState predict(const gtsam::NavState& state_i,
-      const gtsam::imuBias::ConstantBias& bias) const;
+                          const gtsam::imuBias::ConstantBias& bias) const;
+
+  // enabling serialization functionality
+  void serialize() const;
 };
 
 virtual class CombinedImuFactor: gtsam::NoiseModelFactor {
