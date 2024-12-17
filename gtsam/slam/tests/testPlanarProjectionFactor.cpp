@@ -141,7 +141,7 @@ TEST(PlanarProjectionFactor1, jacobian) {
 
         Matrix expectedH1 = numericalDerivative11<Vector, Pose2>(
             [&factor](const Pose2& p) {
-                return factor.evaluateError(p);},
+                return factor.evaluateError(p, {});},
                 pose);
         CHECK(assert_equal(expectedH1, H1, 1e-6));
     }
@@ -338,15 +338,15 @@ TEST(PlanarProjectionFactor3, jacobian) {
 
         Matrix expectedH1 = numericalDerivative31<Vector, Pose2, Pose3, Cal3DS2>(
             [&factor](const Pose2& p, const Pose3& o, const Cal3DS2& c) {
-                return factor.evaluateError(p, o, c);},
+                return factor.evaluateError(p, o, c, {}, {}, {});},
                 pose, offset, calib);
         Matrix expectedH2 = numericalDerivative32<Vector, Pose2, Pose3, Cal3DS2>(
             [&factor](const Pose2& p, const Pose3& o, const Cal3DS2& c) {
-                return factor.evaluateError(p, o, c);},
+                return factor.evaluateError(p, o, c, {}, {}, {});},
                 pose, offset, calib);
         Matrix expectedH3 = numericalDerivative33<Vector, Pose2, Pose3, Cal3DS2>(
             [&factor](const Pose2& p, const Pose3& o, const Cal3DS2& c) {
-                return factor.evaluateError(p, o, c);},
+                return factor.evaluateError(p, o, c, {}, {}, {});},
                 pose, offset, calib);
         CHECK(assert_equal(expectedH1, H1, 1e-6));
         CHECK(assert_equal(expectedH2, H2, 1e-6));
