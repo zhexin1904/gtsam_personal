@@ -25,14 +25,34 @@ virtual class BetweenFactor : gtsam::NoiseModelFactor {
 };
 
 #include <gtsam/slam/PlanarProjectionFactor.h>
-virtual class PlanarProjectionFactor : gtsam::NoiseModelFactor {
-  PlanarProjectionFactor(
+virtual class PlanarProjectionFactor1 : gtsam::NoiseModelFactor {
+  PlanarProjectionFactor1(
             const gtsam::Point3& landmark,
             const gtsam::Point2& measured,
             const gtsam::Pose3& offset,
             const gtsam::Cal3DS2& calib,
             const gtsam::noiseModel::Base* model,
             size_t poseKey);
+  void serialize() const;
+};
+virtual class PlanarProjectionFactor2 : gtsam::NoiseModelFactor {
+  PlanarProjectionFactor2(
+            const gtsam::Point2& measured,
+            const gtsam::Pose3& offset,
+            const gtsam::Cal3DS2& calib,
+            const gtsam::noiseModel::Base* model,
+            size_t landmarkKey,
+            size_t poseKey);
+  void serialize() const;
+};
+virtual class PlanarProjectionFactor3 : gtsam::NoiseModelFactor {
+  PlanarProjectionFactor3(
+            const gtsam::Point3& landmark,
+            const gtsam::Point2& measured,
+            const gtsam::noiseModel::Base* model,
+            size_t poseKey,
+            size_t offsetKey,
+            size_t calibKey));
   void serialize() const;
 };
 
@@ -78,18 +98,6 @@ typedef gtsam::GenericProjectionFactor<gtsam::Pose3, gtsam::Point3,
 typedef gtsam::GenericProjectionFactor<gtsam::Pose3, gtsam::Point3,
                                        gtsam::Cal3Unified>
     GenericProjectionFactorCal3Unified;
-
-#include <gtsam/slam/PlanarSFMFactor.h>
-virtual class PlanarSFMFactor  : gtsam::NoiseModelFactor {
-  PlanarSFMFactor(
-            const gtsam::Point3& landmark,
-            const gtsam::Point2& measured,
-            const gtsam::noiseModel::Base* model,
-            size_t poseKey,
-            size_t offsetKey,
-            size_t calibKey);
-  void serialize() const;
-};
 
 #include <gtsam/slam/GeneralSFMFactor.h>
 template <CAMERA, LANDMARK>
