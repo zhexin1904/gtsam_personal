@@ -151,6 +151,9 @@ virtual class ImuFactor: gtsam::NonlinearFactor {
   gtsam::Vector evaluateError(const gtsam::Pose3& pose_i, gtsam::Vector vel_i,
       const gtsam::Pose3& pose_j, gtsam::Vector vel_j,
       const gtsam::imuBias::ConstantBias& bias);
+
+  // enable serialization functionality
+  void serialize() const;
 };
 
 #include <gtsam/navigation/CombinedImuFactor.h>
@@ -206,7 +209,7 @@ class PreintegratedCombinedMeasurements {
   gtsam::NavState predict(const gtsam::NavState& state_i,
                           const gtsam::imuBias::ConstantBias& bias) const;
 
-  // enabling serialization functionality
+  // enable serialization functionality
   void serialize() const;
 };
 
@@ -221,6 +224,9 @@ virtual class CombinedImuFactor: gtsam::NoiseModelFactor {
       const gtsam::Pose3& pose_j, gtsam::Vector vel_j,
       const gtsam::imuBias::ConstantBias& bias_i,
       const gtsam::imuBias::ConstantBias& bias_j);
+
+  // enable serialization functionality
+  void serialize() const;
 };
 
 #include <gtsam/navigation/AHRSFactor.h>
@@ -247,6 +253,9 @@ class PreintegratedAhrsMeasurements {
   // Standard Interface
   void integrateMeasurement(gtsam::Vector measuredOmega, double deltaT);
   void resetIntegration() ;
+
+  // enable serialization functionality
+  void serialize() const;
 };
 
 virtual class AHRSFactor : gtsam::NonlinearFactor {
@@ -263,6 +272,9 @@ virtual class AHRSFactor : gtsam::NonlinearFactor {
   gtsam::Rot3 predict(const gtsam::Rot3& rot_i, gtsam::Vector bias,
       const gtsam::PreintegratedAhrsMeasurements& preintegratedMeasurements,
       gtsam::Vector omegaCoriolis) const;
+
+  // enable serialization functionality
+  void serialize() const;
 };
 
 #include <gtsam/navigation/AttitudeFactor.h>
@@ -276,6 +288,9 @@ virtual class Rot3AttitudeFactor : gtsam::NoiseModelFactor {
   bool equals(const gtsam::NonlinearFactor& expected, double tol) const;
   gtsam::Unit3 nRef() const;
   gtsam::Unit3 bMeasured() const;
+
+  // enable serialization functionality
+  void serialize() const;
 };
 
 virtual class Pose3AttitudeFactor : gtsam::NoiseModelFactor {
@@ -290,6 +305,9 @@ virtual class Pose3AttitudeFactor : gtsam::NoiseModelFactor {
   bool equals(const gtsam::NonlinearFactor& expected, double tol) const;
   gtsam::Unit3 nRef() const;
   gtsam::Unit3 bMeasured() const;
+
+  // enable serialization functionality
+  void serialize() const;
 };
 
 #include <gtsam/navigation/GPSFactor.h>
@@ -304,6 +322,9 @@ virtual class GPSFactor : gtsam::NonlinearFactor{
 
   // Standard Interface
   gtsam::Point3 measurementIn() const;
+
+  // enable serialization functionality
+  void serialize() const;
 };
 
 virtual class GPSFactor2 : gtsam::NonlinearFactor {
@@ -317,6 +338,9 @@ virtual class GPSFactor2 : gtsam::NonlinearFactor {
 
   // Standard Interface
   gtsam::Point3 measurementIn() const;
+
+  // enable serialization functionality
+  void serialize() const;
 };
 
 #include <gtsam/navigation/BarometricFactor.h>
@@ -334,6 +358,9 @@ virtual class BarometricFactor : gtsam::NonlinearFactor {
   const double& measurementIn() const;
   double heightOut(double n) const;
   double baroOut(const double& meters) const;
+
+  // enable serialization functionality
+  void serialize() const;
 };
 
 #include <gtsam/navigation/Scenario.h>
