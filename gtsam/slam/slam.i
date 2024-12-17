@@ -52,7 +52,7 @@ virtual class PlanarProjectionFactor3 : gtsam::NoiseModelFactor {
             const gtsam::noiseModel::Base* model,
             size_t poseKey,
             size_t offsetKey,
-            size_t calibKey));
+            size_t calibKey);
   void serialize() const;
 };
 
