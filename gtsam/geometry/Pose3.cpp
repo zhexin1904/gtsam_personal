@@ -42,6 +42,17 @@ Pose3 Pose3::Create(const Rot3& R, const Point3& t, OptionalJacobian<6, 3> HR,
   return Pose3(R, t);
 }
 
+Pose3 Pose3::FromPose2(const Pose2& p, OptionalJacobian<6, 3> H) {
+  if (H) *H << (gtsam::Matrix(6, 3) << //
+    0., 0., 0., //
+    0., 0., 0.,//
+    0., 0., 1.,//
+    1., 0., 0.,//
+    0., 1., 0.,//
+    0., 0., 0.).finished();
+  return Pose3(p);
+}
+
 /* ************************************************************************* */
 Pose3 Pose3::inverse() const {
   Rot3 Rt = R_.inverse();

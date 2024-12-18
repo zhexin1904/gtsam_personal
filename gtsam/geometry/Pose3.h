@@ -78,6 +78,8 @@ public:
                       OptionalJacobian<6, 3> HR = {},
                       OptionalJacobian<6, 3> Ht = {});
 
+  static Pose3 FromPose2(const Pose2& p, OptionalJacobian<6,3> H = {});
+
   /**
    *  Create Pose3 by aligning two point pairs
    *  A pose aTb is estimated between pairs (a_point, b_point) such that a_point = aTb * b_point

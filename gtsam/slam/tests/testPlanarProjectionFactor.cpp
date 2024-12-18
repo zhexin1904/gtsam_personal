@@ -39,7 +39,8 @@ TEST(PlanarProjectionFactor1, error1) {
     Pose2 pose(0, 0, 0);
     values.insert(X(0), pose);
 
-    PlanarProjectionFactor1 factor(landmark, measured, offset, calib, model, X(0));
+    PlanarProjectionFactor1 factor(
+        X(0), landmark, measured, offset, calib, model);
 
     CHECK_EQUAL(2, factor.dim());
     CHECK(factor.active(values));
@@ -65,7 +66,8 @@ TEST(PlanarProjectionFactor1, error2) {
     Pose3 offset;
     Cal3DS2 calib(200, 200, 0, 200, 200, 0, 0);
     SharedNoiseModel model = noiseModel::Diagonal::Sigmas(Vector2(1, 1));
-    PlanarProjectionFactor1 factor(landmark, measured, offset, calib, model, X(0));
+    PlanarProjectionFactor1 factor(
+        X(0), landmark, measured, offset, calib, model);
     Values values;
     Pose2 pose(0, 0, 0);
 
@@ -96,7 +98,8 @@ TEST(PlanarProjectionFactor1, error3) {
     // distortion
     Cal3DS2 calib(200, 200, 0, 200, 200, -0.2, 0.1);
     SharedNoiseModel model = noiseModel::Diagonal::Sigmas(Vector2(1, 1));
-    PlanarProjectionFactor1 factor(landmark, measured, offset, calib, model, X(0));
+    PlanarProjectionFactor1 factor(
+        X(0), landmark, measured, offset, calib, model);
     Values values;
     Pose2 pose(0, 0, 0);
 
@@ -131,7 +134,8 @@ TEST(PlanarProjectionFactor1, jacobian) {
         Pose3 offset(Rot3::Ypr(s(g),s(g),s(g)), Point3(s(g),s(g),s(g)));
         Cal3DS2 calib(200, 200, 0, 200, 200, -0.2, 0.1);
 
-        PlanarProjectionFactor1 factor(landmark, measured, offset, calib, model, X(0));
+        PlanarProjectionFactor1 factor(
+            X(0), landmark, measured, offset, calib, model);
 
         Pose2 pose(s(g), s(g), s(g));
 
@@ -164,7 +168,8 @@ TEST(PlanarProjectionFactor3, error1) {
     values.insert(C(0), offset);
     values.insert(K(0), calib);
 
-    PlanarProjectionFactor3 factor(landmark, measured, model, X(0), C(0), K(0));
+    PlanarProjectionFactor3 factor(
+        X(0), C(0), K(0), landmark, measured, model);
 
     CHECK_EQUAL(2, factor.dim());
     CHECK(factor.active(values));
@@ -213,7 +218,8 @@ TEST(PlanarProjectionFactor3, error2) {
     Cal3DS2 calib(200, 200, 0, 200, 200, 0, 0);
 
     SharedNoiseModel model = noiseModel::Diagonal::Sigmas(Vector2(1, 1));
-    PlanarProjectionFactor3 factor(landmark, measured, model, X(0), C(0), K(0));
+    PlanarProjectionFactor3 factor(
+        X(0), C(0), K(0), landmark, measured, model);
     Values values;
     Pose2 pose(0, 0, 0);
 
@@ -267,7 +273,8 @@ TEST(PlanarProjectionFactor3, error3) {
     Cal3DS2 calib(200, 200, 0, 200, 200, -0.2, 0.1);
 
     SharedNoiseModel model = noiseModel::Diagonal::Sigmas(Vector2(1, 1));
-    PlanarProjectionFactor3 factor(landmark, measured, model, X(0), C(0), K(0));
+    PlanarProjectionFactor3 factor(
+        X(0), C(0), K(0), landmark, measured, model);
     Values values;
     Pose2 pose(0, 0, 0);
 
@@ -328,7 +335,8 @@ TEST(PlanarProjectionFactor3, jacobian) {
         Pose3 offset(Rot3::Ypr(s(g),s(g),s(g)), Point3(s(g),s(g),s(g)));
         Cal3DS2 calib(200, 200, 0, 200, 200, -0.2, 0.1);
 
-        PlanarProjectionFactor3 factor(landmark, measured, model, X(0), C(0), K(0));
+        PlanarProjectionFactor3 factor(
+            X(0), C(0), K(0), landmark, measured, model);
 
         Pose2 pose(s(g), s(g), s(g));
 
