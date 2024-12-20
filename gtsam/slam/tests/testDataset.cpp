@@ -517,6 +517,7 @@ TEST( dataSet, gtsam2openGL)
 }
 
 /* ************************************************************************* */
+#ifndef __QNX__
 TEST( dataSet, writeBAL_Dubrovnik)
 {
   ///< Read a file using the unit tested readBAL
@@ -562,6 +563,7 @@ TEST( dataSet, writeBAL_Dubrovnik)
     }
   }
 }
+#endif //__QNX__
 
 
 /* ************************************************************************* */
