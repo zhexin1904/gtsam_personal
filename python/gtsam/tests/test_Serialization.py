@@ -23,26 +23,36 @@ class TestDeepCopy(GtsamTestCase):
 
     def test_PreintegratedImuMeasurements(self):
         """
-        Test the deep copy of `PreintegratedImuMeasurements` by performing a deepcopy.
+        Test the deep copy of `PreintegratedImuMeasurements`.
         """
-        params = gtsam.PreintegrationParams(np.asarray([0, 0, -9.81]))
+        params = gtsam.PreintegrationParams.MakeSharedD(9.81)
         pim = gtsam.PreintegratedImuMeasurements(params)
 
         self.assertDeepCopyEquality(pim)
 
     def test_ImuFactor(self):
         """
-        Test the deep copy of `ImuFactor` by performing a deepcopy.
+        Test the deep copy of `ImuFactor`.
         """
-        params = gtsam.PreintegrationParams(np.asarray([0, 0, -9.81]))
-        pim = gtsam.PreintegratedImuMeasurements(params)
-        imu_factor = gtsam.ImuFactor(X(0), V(0), X(1), V(1), B(0), pim)
+        params = gtsam.PreintegrationParams.MakeSharedD(9.81)
+        params.setAccelerometerCovariance(1e-7 * np.eye(3))
+        params.setGyroscopeCovariance(1e-8 * np.eye(3))
+        params.setIntegrationCovariance(1e-9 * np.eye(3))
+        priorBias = gtsam.imuBias.ConstantBias(np.zeros(3), np.zeros(3))
+        pim = gtsam.PreintegratedImuMeasurements(params, priorBias)
 
-        self.assertDeepCopyEquality(imu_factor)
+        # Preintegrate a single measurement for serialization to work.
+        pim.integrateMeasurement(measuredAcc=np.zeros(3),
+                                 measuredOmega=np.zeros(3),
+                                 deltaT=0.005)
+
+        factor = gtsam.ImuFactor(0, 1, 2, 3, 4, pim)
+
+        self.assertDeepCopyEquality(factor)
 
     def test_PreintegratedCombinedMeasurements(self):
         """
-        Test the deep copy of `PreintegratedCombinedMeasurements` by performing a deepcopy.
+        Test the deep copy of `PreintegratedCombinedMeasurements`.
         """
         params = gtsam.PreintegrationCombinedParams(np.asarray([0, 0, -9.81]))
         pim = gtsam.PreintegratedCombinedMeasurements(params)
