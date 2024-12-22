@@ -79,7 +79,7 @@ public:
 
   /// Default constructor for serialization and wrappers
   PreintegratedImuMeasurements() {
-    preintMeasCov_.setZero();
+    resetIntegration();
   }
 
  /**
@@ -90,7 +90,7 @@ public:
   PreintegratedImuMeasurements(const std::shared_ptr<PreintegrationParams>& p,
       const imuBias::ConstantBias& biasHat = imuBias::ConstantBias()) :
       PreintegrationType(p, biasHat) {
-    preintMeasCov_.setZero();
+    resetIntegration();
   }
 
 /**
@@ -101,6 +101,7 @@ public:
   PreintegratedImuMeasurements(const PreintegrationType& base, const Matrix9& preintMeasCov)
      : PreintegrationType(base),
        preintMeasCov_(preintMeasCov) {
+    PreintegrationType::resetIntegration();
   }
 
   /// Virtual destructor
