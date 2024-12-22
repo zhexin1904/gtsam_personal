@@ -113,7 +113,7 @@ public:
   /// equals
   bool equals(const PreintegratedImuMeasurements& expected, double tol = 1e-9) const;
 
-  /// Re-initialize PreintegratedIMUMeasurements
+  /// Re-initialize PreintegratedImuMeasurements
   void resetIntegration() override;
 
   /**
@@ -159,7 +159,7 @@ public:
  * the vehicle at previous time step), current state (pose and velocity at
  * current time step), and the bias estimate. Following the preintegration
  * scheme proposed in [2], the ImuFactor includes many IMU measurements, which
- * are "summarized" using the PreintegratedIMUMeasurements class.
+ * are "summarized" using the PreintegratedImuMeasurements class.
  * Note that this factor does not model "temporal consistency" of the biases
  * (which are usually slowly varying quantities), which is up to the caller.
  * See also CombinedImuFactor for a class that does this for you.
