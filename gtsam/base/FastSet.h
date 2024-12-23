@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <gtsam/config.h>
+
 #ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
 #include <boost/version.hpp>
 #if BOOST_VERSION >= 107400
