@@ -21,11 +21,12 @@
 #include <gtsam/discrete/AlgebraicDecisionTree.h>
 #include <gtsam/discrete/DiscreteFactor.h>
 #include <gtsam/discrete/DiscreteKey.h>
+#include <gtsam/discrete/Ring.h>
 #include <gtsam/inference/Ordering.h>
 
 #include <algorithm>
-#include <memory>
 #include <map>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -49,6 +50,11 @@ namespace gtsam {
     typedef DiscreteFactor Base;  ///< Typedef to base class
     typedef std::shared_ptr<DecisionTreeFactor> shared_ptr;
     typedef AlgebraicDecisionTree<Key> ADT;
+
+    // Needed since we have definitions in both DiscreteFactor and DecisionTree
+    using Base::Binary;
+    using Base::Unary;
+    using Base::UnaryAssignment;
 
     /// @name Standard Constructors
     /// @{
@@ -129,23 +135,21 @@ namespace gtsam {
     /// @name Standard Interface
     /// @{
 
-    /// Calculate probability for given values `x`, 
+    /// Calculate probability for given values, 
     /// is just look up in AlgebraicDecisionTree.
-    double evaluate(const Assignment<Key>& values) const  {
+    virtual double evaluate(const Assignment<Key>& values) const override {
       return ADT::operator()(values);
     }
 
-    /// Evaluate probability distribution, sugar.
-    double operator()(const DiscreteValues& values) const override {
-      return ADT::operator()(values);
-    }
+    /// Disambiguate to use DiscreteFactor version. Mainly for wrapper
+    using DiscreteFactor::operator();
 
     /// Calculate error for DiscreteValues `x`, is -log(probability).
     double error(const DiscreteValues& values) const override;
 
     /// multiply two factors
     DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override {
-      return apply(f, ADT::Ring::mul);
+      return apply(f, Ring::mul);
     }
 
     static double safe_div(const double& a, const double& b);
@@ -160,22 +164,22 @@ namespace gtsam {
 
     /// Create new factor by summing all values with the same separator values
     shared_ptr sum(size_t nrFrontals) const {
-      return combine(nrFrontals, ADT::Ring::add);
+      return combine(nrFrontals, Ring::add);
     }
 
     /// Create new factor by summing all values with the same separator values
     shared_ptr sum(const Ordering& keys) const {
-      return combine(keys, ADT::Ring::add);
+      return combine(keys, Ring::add);
     }
 
     /// Create new factor by maximizing over all values with the same separator.
     shared_ptr max(size_t nrFrontals) const {
-      return combine(nrFrontals, ADT::Ring::max);
+      return combine(nrFrontals, Ring::max);
     }
 
     /// Create new factor by maximizing over all values with the same separator.
     shared_ptr max(const Ordering& keys) const {
-      return combine(keys, ADT::Ring::max);
+      return combine(keys, Ring::max);
     }
 
     /// @}
@@ -186,21 +190,21 @@ namespace gtsam {
      * Apply unary operator (*this) "op" f
      * @param op a unary operator that operates on AlgebraicDecisionTree
      */
-    DecisionTreeFactor apply(ADT::Unary op) const;
+    DecisionTreeFactor apply(Unary op) const;
 
     /**
      * Apply unary operator (*this) "op" f
      * @param op a unary operator that operates on AlgebraicDecisionTree. Takes
      * both the assignment and the value.
      */
-    DecisionTreeFactor apply(ADT::UnaryAssignment op) const;
+    DecisionTreeFactor apply(UnaryAssignment op) const;
 
     /**
      * Apply binary operator (*this) "op" f
      * @param f the second argument for op
      * @param op a binary operator that operates on AlgebraicDecisionTree
      */
-    DecisionTreeFactor apply(const DecisionTreeFactor& f, ADT::Binary op) const;
+    DecisionTreeFactor apply(const DecisionTreeFactor& f, Binary op) const;
 
     /**
      * Combine frontal variables using binary operator "op"
@@ -208,7 +212,7 @@ namespace gtsam {
      * @param op a binary operator that operates on AlgebraicDecisionTree
      * @return shared pointer to newly created DecisionTreeFactor
      */
-    shared_ptr combine(size_t nrFrontals, ADT::Binary op) const;
+    shared_ptr combine(size_t nrFrontals, Binary op) const;
 
     /**
      * Combine frontal variables in an Ordering using binary operator "op"
@@ -216,13 +220,24 @@ namespace gtsam {
      * @param op a binary operator that operates on AlgebraicDecisionTree
      * @return shared pointer to newly created DecisionTreeFactor
      */
-    shared_ptr combine(const Ordering& keys, ADT::Binary op) const;
+    shared_ptr combine(const Ordering& keys, Binary op) const;
 
     /// Enumerate all values into a map from values to double.
     std::vector<std::pair<DiscreteValues, double>> enumerate() const;
 
     /// Get all the probabilities in order of assignment values
     std::vector<double> probabilities() const;
+
+    /**
+     * @brief Compute the probability value which is the threshold above which
+     * only `N` leaves are present.
+     *
+     * This is used for pruning out the smaller probabilities.
+     *
+     * @param N The number of leaves to keep post pruning.
+     * @return double
+     */
+    double computeThreshold(const size_t N) const;
 
     /**
      * @brief Prune the decision tree of discrete variables.

@@ -22,6 +22,7 @@
 #pragma once
 
 #include <gtsam/nonlinear/Values.h>
+#include <gtsam/hybrid/HybridValues.h>
 #include <gtsam/linear/NoiseModel.h>
 #include <gtsam/linear/JacobianFactor.h>
 #include <gtsam/inference/Factor.h>
@@ -433,7 +434,7 @@ class NoiseModelFactorN
       public detail::NoiseModelFactorAliases<ValueTypes...> {
  public:
   /// N is the number of variables (N-way factor)
-  enum { N = sizeof...(ValueTypes) };
+  inline constexpr static auto N = sizeof...(ValueTypes);
 
   using NoiseModelFactor::unwhitenedError;
 
