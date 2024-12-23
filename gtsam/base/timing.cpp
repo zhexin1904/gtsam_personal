@@ -106,6 +106,56 @@ void TimingOutline::print(const std::string& outline) const {
 #endif
 }
 
+/* ************************************************************************* */
+void TimingOutline::print_csv_header(bool addLineBreak) const {
+#ifdef GTSAM_USE_BOOST_FEATURES
+  // Order is (CPU time, number of times, wall time, time + children in seconds,
+  // min time, max time)
+  std::cout << label_ + " cpu time (s)" << "," << label_ + " #calls" << ","
+            << label_ + " wall time(s)" << "," << label_ + " subtree time (s)"
+            << "," << label_ + " min time (s)" << "," << label_ + "max time(s)"
+            << ", ";
+  // Order children
+  typedef FastMap<size_t, std::shared_ptr<TimingOutline> > ChildOrder;
+  ChildOrder childOrder;
+  for (const ChildMap::value_type& child : children_) {
+    childOrder[child.second->myOrder_] = child.second;
+  }
+  // Print children
+  for (const ChildOrder::value_type& order_child : childOrder) {
+    order_child.second->print_csv_header();
+  }
+  if (addLineBreak) {
+    std::cout << std::endl;
+  }
+  std::cout.flush();
+#endif
+}
+
+/* ************************************************************************* */
+void TimingOutline::print_csv(bool addLineBreak) const {
+#ifdef GTSAM_USE_BOOST_FEATURES
+  // Order is (CPU time, number of times, wall time, time + children in seconds,
+  // min time, max time)
+  std::cout << self() << "," << n_ << "," << wall() << "," << secs() << ","
+            << min() << "," << max() << ", ";
+  // Order children
+  typedef FastMap<size_t, std::shared_ptr<TimingOutline> > ChildOrder;
+  ChildOrder childOrder;
+  for (const ChildMap::value_type& child : children_) {
+    childOrder[child.second->myOrder_] = child.second;
+  }
+  // Print children
+  for (const ChildOrder::value_type& order_child : childOrder) {
+    order_child.second->print_csv(false);
+  }
+  if (addLineBreak) {
+    std::cout << std::endl;
+  }
+  std::cout.flush();
+#endif
+}
+
 void TimingOutline::print2(const std::string& outline,
     const double parentTotal) const {
 #ifdef GTSAM_USE_BOOST_FEATURES
