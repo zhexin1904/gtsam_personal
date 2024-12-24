@@ -33,7 +33,7 @@ using symbol_shorthand::K;
 using symbol_shorthand::L;
 
 /* ************************************************************************* */
-TEST(PlanarProjectionFactor1, error1) {
+TEST(PlanarProjectionFactor1, Error1) {
     // Example: center projection and Jacobian
     Point3 landmark(1, 0, 0);
     Point2 measured(200, 200);
@@ -55,7 +55,7 @@ TEST(PlanarProjectionFactor1, error1) {
 }
 
 /* ************************************************************************* */
-TEST(PlanarProjectionFactor1, error2) {
+TEST(PlanarProjectionFactor1, Error2) {
     // Example: upper left corner projection and Jacobian
     Point3 landmark(1, 1, 1);
     Point2 measured(0, 0);
@@ -77,7 +77,7 @@ TEST(PlanarProjectionFactor1, error2) {
 }
 
 /* ************************************************************************* */
-TEST(PlanarProjectionFactor1, error3) {
+TEST(PlanarProjectionFactor1, Error3) {
     // Example: upper left corner projection and Jacobian with distortion
     Point3 landmark(1, 1, 1);
     Point2 measured(0, 0);
@@ -99,7 +99,7 @@ TEST(PlanarProjectionFactor1, error3) {
 }
 
 /* ************************************************************************* */
-TEST(PlanarProjectionFactor1, jacobian) {
+TEST(PlanarProjectionFactor1, Jacobian) {
     // Verify Jacobians with numeric derivative
     std::default_random_engine rng(42);
     std::uniform_real_distribution<double> dist(-0.3, 0.3);
@@ -133,7 +133,7 @@ TEST(PlanarProjectionFactor1, jacobian) {
 }
 
 /* ************************************************************************* */
-TEST(PlanarProjectionFactor1, solve) {
+TEST(PlanarProjectionFactor1, Solve) {
     // Example localization
 
     SharedNoiseModel pxModel = noiseModel::Diagonal::Sigmas(Vector2(1, 1));
@@ -193,7 +193,7 @@ TEST(PlanarProjectionFactor1, solve) {
 }
 
 /* ************************************************************************* */
-TEST(PlanarProjectionFactor3, error1) {
+TEST(PlanarProjectionFactor3, Error1) {
     // Example: center projection and Jacobian
     Point3 landmark(1, 0, 0);
     Point2 measured(200, 200);
@@ -223,7 +223,7 @@ TEST(PlanarProjectionFactor3, error1) {
 }
 
 /* ************************************************************************* */
-TEST(PlanarProjectionFactor3, error2) {
+TEST(PlanarProjectionFactor3, Error2) {
     Point3 landmark(1, 1, 1);
     Point2 measured(0, 0);
     SharedNoiseModel model = noiseModel::Diagonal::Sigmas(Vector2(1, 1));
@@ -253,7 +253,7 @@ TEST(PlanarProjectionFactor3, error2) {
 }
 
 /* ************************************************************************* */
-TEST(PlanarProjectionFactor3, error3) {
+TEST(PlanarProjectionFactor3, Error3) {
     Point3 landmark(1, 1, 1);
     Point2 measured(0, 0);
     SharedNoiseModel model = noiseModel::Diagonal::Sigmas(Vector2(1, 1));
@@ -282,7 +282,7 @@ TEST(PlanarProjectionFactor3, error3) {
 }
 
 /* ************************************************************************* */
-TEST(PlanarProjectionFactor3, jacobian) {
+TEST(PlanarProjectionFactor3, Jacobian) {
     // Verify Jacobians with numeric derivative
 
     std::default_random_engine rng(42);
@@ -332,7 +332,7 @@ TEST(PlanarProjectionFactor3, jacobian) {
 }
 
 /* ************************************************************************* */
-TEST(PlanarProjectionFactor3, solveOffset) {
+TEST(PlanarProjectionFactor3, SolveOffset) {
     // Example localization
     SharedNoiseModel pxModel = noiseModel::Diagonal::Sigmas(Vector2(1, 1));
     SharedNoiseModel xNoise = noiseModel::Diagonal::Sigmas(Vector3(0.01, 0.01, 0.01));
