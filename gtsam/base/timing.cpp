@@ -114,7 +114,7 @@ void TimingOutline::print_csv_header(bool addLineBreak) const {
   std::cout << label_ + " cpu time (s)" << "," << label_ + " #calls" << ","
             << label_ + " wall time(s)" << "," << label_ + " subtree time (s)"
             << "," << label_ + " min time (s)" << "," << label_ + "max time(s)"
-            << ", ";
+            << ",";
   // Order children
   typedef FastMap<size_t, std::shared_ptr<TimingOutline> > ChildOrder;
   ChildOrder childOrder;
@@ -138,7 +138,7 @@ void TimingOutline::print_csv(bool addLineBreak) const {
   // Order is (CPU time, number of times, wall time, time + children in seconds,
   // min time, max time)
   std::cout << self() << "," << n_ << "," << wall() << "," << secs() << ","
-            << min() << "," << max() << ", ";
+            << min() << "," << max() << ",";
   // Order children
   typedef FastMap<size_t, std::shared_ptr<TimingOutline> > ChildOrder;
   ChildOrder childOrder;
