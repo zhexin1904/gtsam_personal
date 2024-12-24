@@ -59,31 +59,26 @@ namespace gtsam {
             const Pose2& wTb,
             const Pose3& bTc,
             const Cal3DS2& calib,
-            OptionalMatrixType Hlandmark = nullptr, // 2x3 (x, y, z)
-            OptionalMatrixType HwTb = nullptr, // 2x3 (x, y, theta)
-            OptionalMatrixType HbTc = nullptr, // 2x6 (rx, ry, rz, x, y, theta)
-            OptionalMatrixType Hcalib = nullptr // 2x9
+            OptionalJacobian<2, 3> Hlandmark = {}, // (x, y, z)
+            OptionalJacobian<2, 3> HwTb = {}, // (x, y, theta)
+            OptionalJacobian<2, 6> HbTc = {}, // (rx, ry, rz, x, y, theta)
+            OptionalJacobian<2, 9> Hcalib = {}
         ) const {
 #ifndef GTSAM_THROW_CHEIRALITY_EXCEPTION
             try {
 #endif
-                gtsam::Matrix Hp; // 6x3
-                gtsam::Matrix H0; // 6x6
-                // this is x-forward z-up
-                Pose3 wTc = Pose3::FromPose2(wTb, Hp).compose(bTc, HwTb ? &H0 : nullptr);
-                // this is z-forward y-down
-                gtsam::Matrix H00; // 6x6
-                Pose3 camera_pose = wTc.compose(CAM_COORD, H00);
-                PinholeCamera<Cal3DS2> camera = PinholeCamera<Cal3DS2>(camera_pose, calib);
+                Matrix63 Hp; // 6x3
+                Matrix66 H0; // 6x6
+                Pose3 wTc = Pose3::FromPose2(wTb, HwTb ? &Hp : nullptr).compose(bTc, HwTb ? &H0 : nullptr);
+                PinholeCamera<Cal3DS2> camera = PinholeCamera<Cal3DS2>(wTc, calib);
                 if (HwTb || HbTc) {
-                    // Dpose is for pose3, 2x6 (R,t)
-                    gtsam::Matrix Dpose;
+                    // Dpose is for pose3 (R,t)
+                    Matrix26 Dpose;
                     Point2 result = camera.project(landmark, Dpose, Hlandmark, Hcalib);
-                    gtsam::Matrix DposeOffset = Dpose * H00; // 2x6
                     if (HbTc)
-                        *HbTc = DposeOffset; // with Eigen this is a deep copy (!)
-                    if (HwTb) 
-                        *HwTb =  DposeOffset * H0 * Hp;
+                        *HbTc = Dpose;
+                    if (HwTb)
+                        *HwTb = Dpose * H0 * Hp;
                     return result;
                 } else {
                     return camera.project(landmark, {}, {}, {});
@@ -91,10 +86,10 @@ namespace gtsam {
 #ifndef GTSAM_THROW_CHEIRALITY_EXCEPTION
             } catch (CheiralityException& e) {
                 std::cout << "****** CHIRALITY EXCEPTION ******\n";
-                if (Hlandmark) *Hlandmark = Matrix::Zero(2, 3);
-                if (HwTb) *HwTb = Matrix::Zero(2, 3);
-                if (HbTc) *HbTc = Matrix::Zero(2, 6);
-                if (Hcalib) *Hcalib = Matrix::Zero(2, 9);
+                if (Hlandmark) Hlandmark->setZero();
+                if (HwTb) HwTb->setZero();
+                if (HbTc) HbTc->setZero();
+                if (Hcalib) Hcalib->setZero();
                 // return a large error
                 return Matrix::Constant(2, 1, 2.0 * calib.fx());
             }
@@ -102,18 +97,8 @@ namespace gtsam {
         }
 
         Point2 measured_; // pixel measurement
-
-    private:
-        static const Pose3 CAM_COORD;
     };
 
-    // camera "zero" is facing +z; this turns it to face +x
-    const Pose3 PlanarProjectionFactorBase::CAM_COORD = Pose3(
-        Rot3(0, 0, 1,//
-            -1, 0, 0, //
-            0, -1, 0),
-        Vector3(0, 0, 0)
-    );
 
     /**
      * @class PlanarProjectionFactor1
@@ -131,9 +116,9 @@ namespace gtsam {
         ~PlanarProjectionFactor1() override {}
 
         /// @return a deep copy of this factor
-        gtsam::NonlinearFactor::shared_ptr clone() const override {
-            return std::static_pointer_cast<gtsam::NonlinearFactor>(
-                gtsam::NonlinearFactor::shared_ptr(new PlanarProjectionFactor1(*this)));
+        NonlinearFactor::shared_ptr clone() const override {
+            return std::static_pointer_cast<NonlinearFactor>(
+                NonlinearFactor::shared_ptr(new PlanarProjectionFactor1(*this)));
         }
 
 
@@ -152,22 +137,18 @@ namespace gtsam {
             const Point2& measured,
             const Pose3& bTc,
             const Cal3DS2& calib,
-            const SharedNoiseModel& model)
+            const SharedNoiseModel& model = {})
             : PlanarProjectionFactorBase(measured),
             NoiseModelFactorN(model, poseKey),
             landmark_(landmark),
             bTc_(bTc),
-            calib_(calib) {
-            assert(2 == model->dim());
-        }
+            calib_(calib) {}
 
         /**
          * @param wTb "world to body": estimated pose2
          * @param HwTb jacobian
          */
-        Vector evaluateError(
-            const Pose2& wTb,
-            OptionalMatrixType HwTb = OptionalNone) const override {
+        Vector evaluateError(const Pose2& wTb, OptionalMatrixType HwTb) const override {
             return predict(landmark_, wTb, bTc_, calib_, {}, HwTb, {}, {}) - measured_;
         }
 
@@ -187,8 +168,8 @@ namespace gtsam {
      * Camera offset and calibration are constant.
      * This is similar to GeneralSFMFactor, used for SLAM.
     */
-    class PlanarProjectionFactor2 
-    : public PlanarProjectionFactorBase, public NoiseModelFactorN<Pose2, Point3> {
+    class PlanarProjectionFactor2
+        : public PlanarProjectionFactorBase, public NoiseModelFactorN<Pose2, Point3> {
     public:
         typedef NoiseModelFactorN<Pose2, Point3> Base;
         using Base::evaluateError;
@@ -198,9 +179,9 @@ namespace gtsam {
         ~PlanarProjectionFactor2() override {}
 
         /// @return a deep copy of this factor
-        gtsam::NonlinearFactor::shared_ptr clone() const override {
-            return std::static_pointer_cast<gtsam::NonlinearFactor>(
-                gtsam::NonlinearFactor::shared_ptr(new PlanarProjectionFactor2(*this)));
+        NonlinearFactor::shared_ptr clone() const override {
+            return std::static_pointer_cast<NonlinearFactor>(
+                NonlinearFactor::shared_ptr(new PlanarProjectionFactor2(*this)));
         }
 
         /**
@@ -218,13 +199,11 @@ namespace gtsam {
             const Point2& measured,
             const Pose3& bTc,
             const Cal3DS2& calib,
-            const SharedNoiseModel& model)
+            const SharedNoiseModel& model = {})
             : PlanarProjectionFactorBase(measured),
             NoiseModelFactorN(model, landmarkKey, poseKey),
             bTc_(bTc),
-            calib_(calib) {
-            assert(2 == model->dim());
-        }
+            calib_(calib) {}
 
         /**
          * @param wTb "world to body": estimated pose2
@@ -235,8 +214,8 @@ namespace gtsam {
         Vector evaluateError(
             const Pose2& wTb,
             const Point3& landmark,
-            OptionalMatrixType HwTb = OptionalNone,
-            OptionalMatrixType Hlandmark = OptionalNone) const override {
+            OptionalMatrixType HwTb,
+            OptionalMatrixType Hlandmark) const override {
             return predict(landmark, wTb, bTc_, calib_, Hlandmark, HwTb, {}, {}) - measured_;
         }
 
@@ -265,47 +244,46 @@ namespace gtsam {
         ~PlanarProjectionFactor3() override {}
 
         /// @return a deep copy of this factor
-        gtsam::NonlinearFactor::shared_ptr clone() const override {
-            return std::static_pointer_cast<gtsam::NonlinearFactor>(
-                gtsam::NonlinearFactor::shared_ptr(new PlanarProjectionFactor3(*this)));
+        NonlinearFactor::shared_ptr clone() const override {
+            return std::static_pointer_cast<NonlinearFactor>(
+                NonlinearFactor::shared_ptr(new PlanarProjectionFactor3(*this)));
         }
 
         /**
          * @brief constructor for variable pose, offset, and calibration, known landmark.
+         * @param poseKey index of the robot pose2 in the z=0 plane
+         * @param offsetKey index of camera offset from pose
+         * @param calibKey index of camera calibration
          * @param landmark point3 in the world
          * @param measured corresponding point2 in the camera frame
          * @param model stddev of the measurements, ~one pixel?
-         * @param poseKey index of the robot pose2 in the z=0 plane
-         * @param offsetKey index of camera offset from pose
-         * @param calibKey index of camera calibration         */
+         */
         PlanarProjectionFactor3(
             Key poseKey,
             Key offsetKey,
             Key calibKey,
             const Point3& landmark,
             const Point2& measured,
-            const SharedNoiseModel& model)
+            const SharedNoiseModel& model = {})
             : PlanarProjectionFactorBase(measured),
             NoiseModelFactorN(model, poseKey, offsetKey, calibKey),
-            landmark_(landmark) {
-            assert(2 == model->dim());
-        }
+            landmark_(landmark) {}
 
         /**
          * @param wTb "world to body": estimated pose2
          * @param bTc "body to camera": pose3 offset from pose2 +x
          * @param calib calibration
          * @param HwTb pose jacobian
-         * @param H2 offset jacobian
-         * @param H3 calibration jacobian
+         * @param HbTc offset jacobian
+         * @param Hcalib calibration jacobian
          */
         Vector evaluateError(
             const Pose2& wTb,
             const Pose3& bTc,
             const Cal3DS2& calib,
-            OptionalMatrixType HwTb = OptionalNone,
-            OptionalMatrixType HbTc = OptionalNone,
-            OptionalMatrixType Hcalib = OptionalNone) const override {
+            OptionalMatrixType HwTb,
+            OptionalMatrixType HbTc,
+            OptionalMatrixType Hcalib) const override {
             return predict(landmark_, wTb, bTc, calib, {}, HwTb, HbTc, Hcalib) - measured_;
         }
 

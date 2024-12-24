@@ -78,6 +78,7 @@ public:
                       OptionalJacobian<6, 3> HR = {},
                       OptionalJacobian<6, 3> Ht = {});
 
+  /** Construct from Pose2 in the xy plane, with derivative. */
   static Pose3 FromPose2(const Pose2& p, OptionalJacobian<6,3> H = {});
 
   /**
