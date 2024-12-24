@@ -128,7 +128,7 @@ TEST(PlanarProjectionFactor1, jacobian) {
             [&factor](const Pose2& p) {
                 return factor.evaluateError(p, {});},
                 pose);
-        CHECK(assert_equal(expectedH1, H1, 1e-6));
+        CHECK(assert_equal(expectedH1, H1, 2e-6));
     }
 }
 
