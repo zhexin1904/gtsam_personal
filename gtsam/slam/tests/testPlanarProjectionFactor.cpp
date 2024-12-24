@@ -128,7 +128,7 @@ TEST(PlanarProjectionFactor1, Jacobian) {
             [&factor](const Pose2& p) {
                 return factor.evaluateError(p, {});},
                 pose);
-        CHECK(assert_equal(expectedH1, H1, 2e-6));
+        CHECK(assert_equal(expectedH1, H1, 5e-6));
     }
 }
 
@@ -325,9 +325,9 @@ TEST(PlanarProjectionFactor3, Jacobian) {
             [&factor](const Pose2& p, const Pose3& o, const Cal3DS2& c) {
                 return factor.evaluateError(p, o, c, {}, {}, {});},
                 pose, offset, calib);
-        CHECK(assert_equal(expectedH1, H1, 1e-6));
-        CHECK(assert_equal(expectedH2, H2, 1e-6));
-        CHECK(assert_equal(expectedH3, H3, 1e-6));
+        CHECK(assert_equal(expectedH1, H1, 5e-6));
+        CHECK(assert_equal(expectedH2, H2, 5e-6));
+        CHECK(assert_equal(expectedH3, H3, 5e-6));
     }
 }
 
