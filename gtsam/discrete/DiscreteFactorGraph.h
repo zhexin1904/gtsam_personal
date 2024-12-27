@@ -25,6 +25,7 @@
 #include <gtsam/inference/FactorGraph.h>
 #include <gtsam/inference/Ordering.h>
 #include <gtsam/base/FastSet.h>
+#include <gtsam/discrete/TableFactor.h>
 
 #include <string>
 #include <utility>
@@ -147,7 +148,7 @@ class GTSAM_EXPORT DiscreteFactorGraph
   DiscreteKeys discreteKeys() const;
 
   /** return product of all factors as a single factor */
-  DecisionTreeFactor product() const;
+  TableFactor product() const;
 
   /** 
    * Evaluates the factor graph given values, returns the joint probability of
