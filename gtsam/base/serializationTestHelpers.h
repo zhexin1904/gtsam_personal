@@ -21,7 +21,7 @@
 
 #include <gtsam/config.h>
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 
 #include <iostream>
 #include <sstream>
