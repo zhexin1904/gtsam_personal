@@ -126,10 +126,10 @@ namespace gtsam {
     gttoc(product);
 
     // Max over all the potentials by pretending all keys are frontal:
-    auto normalization = product.max(product.size());
+    auto normalizer = product.max(product.size());
 
     // Normalize the product factor to prevent underflow.
-    product = product / (*normalization);
+    product = product / (*normalizer);
 
     return product;
   }
@@ -207,8 +207,7 @@ namespace gtsam {
     return dag.argmax();
   }
 
-  DiscreteValues DiscreteFactorGraph::optimize(
-      const Ordering& ordering) const {
+  DiscreteValues DiscreteFactorGraph::optimize(const Ordering& ordering) const {
     gttic(DiscreteFactorGraph_optimize);
     DiscreteLookupDAG dag = maxProduct(ordering);
     return dag.argmax();
