@@ -78,7 +78,7 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
   /// @{
 
   /// equals
-  virtual bool equals(const DiscreteFactor& lf, double tol = 1e-9) const = 0;
+  virtual bool equals(const DiscreteFactor& lf, double tol = 1e-9) const;
 
   /// print
   void print(
@@ -182,7 +182,7 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
   /// @}
 
  private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
   template <class ARCHIVE>
