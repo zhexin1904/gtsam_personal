@@ -153,7 +153,7 @@ TableFactor::shared_ptr DiscreteTableConditional::likelihood(
 
 /* ****************************************************************************/
 DiscreteConditional::shared_ptr DiscreteTableConditional::max(
-    const Ordering& keys) const override {
+    const Ordering& keys) const {
   auto m = *table_.max(keys);
 
   return std::make_shared<DiscreteTableConditional>(m.discreteKeys().size(), m);
@@ -161,7 +161,7 @@ DiscreteConditional::shared_ptr DiscreteTableConditional::max(
 
 /* ****************************************************************************/
 void DiscreteTableConditional::setData(
-    const DiscreteConditional::shared_ptr& dc) override {
+    const DiscreteConditional::shared_ptr& dc) {
   if (auto dtc = std::dynamic_pointer_cast<DiscreteTableConditional>(dc)) {
     this->table_ = dtc->table_;
   } else {
