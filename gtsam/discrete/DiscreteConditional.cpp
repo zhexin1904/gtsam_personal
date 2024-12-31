@@ -484,6 +484,11 @@ double DiscreteConditional::evaluate(const Assignment<Key>& values) const {
 }
 
 /* ************************************************************************* */
+double DiscreteConditional::setData(const DiscreteConditional::shared_ptr& dc) {
+  this->root_ = dc->root_;
+}
+
+/* ************************************************************************* */
 double DiscreteConditional::negLogConstant() const { return 0.0; }
 
 /* ************************************************************************* */

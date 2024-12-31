@@ -270,6 +270,9 @@ class GTSAM_EXPORT DiscreteConditional
    */
   double negLogConstant() const override;
 
+  /// Set the data from another DiscreteConditional.
+  virtual void setData(const DiscreteConditional::shared_ptr& dc);
+
   /// @}
 
  protected:
