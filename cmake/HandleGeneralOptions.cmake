@@ -33,6 +33,7 @@ option(GTSAM_POSE3_EXPMAP                   "Enable/Disable using Pose3::EXPMAP 
 option(GTSAM_ROT3_EXPMAP                    "Ignore if GTSAM_USE_QUATERNIONS is OFF (Rot3::EXPMAP by default). Otherwise, enable Rot3::EXPMAP, or if disabled, use Rot3::CAYLEY." ON)
 option(GTSAM_DT_MERGING                     "Enable/Disable merging of equal leaf nodes in DecisionTrees. This leads to significant speed up and memory savings." ON)
 option(GTSAM_ENABLE_TIMING                  "Enable the timing tools (gttic/gttoc)" OFF)
+option(GTSAM_HYBRID_TIMING                  "Enable the timing of hybrid factor graph machinery" OFF)
 option(GTSAM_ENABLE_CONSISTENCY_CHECKS      "Enable/Disable expensive consistency checks" OFF)
 option(GTSAM_ENABLE_MEMORY_SANITIZER        "Enable/Disable memory sanitizer" OFF)
 option(GTSAM_WITH_TBB                       "Use Intel Threaded Building Blocks (TBB) if available" ON)
