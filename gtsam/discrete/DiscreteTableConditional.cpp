@@ -68,7 +68,7 @@ DiscreteTableConditional::DiscreteTableConditional(const TableFactor& joint,
 
 /* ************************************************************************** */
 DiscreteTableConditional::DiscreteTableConditional(const Signature& signature)
-    : BaseConditional(1, DecisionTreeFactor()),
+    : BaseConditional(1, DecisionTreeFactor(DiscreteKeys{{1, 1}}, ADT(1))),
       table_(TableFactor(signature.discreteKeys(), signature.cpt())) {}
 
 /* ************************************************************************** */
@@ -137,7 +137,7 @@ bool DiscreteTableConditional::equals(const DiscreteFactor& other,
     const DiscreteConditional& f(
         static_cast<const DiscreteConditional&>(other));
     return table_.equals(dtc->table_, tol) &&
-           DiscreteConditional::equals(f, tol);
+           DiscreteConditional::BaseConditional::equals(f, tol);
   }
 }
 
