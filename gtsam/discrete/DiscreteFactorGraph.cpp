@@ -256,8 +256,6 @@ namespace gtsam {
 #if GTSAM_HYBRID_TIMING
     gttic_(EliminateDiscreteToDiscreteConditional);
 #endif
-    // auto conditional = std::make_shared<DiscreteConditional>(
-    //     orderedKeys.size(), (product / (*sum)).toDecisionTreeFactor());
     auto conditional =
         std::make_shared<DiscreteTableConditional>(product, *sum, orderedKeys);
 #if GTSAM_HYBRID_TIMING
