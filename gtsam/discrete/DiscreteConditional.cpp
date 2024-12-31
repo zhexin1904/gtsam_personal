@@ -489,6 +489,20 @@ void DiscreteConditional::setData(const DiscreteConditional::shared_ptr& dc) {
 }
 
 /* ************************************************************************* */
+DiscreteConditional::shared_ptr DiscreteConditional::max(
+    const Ordering& keys) const {
+  auto m = *BaseFactor::max(keys);
+  return std::make_shared<DiscreteConditional>(m.discreteKeys().size(), m);
+}
+
+/* ************************************************************************* */
+DiscreteConditional::shared_ptr DiscreteConditional::prune(
+    size_t maxNrAssignments) const {
+  return std::make_shared<DiscreteConditional>(
+      this->nrFrontals(), BaseFactor::prune(maxNrAssignments));
+}
+
+/* ************************************************************************* */
 double DiscreteConditional::negLogConstant() const { return 0.0; }
 
 /* ************************************************************************* */

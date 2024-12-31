@@ -205,6 +205,14 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
     return -error(x);
   }
 
+  /// Return the underlying TableFactor
+  TableFactor table() const { return table_; }
+
+  /// Evaluate the conditional given the values.
+  virtual double evaluate(const Assignment<Key>& values) const override {
+    return table_.evaluate(values);
+  }
+
   /// @}
 
  private:
