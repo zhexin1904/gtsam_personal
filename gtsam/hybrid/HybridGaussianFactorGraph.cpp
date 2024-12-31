@@ -351,8 +351,7 @@ discreteElimination(const HybridGaussianFactorGraph &factors,
   // All the discrete variables should form a single clique,
   // so we can sum out on all the variables as frontals.
   // This should give an empty separator.
-  Ordering orderedKeys(product.keys());
-  TableFactor::shared_ptr sum = product.sum(orderedKeys);
+  TableFactor::shared_ptr sum = product.sum(frontalKeys);
 #if GTSAM_HYBRID_TIMING
   gttoc_(EliminateDiscreteSum);
 #endif
@@ -361,8 +360,9 @@ discreteElimination(const HybridGaussianFactorGraph &factors,
   gttic_(EliminateDiscreteFormDiscreteConditional);
 #endif
   // Finally, get the conditional
-  auto conditional =
-      std::make_shared<DiscreteConditional>(product, *sum, orderedKeys);
+  auto c = product / (*sum);
+  auto conditional = std::make_shared<DiscreteConditional>(
+      frontalKeys.size(), c.toDecisionTreeFactor());
 #if GTSAM_HYBRID_TIMING
   gttoc_(EliminateDiscreteFormDiscreteConditional);
 #endif
