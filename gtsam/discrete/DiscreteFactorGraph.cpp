@@ -19,6 +19,7 @@
 
 #include <gtsam/discrete/DiscreteBayesTree.h>
 #include <gtsam/discrete/DiscreteConditional.h>
+#include <gtsam/discrete/DiscreteTableConditional.h>
 #include <gtsam/discrete/DiscreteEliminationTree.h>
 #include <gtsam/discrete/DiscreteFactorGraph.h>
 #include <gtsam/discrete/DiscreteJunctionTree.h>
@@ -70,8 +71,7 @@ namespace gtsam {
       if (factor) {
         if (auto f = std::dynamic_pointer_cast<TableFactor>(factor)) {
           result = result * (*f);
-        }
-        else if (auto dtf =
+        } else if (auto dtf =
                        std::dynamic_pointer_cast<DecisionTreeFactor>(factor)) {
           result = TableFactor(result * (*dtf));
         }
@@ -254,17 +254,12 @@ namespace gtsam {
 
     // now divide product/sum to get conditional
 #if GTSAM_HYBRID_TIMING
-    gttic_(EliminateDiscreteDivide);
-#endif
-    auto c = product / (*sum);
-#if GTSAM_HYBRID_TIMING
-    gttoc_(EliminateDiscreteDivide);
-#endif
-#if GTSAM_HYBRID_TIMING
     gttic_(EliminateDiscreteToDiscreteConditional);
 #endif
-    auto conditional = std::make_shared<DiscreteConditional>(
-        orderedKeys.size(), c.toDecisionTreeFactor());
+    // auto conditional = std::make_shared<DiscreteConditional>(
+    //     orderedKeys.size(), (product / (*sum)).toDecisionTreeFactor());
+    auto conditional =
+        std::make_shared<DiscreteTableConditional>(product, *sum, orderedKeys);
 #if GTSAM_HYBRID_TIMING
     gttoc_(EliminateDiscreteToDiscreteConditional);
 #endif
