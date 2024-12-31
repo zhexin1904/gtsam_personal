@@ -29,13 +29,16 @@
 namespace gtsam {
 
 /**
- * Discrete Conditional Density which uses a SparseTable as the internal
+ * Discrete Conditional Density which uses a SparseVector as the internal
  * representation, similar to the TableFactor.
  *
  * @ingroup discrete
  */
 class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
-  Eigen::SparseVector<double> sparse_table_;
+ private:
+  TableFactor table_;
+
+  typedef Eigen::SparseVector<double>::InnerIterator SparseIt;
 
  public:
   // typedefs needed to play nice with gtsam
