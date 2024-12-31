@@ -181,14 +181,15 @@ VectorValues HybridBayesTree::optimize(const DiscreteValues& assignment) const {
 void HybridBayesTree::prune(const size_t maxNrLeaves) {
   auto discreteProbs = this->roots_.at(0)->conditional()->asDiscrete();
 
-  DecisionTreeFactor prunedDiscreteProbs = discreteProbs->prune(maxNrLeaves);
-  discreteProbs->root_ = prunedDiscreteProbs.root_;
+  DiscreteConditional::shared_ptr prunedDiscreteProbs =
+      discreteProbs->prune(maxNrLeaves);
+  discreteProbs->setData(prunedDiscreteProbs);
 
   /// Helper struct for pruning the hybrid bayes tree.
   struct HybridPrunerData {
     /// The discrete decision tree after pruning.
-    DecisionTreeFactor prunedDiscreteProbs;
-    HybridPrunerData(const DecisionTreeFactor& prunedDiscreteProbs,
+    DiscreteConditional::shared_ptr prunedDiscreteProbs;
+    HybridPrunerData(const DiscreteConditional::shared_ptr& prunedDiscreteProbs,
                      const HybridBayesTree::sharedNode& parentClique)
         : prunedDiscreteProbs(prunedDiscreteProbs) {}
 
