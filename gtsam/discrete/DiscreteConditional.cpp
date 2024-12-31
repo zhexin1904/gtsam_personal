@@ -24,13 +24,13 @@
 #include <gtsam/hybrid/HybridValues.h>
 
 #include <algorithm>
+#include <cassert>
 #include <random>
 #include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
-#include <cassert>
 
 using namespace std;
 using std::pair;
@@ -476,6 +476,11 @@ string DiscreteConditional::html(const KeyFormatter& keyFormatter,
 /* ************************************************************************* */
 double DiscreteConditional::evaluate(const HybridValues& x) const {
   return this->evaluate(x.discrete());
+}
+
+/* ************************************************************************* */
+double DiscreteConditional::evaluate(const Assignment<Key>& values) const {
+  return BaseFactor::evaluate(values);
 }
 
 /* ************************************************************************* */

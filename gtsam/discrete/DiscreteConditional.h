@@ -249,6 +249,9 @@ class GTSAM_EXPORT DiscreteConditional
    */
   double evaluate(const HybridValues& x) const override;
 
+  /// Evaluate the conditional given values.
+  virtual double evaluate(const Assignment<Key>& values) const override;
+
   using BaseConditional::operator();  ///< HybridValues version
 
   /**
