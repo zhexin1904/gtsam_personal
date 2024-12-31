@@ -158,28 +158,8 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
   /// @name Standard Interface
   /// @{
 
-  /// Log-probability is just -error(x).
-  double logProbability(const DiscreteValues& x) const { return -error(x); }
-
-  /// print index signature only
-  void printSignature(
-      const std::string& s = "Discrete Conditional: ",
-      const KeyFormatter& formatter = DefaultKeyFormatter) const {
-    static_cast<const BaseConditional*>(this)->print(s, formatter);
-  }
-
-  /** Convert to a likelihood factor by providing value before bar. */
-  TableFactor::shared_ptr likelihood(const DiscreteValues& frontalValues) const;
-
-  /** Single variable version of likelihood. */
-  TableFactor::shared_ptr likelihood(size_t frontal) const;
-
-  /**
-   * @brief Return assignment for single frontal variable that maximizes value.
-   * @param parentsValues Known assignments for the parents.
-   * @return maximizing assignment for the frontal variable.
-   */
-  size_t argmax(const DiscreteValues& parentsValues = DiscreteValues()) const;
+  /// Return the underlying TableFactor
+  TableFactor table() const { return table_; }
 
   /**
    * @brief Create new conditional by maximizing over all
@@ -194,29 +174,6 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
   /// @}
   /// @name Advanced Interface
   /// @{
-
-  /// Return all assignments for frontal variables.
-  std::vector<DiscreteValues> frontalAssignments() const;
-
-  /// Return all assignments for frontal *and* parent variables.
-  std::vector<DiscreteValues> allAssignments() const;
-
-  /// @}
-  /// @name HybridValues methods.
-  /// @{
-
-  using BaseConditional::operator();  ///< HybridValues version
-
-  /**
-   * Calculate log-probability log(evaluate(x)) for HybridValues `x`.
-   * This is actually just -error(x).
-   */
-  double logProbability(const HybridValues& x) const override {
-    return -error(x);
-  }
-
-  /// Return the underlying TableFactor
-  TableFactor table() const { return table_; }
 
   /// Evaluate the conditional given the values.
   virtual double evaluate(const Assignment<Key>& values) const override {

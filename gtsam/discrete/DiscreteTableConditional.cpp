@@ -141,18 +141,6 @@ bool DiscreteTableConditional::equals(const DiscreteFactor& other,
   }
 }
 
-/* ************************************************************************** */
-TableFactor::shared_ptr DiscreteTableConditional::likelihood(
-    const DiscreteValues& frontalValues) const {
-  throw std::runtime_error("Likelihood not implemented");
-}
-
-/* ****************************************************************************/
-TableFactor::shared_ptr DiscreteTableConditional::likelihood(
-    size_t frontal) const {
-  throw std::runtime_error("Likelihood not implemented");
-}
-
 /* ****************************************************************************/
 DiscreteConditional::shared_ptr DiscreteTableConditional::max(
     const Ordering& keys) const {
@@ -178,28 +166,6 @@ DiscreteConditional::shared_ptr DiscreteTableConditional::prune(
 
   return std::make_shared<DiscreteTableConditional>(
       this->nrFrontals(), this->discreteKeys(), pruned.sparseTable());
-}
-
-/* ************************************************************************** */
-size_t DiscreteTableConditional::argmax(
-    const DiscreteValues& parentsValues) const {
-  // Initialize
-  size_t maxValue = 0;
-  double maxP = 0;
-  DiscreteValues values = parentsValues;
-
-  assert(nrFrontals() == 1);
-  Key j = firstFrontalKey();
-  for (size_t value = 0; value < cardinality(j); value++) {
-    values[j] = value;
-    double pValueS = (*this)(values);
-    // Update MPE solution if better
-    if (pValueS > maxP) {
-      maxP = pValueS;
-      maxValue = value;
-    }
-  }
-  return maxValue;
 }
 
 }  // namespace gtsam
