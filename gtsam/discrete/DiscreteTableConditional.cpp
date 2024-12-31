@@ -130,12 +130,14 @@ void DiscreteTableConditional::print(const string& s,
 /* ************************************************************************** */
 bool DiscreteTableConditional::equals(const DiscreteFactor& other,
                                       double tol) const {
-  if (!dynamic_cast<const DiscreteConditional*>(&other)) {
+  auto dtc = dynamic_cast<const DiscreteTableConditional*>(&other);
+  if (!dtc) {
     return false;
   } else {
     const DiscreteConditional& f(
         static_cast<const DiscreteConditional&>(other));
-    return DiscreteConditional::equals(f, tol);
+    return table_.equals(dtc->table_, tol) &&
+           DiscreteConditional::equals(f, tol);
   }
 }
 
