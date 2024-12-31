@@ -19,7 +19,7 @@
 
 #include <gtsam/base/Lie.h>
 #include <gtsam/nonlinear/NonlinearFactor.h>
-#include <gtsam/constraint/NonlinearInequalityConstraint.h>
+#include <gtsam/constrained/NonlinearInequalityConstraint.h>
 
 namespace gtsam {
 
@@ -59,7 +59,7 @@ struct BoundingConstraint1: public NonlinearInequalityConstraint {
   virtual double value(const X& x, OptionalMatrixType H =
       OptionalNone) const = 0;
 
-  Vector unwhitenedExpr(const Values& x, OptionalMatrixVecType H = nullptr) const override {
+  Vector unwhitenedExpr(const Values& x, OptionalMatrixVecType H = {}) const override {
     if (H) {
       double d = value(x.at<X>(this->key()), &(H->front()));
       if (isGreaterThan_) {
@@ -75,7 +75,7 @@ struct BoundingConstraint1: public NonlinearInequalityConstraint {
   }
 
   /// TODO: This should be deprecated.
-  Vector evaluateError(const X& x, OptionalMatrixType H = nullptr) const {
+  Vector evaluateError(const X& x, OptionalMatrixType H = {}) const {
     Matrix D;
     double error = value(x, &D) - threshold_;
     if (H) {
@@ -138,7 +138,7 @@ struct BoundingConstraint2: public NonlinearInequalityConstraint {
       OptionalMatrixType H1 = OptionalNone,
       OptionalMatrixType H2 = OptionalNone) const = 0;
 
-  Vector unwhitenedExpr(const Values& x, OptionalMatrixVecType H = nullptr) const override {
+  Vector unwhitenedExpr(const Values& x, OptionalMatrixVecType H = {}) const override {
     X1 x1 = x.at<X1>(keys().front());
     X2 x2 = x.at<X2>(keys().back());
     if (H) {
@@ -158,7 +158,7 @@ struct BoundingConstraint2: public NonlinearInequalityConstraint {
 
   /// TODO: This should be deprecated.
   Vector evaluateError(const X1& x1, const X2& x2,
-      OptionalMatrixType H1 = nullptr, OptionalMatrixType H2 = nullptr) const {
+      OptionalMatrixType H1 = {}, OptionalMatrixType H2 = {}) const {
     Matrix D1, D2;
     double error = value(x1, x2, &D1, &D2) - threshold_;
     if (H1) {

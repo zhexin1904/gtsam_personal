@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <gtsam/constraint/NonlinearEqualityConstraint.h>
+#include <gtsam/constrained/NonlinearEqualityConstraint.h>
 
 namespace gtsam {
 

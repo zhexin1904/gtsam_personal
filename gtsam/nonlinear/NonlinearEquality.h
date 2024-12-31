@@ -18,7 +18,7 @@
 #pragma once
 
 #include <gtsam/nonlinear/NonlinearFactor.h>
-#include <gtsam/constraint/NonlinearEqualityConstraint.h>
+#include <gtsam/constrained/NonlinearEqualityConstraint.h>
 #include <gtsam/base/Testable.h>
 #include <gtsam/base/Manifold.h>
 

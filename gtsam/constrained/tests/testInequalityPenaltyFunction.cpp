@@ -20,7 +20,7 @@
 #include <gtsam/base/Testable.h>
 #include <gtsam/base/TestableAssertions.h>
 #include <gtsam/base/numericalDerivative.h>
-#include <gtsam/constraint/InequalityPenaltyFunction.h>
+#include <gtsam/constrained/InequalityPenaltyFunction.h>
 
 using namespace gtsam;
 

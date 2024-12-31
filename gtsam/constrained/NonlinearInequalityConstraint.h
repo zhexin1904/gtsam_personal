@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <gtsam/constraint/InequalityPenaltyFunction.h>
-#include <gtsam/constraint/NonlinearEqualityConstraint.h>
+#include <gtsam/constrained/InequalityPenaltyFunction.h>
+#include <gtsam/constrained/NonlinearEqualityConstraint.h>
 #include <gtsam/nonlinear/expressions.h>
 
 namespace gtsam {

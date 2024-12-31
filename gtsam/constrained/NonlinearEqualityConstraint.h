@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <gtsam/constraint/NonlinearConstraint.h>
+#include <gtsam/constrained/NonlinearConstraint.h>
 #include <gtsam/nonlinear/ExpressionFactor.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 
@@ -99,7 +99,10 @@ class ExpressionEqualityConstraint : public NonlinearEqualityConstraint {
 #endif
 };
 
-/** Equality constraint that enforce the cost factor with zero error. */
+/** Equality constraint that enforce the cost factor with zero error. 
+ * e.g., for a factor with unwhitened cost 2x-1, the constraint enforces the
+ * equlity 2x-1=0.
+ */
 class GTSAM_EXPORT ZeroCostConstraint : public NonlinearEqualityConstraint {
  public:
   typedef NonlinearEqualityConstraint Base;
@@ -114,7 +117,6 @@ class GTSAM_EXPORT ZeroCostConstraint : public NonlinearEqualityConstraint {
    * @brief Constructor.
    *
    * @param factor  NoiseModel factor.
-   * @param tolerance   vector representing tolerance in each dimension.
    */
   ZeroCostConstraint(const NoiseModelFactor::shared_ptr& factor);
 
@@ -177,4 +179,4 @@ class GTSAM_EXPORT NonlinearEqualityConstraints : public FactorGraph<NonlinearEq
 
 }  // namespace gtsam
 
-#include <gtsam/constraint/NonlinearEqualityConstraint-inl.h>
+#include <gtsam/constrained/NonlinearEqualityConstraint-inl.h>

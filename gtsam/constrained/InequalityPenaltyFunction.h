@@ -83,6 +83,9 @@ class GTSAM_EXPORT SmoothRampPoly2 : public InequalityPenaltyFunction {
   double a_;
 
  public:
+  /** Constructor.
+   * @param epsilon parameter for adjusting the smoothness of the function.
+   */
   SmoothRampPoly2(const double epsilon = 1)
       : Base(), epsilon_(epsilon), a_(0.5 / epsilon) {}
 
@@ -110,6 +113,9 @@ class GTSAM_EXPORT SmoothRampPoly3 : public InequalityPenaltyFunction {
   double b_;
 
  public:
+  /** Constructor.
+   * @param epsilon parameter for adjusting the smoothness of the function.
+   */
   SmoothRampPoly3(const double epsilon = 1)
       : Base(),
         epsilon_(epsilon),
@@ -131,6 +137,9 @@ class GTSAM_EXPORT SoftPlusFunction : public InequalityPenaltyFunction {
   double k_;
 
  public:
+  /** Constructor.
+   * @param k parameter for adjusting the smoothness of the function.
+   */
   SoftPlusFunction(const double k = 1) : Base(), k_(k) {}
 
   virtual double operator()(const double& x,

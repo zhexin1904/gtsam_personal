@@ -16,7 +16,7 @@
  * @date    Aug 3, 2024
  */
 
-#include <gtsam/constraint/InequalityPenaltyFunction.h>
+#include <gtsam/constrained/InequalityPenaltyFunction.h>
 
 namespace gtsam {
 

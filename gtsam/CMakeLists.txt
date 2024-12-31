@@ -6,7 +6,7 @@ project(gtsam LANGUAGES CXX)
 set (gtsam_subdirs
     base
     basis
-    constraint
+    constrained
     geometry
     inference
     symbolic
