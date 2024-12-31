@@ -175,11 +175,6 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
   /// @name Advanced Interface
   /// @{
 
-  /// Evaluate the conditional given the values.
-  virtual double evaluate(const Assignment<Key>& values) const override {
-    return table_.evaluate(values);
-  }
-
   /// Set the underlying data from the DiscreteConditional
   virtual void setData(const DiscreteConditional::shared_ptr& dc) override;
 

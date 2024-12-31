@@ -478,10 +478,6 @@ double DiscreteConditional::evaluate(const HybridValues& x) const {
   return this->evaluate(x.discrete());
 }
 
-/* ************************************************************************* */
-double DiscreteConditional::evaluate(const Assignment<Key>& values) const {
-  return BaseFactor::evaluate(values);
-}
 
 /* ************************************************************************* */
 void DiscreteConditional::setData(const DiscreteConditional::shared_ptr& dc) {
