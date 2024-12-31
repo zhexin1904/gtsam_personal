@@ -368,10 +368,9 @@ TEST(HybridGaussianElimination, EliminateHybrid_2_Variable) {
   EXPECT_LONGS_EQUAL(1, hybridGaussianConditional->nrParents());
 
   // This is now a discreteFactor
-  auto discreteFactor = dynamic_pointer_cast<DecisionTreeFactor>(factorOnModes);
+  auto discreteFactor = dynamic_pointer_cast<TableFactor>(factorOnModes);
   CHECK(discreteFactor);
   EXPECT_LONGS_EQUAL(1, discreteFactor->discreteKeys().size());
-  EXPECT(discreteFactor->root_->isLeaf() == false);
 }
 
 /****************************************************************************

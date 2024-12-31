@@ -454,7 +454,7 @@ TEST(HybridBayesNet, UpdateDiscreteConditionals) {
   }
 
   size_t maxNrLeaves = 3;
-  auto prunedDecisionTree = joint.prune(maxNrLeaves);
+  auto prunedDecisionTree = *joint.prune(maxNrLeaves);
 
 #ifdef GTSAM_DT_MERGING
   EXPECT_LONGS_EQUAL(maxNrLeaves + 2 /*2 zero leaves*/,
