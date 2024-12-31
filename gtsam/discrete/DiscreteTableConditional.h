@@ -181,6 +181,16 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
    */
   size_t argmax(const DiscreteValues& parentsValues = DiscreteValues()) const;
 
+  /**
+   * @brief Create new conditional by maximizing over all
+   * values with the same separator.
+   *
+   * @param keys The keys to sum over.
+   * @return DiscreteConditional::shared_ptr
+   */
+  virtual DiscreteConditional::shared_ptr max(
+      const Ordering& keys) const override;
+
   /// @}
   /// @name Advanced Interface
   /// @{
@@ -212,6 +222,13 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
   virtual double evaluate(const Assignment<Key>& values) const override {
     return table_.evaluate(values);
   }
+
+  /// Set the underlying data from the DiscreteConditional
+  virtual void setData(const DiscreteConditional::shared_ptr& dc) override;
+
+  /// Prune the conditional
+  virtual DiscreteConditional::shared_ptr prune(
+      size_t maxNrAssignments) const override;
 
   /// @}
 

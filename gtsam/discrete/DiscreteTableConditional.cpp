@@ -151,6 +151,33 @@ TableFactor::shared_ptr DiscreteTableConditional::likelihood(
   throw std::runtime_error("Likelihood not implemented");
 }
 
+/* ****************************************************************************/
+DiscreteConditional::shared_ptr DiscreteTableConditional::max(
+    const Ordering& keys) const override {
+  auto m = *table_.max(keys);
+
+  return std::make_shared<DiscreteTableConditional>(m.discreteKeys().size(), m);
+}
+
+/* ****************************************************************************/
+void DiscreteTableConditional::setData(
+    const DiscreteConditional::shared_ptr& dc) override {
+  if (auto dtc = std::dynamic_pointer_cast<DiscreteTableConditional>(dc)) {
+    this->table_ = dtc->table_;
+  } else {
+    this->table_ = TableFactor(dc->discreteKeys(), *dc);
+  }
+}
+
+/* ****************************************************************************/
+DiscreteConditional::shared_ptr DiscreteTableConditional::prune(
+    size_t maxNrAssignments) const {
+  TableFactor pruned = table_.prune(maxNrAssignments);
+
+  return std::make_shared<DiscreteTableConditional>(
+      this->nrFrontals(), this->discreteKeys(), pruned.sparseTable());
+}
+
 /* ************************************************************************** */
 size_t DiscreteTableConditional::argmax(
     const DiscreteValues& parentsValues) const {
