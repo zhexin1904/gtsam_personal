@@ -20,7 +20,6 @@
 
 #include <gtsam/base/utilities.h>
 #include <gtsam/discrete/Assignment.h>
-#include <gtsam/discrete/DecisionTreeFactor.h>
 #include <gtsam/discrete/DiscreteEliminationTree.h>
 #include <gtsam/discrete/DiscreteFactorGraph.h>
 #include <gtsam/discrete/DiscreteJunctionTree.h>
@@ -257,6 +256,48 @@ static TableFactor::shared_ptr DiscreteFactorFromErrors(
   return std::make_shared<TableFactor>(discreteKeys, potentials);
 }
 
+/**
+ * @brief Multiply all the `factors` and normalize the
+ * product to prevent underflow.
+ *
+ * @param factors The factors to multiply as a DiscreteFactorGraph.
+ * @return TableFactor
+ */
+static TableFactor ProductAndNormalize(const DiscreteFactorGraph &factors) {
+  // PRODUCT: multiply all factors
+#if GTSAM_HYBRID_TIMING
+  gttic_(DiscreteProduct);
+#endif
+  TableFactor product;
+  for (auto &&factor : factors) {
+    if (factor) {
+      if (auto f = std::dynamic_pointer_cast<TableFactor>(factor)) {
+        product = product * (*f);
+      } else if (auto dtf =
+                     std::dynamic_pointer_cast<DecisionTreeFactor>(factor)) {
+        product = TableFactor(product * (*dtf));
+      }
+    }
+  }
+#if GTSAM_HYBRID_TIMING
+  gttoc_(DiscreteProduct);
+#endif
+
+  // Max over all the potentials by pretending all keys are frontal:
+  auto normalizer = product.max(product.size());
+
+#if GTSAM_HYBRID_TIMING
+  gttic_(DiscreteNormalize);
+#endif
+  // Normalize the product factor to prevent underflow.
+  product = product / (*normalizer);
+#if GTSAM_HYBRID_TIMING
+  gttoc_(DiscreteNormalize);
+#endif
+
+  return product;
+}
+
 /* ************************************************************************ */
 static std::pair<HybridConditional::shared_ptr, std::shared_ptr<Factor>>
 discreteElimination(const HybridGaussianFactorGraph &factors,
@@ -306,13 +347,37 @@ discreteElimination(const HybridGaussianFactorGraph &factors,
 #if GTSAM_HYBRID_TIMING
   gttic_(EliminateDiscrete);
 #endif
-  // NOTE: This does sum-product. For max-product, use EliminateForMPE.
-  auto result = EliminateDiscrete(dfg, frontalKeys);
+  /**** NOTE: This does sum-product. ****/
+  // Get product factor
+  TableFactor product = ProductAndNormalize(dfg);
+
+#if GTSAM_HYBRID_TIMING
+  gttic_(EliminateDiscreteSum);
+#endif
+  // All the discrete variables should form a single clique,
+  // so we can sum out on all the variables as frontals.
+  // This should give an empty separator.
+  Ordering orderedKeys(product.keys());
+  TableFactor::shared_ptr sum = product.sum(orderedKeys);
+#if GTSAM_HYBRID_TIMING
+  gttoc_(EliminateDiscreteSum);
+#endif
+
+#if GTSAM_HYBRID_TIMING
+  gttic_(EliminateDiscreteFormDiscreteConditional);
+#endif
+  // Finally, get the conditional
+  auto conditional =
+      std::make_shared<DiscreteConditional>(product, *sum, orderedKeys);
+#if GTSAM_HYBRID_TIMING
+  gttoc_(EliminateDiscreteFormDiscreteConditional);
+#endif
+
 #if GTSAM_HYBRID_TIMING
   gttoc_(EliminateDiscrete);
 #endif
 
-  return {std::make_shared<HybridConditional>(result.first), result.second};
+  return {std::make_shared<HybridConditional>(conditional), sum};
 }
 
 /* ************************************************************************ */
