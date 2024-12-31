@@ -271,11 +271,14 @@ static TableFactor ProductAndNormalize(const DiscreteFactorGraph &factors) {
   TableFactor product;
   for (auto &&factor : factors) {
     if (factor) {
-      if (auto f = std::dynamic_pointer_cast<TableFactor>(factor)) {
+      if (auto dtc =
+              std::dynamic_pointer_cast<DiscreteTableConditional>(factor)) {
+        product = product * dtc->table();
+      } else if (auto f = std::dynamic_pointer_cast<TableFactor>(factor)) {
         product = product * (*f);
       } else if (auto dtf =
                      std::dynamic_pointer_cast<DecisionTreeFactor>(factor)) {
-        product = TableFactor(product * (*dtf));
+        product = product * TableFactor(*dtf);
       }
     }
   }
@@ -368,7 +371,7 @@ discreteElimination(const HybridGaussianFactorGraph &factors,
 #endif
   // Finally, get the conditional
   auto conditional =
-      std::make_shared<DiscreteConditional>(product, *sum, orderedKeys);
+      std::make_shared<DiscreteTableConditional>(product, *sum, orderedKeys);
 #if GTSAM_HYBRID_TIMING
   gttoc_(EliminateDiscreteFormDiscreteConditional);
 #endif
