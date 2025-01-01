@@ -360,11 +360,15 @@ discreteElimination(const HybridGaussianFactorGraph &factors,
   // All the discrete variables should form a single clique,
   // so we can sum out on all the variables as frontals.
   // This should give an empty separator.
-  Ordering orderedKeys(product.keys());
-  TableFactor::shared_ptr sum = product.sum(orderedKeys);
+  TableFactor::shared_ptr sum = product.sum(frontalKeys);
 #if GTSAM_HYBRID_TIMING
   gttoc_(EliminateDiscreteSum);
 #endif
+
+  // Ordering keys for the conditional so that frontalKeys are really in front
+  Ordering orderedKeys;
+  orderedKeys.insert(orderedKeys.end(), frontalKeys.begin(), frontalKeys.end());
+  orderedKeys.insert(orderedKeys.end(), sum->keys().begin(), sum->keys().end());
 
 #if GTSAM_HYBRID_TIMING
   gttic_(EliminateDiscreteFormDiscreteConditional);

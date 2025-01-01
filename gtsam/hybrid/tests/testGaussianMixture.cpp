@@ -169,6 +169,7 @@ TEST(GaussianMixture, GaussianMixtureModel2) {
     EXPECT_DOUBLES_EQUAL(expected, posterior2(m1Assignment), 1e-8);
   }
 }
+
 /* ************************************************************************* */
 int main() {
   TestResult tr;

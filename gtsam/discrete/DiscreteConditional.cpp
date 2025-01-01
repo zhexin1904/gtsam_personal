@@ -49,6 +49,15 @@ DiscreteConditional::DiscreteConditional(const size_t nrFrontals,
 
 /* ************************************************************************** */
 DiscreteConditional::DiscreteConditional(size_t nrFrontals,
+                                         const DecisionTreeFactor& f,
+                                         const Ordering& orderedKeys)
+    : BaseFactor(f), BaseConditional(nrFrontals) {
+  keys_.clear();
+  keys_.insert(keys_.end(), orderedKeys.begin(), orderedKeys.end());
+}
+
+/* ************************************************************************** */
+DiscreteConditional::DiscreteConditional(size_t nrFrontals,
                                          const DiscreteKeys& keys,
                                          const ADT& potentials)
     : BaseFactor(keys, potentials), BaseConditional(nrFrontals) {}
