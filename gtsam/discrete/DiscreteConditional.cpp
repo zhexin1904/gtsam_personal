@@ -24,13 +24,13 @@
 #include <gtsam/hybrid/HybridValues.h>
 
 #include <algorithm>
+#include <cassert>
 #include <random>
 #include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
-#include <cassert>
 
 using namespace std;
 using std::pair;
@@ -46,6 +46,15 @@ template class GTSAM_EXPORT
 DiscreteConditional::DiscreteConditional(const size_t nrFrontals,
                                          const DecisionTreeFactor& f)
     : BaseFactor(f / (*f.sum(nrFrontals))), BaseConditional(nrFrontals) {}
+
+/* ************************************************************************** */
+DiscreteConditional::DiscreteConditional(size_t nrFrontals,
+                                         const DecisionTreeFactor& f,
+                                         const Ordering& orderedKeys)
+    : BaseFactor(f), BaseConditional(nrFrontals) {
+  keys_.clear();
+  keys_.insert(keys_.end(), orderedKeys.begin(), orderedKeys.end());
+}
 
 /* ************************************************************************** */
 DiscreteConditional::DiscreteConditional(size_t nrFrontals,
