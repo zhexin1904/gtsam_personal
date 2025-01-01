@@ -31,7 +31,9 @@
 
 namespace gtsam {
 namespace internal {
-  
+
+using ChildOrder = FastMap<size_t, std::shared_ptr<TimingOutline>>;
+
 // a static shared_ptr to TimingOutline with nullptr as the pointer
 const static std::shared_ptr<TimingOutline> nullTimingOutline;
 
@@ -91,7 +93,6 @@ void TimingOutline::print(const std::string& outline) const {
       << n_ << " times, " << wall() << " wall, " << secs() << " children, min: "
       << min() << " max: " << max() << ")\n";
   // Order children
-  typedef FastMap<size_t, std::shared_ptr<TimingOutline> > ChildOrder;
   ChildOrder childOrder;
   for(const ChildMap::value_type& child: children_) {
     childOrder[child.second->myOrder_] = child.second;
@@ -116,7 +117,6 @@ void TimingOutline::printCsvHeader(bool addLineBreak) const {
             << "," << label_ + " min time (s)" << "," << label_ + "max time(s)"
             << ",";
   // Order children
-  typedef FastMap<size_t, std::shared_ptr<TimingOutline>> ChildOrder;
   ChildOrder childOrder;
   for (const ChildMap::value_type& child : children_) {
     childOrder[child.second->myOrder_] = child.second;
@@ -140,7 +140,6 @@ void TimingOutline::printCsv(bool addLineBreak) const {
   std::cout << self() << "," << n_ << "," << wall() << "," << secs() << ","
             << min() << "," << max() << ",";
   // Order children
-  typedef FastMap<size_t, std::shared_ptr<TimingOutline>> ChildOrder;
   ChildOrder childOrder;
   for (const ChildMap::value_type& child : children_) {
     childOrder[child.second->myOrder_] = child.second;
