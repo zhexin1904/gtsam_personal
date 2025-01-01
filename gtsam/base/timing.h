@@ -209,7 +209,7 @@ namespace gtsam {
        * @param addLineBreak Flag indicating if a line break should be added at
        * the end. Only used at the top-leve.
        */
-      GTSAM_EXPORT void print_csv_header(bool addLineBreak = false) const;
+      GTSAM_EXPORT void printCsvHeader(bool addLineBreak = false) const;
 
       /**
        * @brief Print the times recursively from parent to child in CSV format.
@@ -220,7 +220,7 @@ namespace gtsam {
        * @param addLineBreak Flag indicating if a line break should be added at
        * the end. Only used at the top-leve.
        */
-      GTSAM_EXPORT void print_csv(bool addLineBreak = false) const;
+      GTSAM_EXPORT void printCsv(bool addLineBreak = false) const;
 
       GTSAM_EXPORT const std::shared_ptr<TimingOutline>&
         child(size_t child, const std::string& label, const std::weak_ptr<TimingOutline>& thisPtr);
@@ -292,11 +292,11 @@ inline void tictoc_print_() {
   ::gtsam::internal::gTimingRoot->print(); }
 
 // print timing in CSV format
-inline void tictoc_print_csv_(bool displayHeader = false) {
+inline void tictoc_printCsv_(bool displayHeader = false) {
   if (displayHeader) {
-    ::gtsam::internal::gTimingRoot->print_csv_header(true);
+    ::gtsam::internal::gTimingRoot->printCsvHeader(true);
   }
-  ::gtsam::internal::gTimingRoot->print_csv(true);
+  ::gtsam::internal::gTimingRoot->printCsv(true);
 }
 
 // print mean and standard deviation
