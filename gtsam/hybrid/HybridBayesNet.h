@@ -268,6 +268,10 @@ class GTSAM_EXPORT HybridBayesNet : public BayesNet<HybridConditional> {
   /// @}
 
  private:
+  /// Helper method to compute the max product assignment
+  /// given a DiscreteFactorGraph
+  DiscreteValues discreteMaxProduct(const DiscreteFactorGraph &dfg) const;
+
 #if GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
