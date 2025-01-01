@@ -24,7 +24,6 @@
 #include <gtsam/discrete/DiscreteFactorGraph.h>
 #include <gtsam/discrete/DiscreteJunctionTree.h>
 #include <gtsam/discrete/DiscreteKey.h>
-#include <gtsam/discrete/DiscreteTableConditional.h>
 #include <gtsam/discrete/DiscreteValues.h>
 #include <gtsam/discrete/TableFactor.h>
 #include <gtsam/hybrid/HybridConditional.h>
@@ -256,14 +255,8 @@ static TableFactor::shared_ptr DiscreteFactorFromErrors(
   return std::make_shared<TableFactor>(discreteKeys, potentials);
 }
 
-/**
- * @brief Multiply all the `factors` and normalize the
- * product to prevent underflow.
- *
- * @param factors The factors to multiply as a DiscreteFactorGraph.
- * @return TableFactor
- */
-static TableFactor ProductAndNormalize(const DiscreteFactorGraph &factors) {
+/* ************************************************************************ */
+TableFactor TableProductAndNormalize(const DiscreteFactorGraph &factors) {
   // PRODUCT: multiply all factors
 #if GTSAM_HYBRID_TIMING
   gttic_(DiscreteProduct);
@@ -352,7 +345,7 @@ discreteElimination(const HybridGaussianFactorGraph &factors,
 #endif
   /**** NOTE: This does sum-product. ****/
   // Get product factor
-  TableFactor product = ProductAndNormalize(dfg);
+  TableFactor product = TableProductAndNormalize(dfg);
 
 #if GTSAM_HYBRID_TIMING
   gttic_(EliminateDiscreteSum);
