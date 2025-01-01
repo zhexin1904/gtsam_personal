@@ -364,19 +364,9 @@ discreteElimination(const HybridGaussianFactorGraph &factors,
 #if GTSAM_HYBRID_TIMING
   gttic_(EliminateDiscreteFormDiscreteConditional);
 #endif
-  DecisionTreeFactor joint;
-  // Normalize if we have only 1 key
-  // Needed due to conversion from TableFactor
-  if (product.discreteKeys().size() == 1) {
-    joint = DecisionTreeFactor(product.discreteKeys(),
-                               product.toDecisionTreeFactor().normalize());
-  } else {
-    joint = product.toDecisionTreeFactor();
-  }
-
-  // Finally, get the conditional
+  auto c = product / (*sum);
   auto conditional = std::make_shared<DiscreteConditional>(
-      joint, sum->toDecisionTreeFactor(), orderedKeys);
+      c.toDecisionTreeFactor(), frontalKeys.size(), orderedKeys);
 #if GTSAM_HYBRID_TIMING
   gttoc_(EliminateDiscreteFormDiscreteConditional);
 #endif
