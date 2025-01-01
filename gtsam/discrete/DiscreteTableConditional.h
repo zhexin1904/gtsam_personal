@@ -161,6 +161,13 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
   /// Return the underlying TableFactor
   TableFactor table() const { return table_; }
 
+  using BaseConditional::evaluate;  // HybridValues version
+
+  /// Evaluate the conditional given the values.
+  virtual double evaluate(const Assignment<Key>& values) const override {
+    return table_.evaluate(values);
+  }
+
   /**
    * @brief Create new conditional by maximizing over all
    * values with the same separator.
