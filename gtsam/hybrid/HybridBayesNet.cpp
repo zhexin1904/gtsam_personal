@@ -131,6 +131,7 @@ DiscreteValues HybridBayesNet::discreteMaxProduct(
   for (TableFactor::SparseIt it(sparseTable); it; ++it) {
     if (it.value() > maxValue) {
       maxIdx = it.index();
+      maxValue = it.value();
     }
   }
 
@@ -210,8 +211,6 @@ AlgebraicDecisionTree<Key> HybridBayesNet::errorTree(
 
   // Iterate over each conditional.
   for (auto &&conditional : *this) {
-    conditional->print();
-    conditional->errorTree(continuousValues).print("errorTre", DefaultKeyFormatter);
     result = result + conditional->errorTree(continuousValues);
   }
 
