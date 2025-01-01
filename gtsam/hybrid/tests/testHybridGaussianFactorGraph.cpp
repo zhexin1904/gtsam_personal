@@ -114,10 +114,10 @@ TEST(HybridGaussianFactorGraph, hybridEliminationOneFactor) {
   EXPECT(HybridConditional::CheckInvariants(*result.first, values));
 
   // Check that factor is discrete and correct
-  auto factor = std::dynamic_pointer_cast<DecisionTreeFactor>(result.second);
+  auto factor = std::dynamic_pointer_cast<TableFactor>(result.second);
   CHECK(factor);
   // regression test
-  EXPECT(assert_equal(DecisionTreeFactor{m1, "1 1"}, *factor, 1e-5));
+  EXPECT(assert_equal(TableFactor{m1, "1 1"}, *factor, 1e-5));
 }
 
 /* ************************************************************************* */
@@ -329,7 +329,7 @@ TEST(HybridBayesNet, Switching) {
 
   // Check the remaining factor for x1
   CHECK(factor_x1);
-  auto phi_x1 = std::dynamic_pointer_cast<DecisionTreeFactor>(factor_x1);
+  auto phi_x1 = std::dynamic_pointer_cast<TableFactor>(factor_x1);
   CHECK(phi_x1);
   EXPECT_LONGS_EQUAL(1, phi_x1->keys().size());  // m0
   // We can't really check the error of the decision tree factor phi_x1, because
