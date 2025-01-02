@@ -21,7 +21,7 @@
 #include <gtsam/dllexport.h>
 #include <gtsam/config.h> // for GTSAM_USE_TBB
 
-#ifdef GTSAM_USE_BOOST_FEATURES
+#if GTSAM_USE_BOOST_FEATURES
 #include <boost/version.hpp>
 #endif
 
@@ -107,7 +107,7 @@
 //   have matching gttic/gttoc statments.  You may want to consider reorganizing your timing
 //   outline to match the scope of your code.
 
-#ifdef GTSAM_USE_BOOST_FEATURES
+#if GTSAM_USE_BOOST_FEATURES
 // Automatically use the new Boost timers if version is recent enough.
 #if BOOST_VERSION >= 104800
 #  ifndef GTSAM_DISABLE_NEW_TIMERS
@@ -165,7 +165,7 @@ namespace gtsam {
       ChildMap children_; ///< subtrees
 
 // disable all timers if not using boost
-#ifdef GTSAM_USE_BOOST_FEATURES
+#if GTSAM_USE_BOOST_FEATURES
 #ifdef GTSAM_USING_NEW_BOOST_TIMERS
       boost::timer::cpu_timer timer_;
 #else
@@ -183,7 +183,7 @@ namespace gtsam {
       GTSAM_EXPORT TimingOutline(const std::string& label, size_t myId);
       GTSAM_EXPORT size_t time() const; ///< time taken, including children
       double secs() const { return double(time()) / 1000000.0;} ///< time taken, in seconds, including children
-#ifdef GTSAM_USE_BOOST_FEATURES
+#if GTSAM_USE_BOOST_FEATURES
       double self() const { return double(t_)     / 1000000.0;} ///< self time only, in seconds
       double wall() const { return double(tWall_) / 1000000.0;} ///< wall time, in seconds
       double min()  const { return double(tMin_)  / 1000000.0;} ///< min time, in seconds
@@ -209,7 +209,7 @@ namespace gtsam {
        * @param addLineBreak Flag indicating if a line break should be added at
        * the end. Only used at the top-leve.
        */
-      GTSAM_EXPORT void print_csv_header(bool addLineBreak = false) const;
+      GTSAM_EXPORT void printCsvHeader(bool addLineBreak = false) const;
 
       /**
        * @brief Print the times recursively from parent to child in CSV format.
@@ -220,7 +220,7 @@ namespace gtsam {
        * @param addLineBreak Flag indicating if a line break should be added at
        * the end. Only used at the top-leve.
        */
-      GTSAM_EXPORT void print_csv(bool addLineBreak = false) const;
+      GTSAM_EXPORT void printCsv(bool addLineBreak = false) const;
 
       GTSAM_EXPORT const std::shared_ptr<TimingOutline>&
         child(size_t child, const std::string& label, const std::weak_ptr<TimingOutline>& thisPtr);
@@ -292,11 +292,11 @@ inline void tictoc_print_() {
   ::gtsam::internal::gTimingRoot->print(); }
 
 // print timing in CSV format
-inline void tictoc_print_csv_(bool displayHeader = false) {
+inline void tictoc_printCsv_(bool displayHeader = false) {
   if (displayHeader) {
-    ::gtsam::internal::gTimingRoot->print_csv_header(true);
+    ::gtsam::internal::gTimingRoot->printCsvHeader(true);
   }
-  ::gtsam::internal::gTimingRoot->print_csv(true);
+  ::gtsam::internal::gTimingRoot->printCsv(true);
 }
 
 // print mean and standard deviation
