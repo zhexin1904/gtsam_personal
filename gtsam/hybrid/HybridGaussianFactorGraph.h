@@ -278,6 +278,6 @@ struct traits<HybridGaussianFactorGraph>
  * @param factors The factors to multiply as a DiscreteFactorGraph.
  * @return TableFactor
  */
-TableFactor TableProductAndNormalize(const DiscreteFactorGraph& factors);
+TableFactor TableProduct(const DiscreteFactorGraph& factors);
 
 }  // namespace gtsam
