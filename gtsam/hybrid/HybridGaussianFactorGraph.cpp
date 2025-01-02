@@ -256,13 +256,12 @@ static TableFactor::shared_ptr DiscreteFactorFromErrors(
 }
 
 /**
- * @brief Multiply all the `factors` and normalize the
- * product to prevent underflow.
+ * @brief Multiply all the `factors` using the machinery of the TableFactor.
  *
  * @param factors The factors to multiply as a DiscreteFactorGraph.
  * @return TableFactor
  */
-static TableFactor ProductAndNormalize(const DiscreteFactorGraph &factors) {
+static TableFactor TableProduct(const DiscreteFactorGraph &factors) {
   // PRODUCT: multiply all factors
 #if GTSAM_HYBRID_TIMING
   gttic_(DiscreteProduct);
@@ -282,14 +281,13 @@ static TableFactor ProductAndNormalize(const DiscreteFactorGraph &factors) {
   gttoc_(DiscreteProduct);
 #endif
 
-  // Max over all the potentials by pretending all keys are frontal:
-  auto normalizer = product.max(product.size());
-
 #if GTSAM_HYBRID_TIMING
   gttic_(DiscreteNormalize);
 #endif
+  // Max over all the potentials by pretending all keys are frontal:
+  auto denominator = product.max(product.size());
   // Normalize the product factor to prevent underflow.
-  product = product / (*normalizer);
+  product = product / (*denominator);
 #if GTSAM_HYBRID_TIMING
   gttoc_(DiscreteNormalize);
 #endif
@@ -352,7 +350,7 @@ discreteElimination(const HybridGaussianFactorGraph &factors,
   // so we can use the TableFactor for efficiency.
   if (separator.size() == 0) {
     // Get product factor
-    TableFactor product = ProductAndNormalize(dfg);
+    TableFactor product = TableProduct(dfg);
 
 #if GTSAM_HYBRID_TIMING
     gttic_(EliminateDiscreteFormDiscreteConditional);
