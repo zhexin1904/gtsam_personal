@@ -478,7 +478,6 @@ double DiscreteConditional::evaluate(const HybridValues& x) const {
   return this->evaluate(x.discrete());
 }
 
-
 /* ************************************************************************* */
 void DiscreteConditional::setData(const DiscreteConditional::shared_ptr& dc) {
   this->root_ = dc->root_;
