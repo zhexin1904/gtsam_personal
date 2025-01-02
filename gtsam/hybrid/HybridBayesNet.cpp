@@ -19,7 +19,6 @@
 #include <gtsam/discrete/DiscreteBayesNet.h>
 #include <gtsam/discrete/DiscreteConditional.h>
 #include <gtsam/discrete/DiscreteFactorGraph.h>
-#include <gtsam/discrete/DiscreteTableConditional.h>
 #include <gtsam/hybrid/HybridBayesNet.h>
 #include <gtsam/hybrid/HybridGaussianFactorGraph.h>
 #include <gtsam/hybrid/HybridValues.h>
@@ -121,24 +120,6 @@ GaussianBayesNet HybridBayesNet::choose(
   return gbn;
 }
 
-DiscreteValues HybridBayesNet::discreteMaxProduct(
-    const DiscreteFactorGraph &dfg) const {
-  TableFactor product = TableProductAndNormalize(dfg);
-
-  uint64_t maxIdx = 0;
-  double maxValue = 0.0;
-  Eigen::SparseVector<double> sparseTable = product.sparseTable();
-  for (TableFactor::SparseIt it(sparseTable); it; ++it) {
-    if (it.value() > maxValue) {
-      maxIdx = it.index();
-      maxValue = it.value();
-    }
-  }
-
-  DiscreteValues assignment = product.findAssignments(maxIdx);
-  return assignment;
-}
-
 /* ************************************************************************* */
 HybridValues HybridBayesNet::optimize() const {
   // Collect all the discrete factors to compute MPE
@@ -151,7 +132,7 @@ HybridValues HybridBayesNet::optimize() const {
   }
 
   // Solve for the MPE
-  DiscreteValues mpe = this->discreteMaxProduct(discrete_fg);
+  DiscreteValues mpe = discrete_fg.optimize();
 
   // Given the MPE, compute the optimal continuous values.
   return HybridValues(optimize(mpe), mpe);
