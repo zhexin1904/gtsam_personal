@@ -453,8 +453,7 @@ TEST(HybridBayesNet, UpdateDiscreteConditionals) {
     // The last discrete conditional may be a DiscreteTableConditional
     if (auto dtc =
             std::dynamic_pointer_cast<DiscreteTableConditional>(conditional)) {
-      DiscreteConditional dc(dtc->nrFrontals(),
-                             dtc->table().toDecisionTreeFactor());
+      DiscreteConditional dc(dtc->nrFrontals(), dtc->toDecisionTreeFactor());
       joint = joint * dc;
     } else {
       joint = joint * (*conditional);
