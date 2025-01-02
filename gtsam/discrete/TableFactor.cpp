@@ -252,15 +252,6 @@ DecisionTreeFactor TableFactor::operator*(const DecisionTreeFactor& f) const {
 DecisionTreeFactor TableFactor::toDecisionTreeFactor() const {
   DiscreteKeys dkeys = discreteKeys();
 
-  // If no keys, then return empty DecisionTreeFactor
-  if (dkeys.size() == 0) {
-    AlgebraicDecisionTree<Key> tree;
-    if (sparse_table_.size() != 0) {
-      tree = AlgebraicDecisionTree<Key>(sparse_table_.coeff(0));
-    }
-    return DecisionTreeFactor(dkeys, tree);
-  }
-
   std::vector<double> table;
   for (auto i = 0; i < sparse_table_.size(); i++) {
     table.push_back(sparse_table_.coeff(i));
