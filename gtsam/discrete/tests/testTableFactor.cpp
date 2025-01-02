@@ -191,9 +191,18 @@ TEST(TableFactor, Conversion) {
 }
 
 /* ************************************************************************* */
-TEST_DISABLED(TableFactor, Empty) {
-  // TableFactor empty({1, 2}, std::vector<double>());
-  // empty.print();
+TEST(TableFactor, Empty) {
+  DiscreteKey X(1, 2);
+
+  TableFactor single = *TableFactor({X}, "1 1").sum(1);
+  // Should not throw a segfault
+  EXPECT(assert_equal(*DecisionTreeFactor(X, "1 1").sum(1),
+                      single.toDecisionTreeFactor()));
+
+  TableFactor empty = *TableFactor({X}, "0 0").sum(1);
+  // Should not throw a segfault
+  EXPECT(assert_equal(*DecisionTreeFactor(X, "0 0").sum(1),
+                      empty.toDecisionTreeFactor()));
 }
 
 /* ************************************************************************* */
