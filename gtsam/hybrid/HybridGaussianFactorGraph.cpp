@@ -358,8 +358,8 @@ discreteElimination(const HybridGaussianFactorGraph &factors,
 #if GTSAM_HYBRID_TIMING
     gttic_(EliminateDiscreteFormDiscreteConditional);
 #endif
-    auto conditional = std::make_shared<DiscreteConditional>(
-        frontalKeys.size(), product.toDecisionTreeFactor());
+    auto conditional =
+        std::make_shared<DiscreteTableConditional>(frontalKeys.size(), product);
 #if GTSAM_HYBRID_TIMING
     gttoc_(EliminateDiscreteFormDiscreteConditional);
 #endif
