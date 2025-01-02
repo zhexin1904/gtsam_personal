@@ -173,6 +173,27 @@ TEST(TableFactor, Conversion) {
   TableFactor tf(dtf.discreteKeys(), dtf);
 
   EXPECT(assert_equal(dtf, tf.toDecisionTreeFactor()));
+
+  // Test for correct construction when keys are not in reverse order.
+  // This is possible in conditionals e.g. P(x1 | x0)
+  DiscreteKey X(1, 2), Y(0, 2);
+  DiscreteConditional dtf2(
+      X, {Y}, std::vector<double>{0.33333333, 0.6, 0.66666667, 0.4});
+
+  TableFactor tf2(dtf2);
+  // GTSAM_PRINT(dtf2);
+  // GTSAM_PRINT(tf2);
+  // GTSAM_PRINT(tf2.toDecisionTreeFactor());
+
+  // Check for ADT equality since the order of keys is irrelevant
+  EXPECT(assert_equal<AlgebraicDecisionTree<Key>>(dtf2,
+                                                  tf2.toDecisionTreeFactor()));
+}
+
+/* ************************************************************************* */
+TEST_DISABLED(TableFactor, Empty) {
+  // TableFactor empty({1, 2}, std::vector<double>());
+  // empty.print();
 }
 
 /* ************************************************************************* */
