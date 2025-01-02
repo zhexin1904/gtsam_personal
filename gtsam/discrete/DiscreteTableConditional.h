@@ -189,6 +189,14 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
   virtual DiscreteConditional::shared_ptr prune(
       size_t maxNrAssignments) const override;
 
+  /// Get a DecisionTreeFactor representation.
+  DecisionTreeFactor toDecisionTreeFactor() const override {
+    return table_.toDecisionTreeFactor();
+  }
+
+  /// Get the number of non-zero values.
+  size_t nrValues() const { return table_.sparseTable().nonZeros(); }
+
   /// @}
 
  private:
