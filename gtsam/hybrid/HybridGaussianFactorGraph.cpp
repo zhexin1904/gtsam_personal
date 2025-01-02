@@ -273,7 +273,7 @@ static TableFactor TableProduct(const DiscreteFactorGraph &factors) {
         product = product * (*f);
       } else if (auto dtf =
                      std::dynamic_pointer_cast<DecisionTreeFactor>(factor)) {
-        product = TableFactor(product * (*dtf));
+        product = product * TableFactor(*dtf);
       }
     }
   }
