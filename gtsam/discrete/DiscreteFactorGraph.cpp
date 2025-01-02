@@ -112,22 +112,27 @@ namespace gtsam {
 //  }
 
   /**
-   * @brief Multiply all the `factors` and normalize the
-   * product to prevent underflow.
+   * @brief Multiply all the `factors`.
    *
    * @param factors The factors to multiply as a DiscreteFactorGraph.
    * @return DecisionTreeFactor
    */
-  static DecisionTreeFactor ProductAndNormalize(
+  static DecisionTreeFactor DiscreteProduct(
       const DiscreteFactorGraph& factors) {
     // PRODUCT: multiply all factors
     DecisionTreeFactor product = factors.product();
 
+#if GTSAM_HYBRID_TIMING
+    gttic_(DiscreteNormalize);
+#endif
     // Max over all the potentials by pretending all keys are frontal:
-    auto normalizer = product.max(product.size());
+    auto denominator = product.max(product.size());
 
     // Normalize the product factor to prevent underflow.
-    product = product / (*normalizer);
+    product = product / (*denominator);
+#if GTSAM_HYBRID_TIMING
+    gttoc_(DiscreteNormalize);
+#endif
 
     return product;
   }
@@ -137,7 +142,7 @@ namespace gtsam {
   std::pair<DiscreteConditional::shared_ptr, DiscreteFactor::shared_ptr>  //
   EliminateForMPE(const DiscreteFactorGraph& factors,
                   const Ordering& frontalKeys) {
-    DecisionTreeFactor product = ProductAndNormalize(factors);
+    DecisionTreeFactor product = DiscreteProduct(factors);
 
     // max out frontals, this is the factor on the separator
     gttic(max);
@@ -215,7 +220,7 @@ namespace gtsam {
   std::pair<DiscreteConditional::shared_ptr, DiscreteFactor::shared_ptr>  //
   EliminateDiscrete(const DiscreteFactorGraph& factors,
                     const Ordering& frontalKeys) {
-    DecisionTreeFactor product = ProductAndNormalize(factors);
+    DecisionTreeFactor product = DiscreteProduct(factors);
 
     // sum out frontals, this is the factor on the separator
     DecisionTreeFactor::shared_ptr sum = product.sum(frontalKeys);
