@@ -87,7 +87,7 @@ static Eigen::SparseVector<double> ComputeSparseTable(
   });
   sparseTable.reserve(nrValues);
 
-  std::set<Key> allKeys(dt.keys().begin(), dt.keys().end());
+  KeySet allKeys(dt.keys().begin(), dt.keys().end());
 
   /**
    * @brief Functor which is called by the DecisionTree for each leaf.
@@ -102,13 +102,13 @@ static Eigen::SparseVector<double> ComputeSparseTable(
   auto op = [&](const Assignment<Key>& assignment, double p) {
     if (p > 0) {
       // Get all the keys involved in this assignment
-      std::set<Key> assignmentKeys;
+      KeySet assignmentKeys;
       for (auto&& [k, _] : assignment) {
         assignmentKeys.insert(k);
       }
 
       // Find the keys missing in the assignment
-      std::vector<Key> diff;
+      KeyVector diff;
       std::set_difference(allKeys.begin(), allKeys.end(),
                           assignmentKeys.begin(), assignmentKeys.end(),
                           std::back_inserter(diff));
