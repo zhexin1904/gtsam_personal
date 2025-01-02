@@ -201,7 +201,8 @@ VectorValues HybridBayesTree::optimize(const DiscreteValues& assignment) const {
 
 /* ************************************************************************* */
 void HybridBayesTree::prune(const size_t maxNrLeaves) {
-  auto discreteProbs = this->roots_.at(0)->conditional()->asDiscrete();
+  auto discreteProbs =
+      this->roots_.at(0)->conditional()->asDiscrete<DiscreteTableConditional>();
 
   DiscreteConditional::shared_ptr prunedDiscreteProbs =
       discreteProbs->prune(maxNrLeaves);
