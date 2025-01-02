@@ -296,14 +296,14 @@ static TableFactor TableProduct(const DiscreteFactorGraph &factors) {
 }
 
 /* ************************************************************************ */
-static std::pair<HybridConditional::shared_ptr, std::shared_ptr<Factor>>
-discreteElimination(const HybridGaussianFactorGraph &factors,
-                    const Ordering &frontalKeys) {
+static DiscreteFactorGraph CollectDiscreteFactors(
+    const HybridGaussianFactorGraph &factors) {
   DiscreteFactorGraph dfg;
 
   for (auto &f : factors) {
     if (auto df = dynamic_pointer_cast<DiscreteFactor>(f)) {
       dfg.push_back(df);
+
     } else if (auto gmf = dynamic_pointer_cast<HybridGaussianFactor>(f)) {
       // Case where we have a HybridGaussianFactor with no continuous keys.
       // In this case, compute a discrete factor from the remaining error.
@@ -335,6 +335,15 @@ discreteElimination(const HybridGaussianFactorGraph &factors,
       throwRuntimeError("discreteElimination", f);
     }
   }
+
+  return dfg;
+}
+
+/* ************************************************************************ */
+static std::pair<HybridConditional::shared_ptr, std::shared_ptr<Factor>>
+discreteElimination(const HybridGaussianFactorGraph &factors,
+                    const Ordering &frontalKeys) {
+  DiscreteFactorGraph dfg = CollectDiscreteFactors(factors);
 
 #if GTSAM_HYBRID_TIMING
   gttic_(EliminateDiscrete);
