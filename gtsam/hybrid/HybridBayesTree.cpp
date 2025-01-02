@@ -20,6 +20,7 @@
 #include <gtsam/base/treeTraversal-inst.h>
 #include <gtsam/discrete/DiscreteBayesNet.h>
 #include <gtsam/discrete/DiscreteFactorGraph.h>
+#include <gtsam/discrete/DiscreteTableConditional.h>
 #include <gtsam/hybrid/HybridBayesNet.h>
 #include <gtsam/hybrid/HybridBayesTree.h>
 #include <gtsam/hybrid/HybridConditional.h>
@@ -42,6 +43,25 @@ bool HybridBayesTree::equals(const This& other, double tol) const {
 }
 
 /* ************************************************************************* */
+DiscreteValues HybridBayesTree::discreteMaxProduct(
+    const DiscreteFactorGraph& dfg) const {
+  TableFactor product = TableProduct(dfg);
+
+  uint64_t maxIdx = 0;
+  double maxValue = 0.0;
+  Eigen::SparseVector<double> sparseTable = product.sparseTable();
+  for (TableFactor::SparseIt it(sparseTable); it; ++it) {
+    if (it.value() > maxValue) {
+      maxIdx = it.index();
+      maxValue = it.value();
+    }
+  }
+
+  DiscreteValues assignment = product.findAssignments(maxIdx);
+  return assignment;
+}
+
+/* ************************************************************************* */
 HybridValues HybridBayesTree::optimize() const {
   DiscreteFactorGraph discrete_fg;
   DiscreteValues mpe;
@@ -52,8 +72,10 @@ HybridValues HybridBayesTree::optimize() const {
 
   //  The root should be discrete only, we compute the MPE
   if (root_conditional->isDiscrete()) {
-    discrete_fg.push_back(root_conditional->asDiscrete());
-    mpe = discrete_fg.optimize();
+    auto discrete = std::dynamic_pointer_cast<DiscreteTableConditional>(
+        root_conditional->asDiscrete());
+    discrete_fg.push_back(discrete);
+    mpe = discreteMaxProduct(discrete_fg);
   } else {
     throw std::runtime_error(
         "HybridBayesTree root is not discrete-only. Please check elimination "
