@@ -348,16 +348,12 @@ discreteElimination(const HybridGaussianFactorGraph &factors,
 #if GTSAM_HYBRID_TIMING
   gttic_(EliminateDiscrete);
 #endif
-  // Check if separator is empty
-  Ordering allKeys(dfg.keyVector());
-  Ordering separator;
-  std::set_difference(allKeys.begin(), allKeys.end(), frontalKeys.begin(),
-                      frontalKeys.end(),
-                      std::inserter(separator, separator.begin()));
-
+  // Check if separator is empty.
+  // This is the same as checking if the number of frontal variables
+  // is the same as the number of variables in the DiscreteFactorGraph.
   // If the separator is empty, we have a clique of all the discrete variables
   // so we can use the TableFactor for efficiency.
-  if (separator.size() == 0) {
+  if (frontalKeys.size() == dfg.keys().size()) {
     // Get product factor
     TableFactor product = TableProduct(dfg);
 
