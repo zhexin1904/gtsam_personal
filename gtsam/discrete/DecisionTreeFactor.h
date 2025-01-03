@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include <gtsam/discrete/Signature.h>
 #include <gtsam/discrete/AlgebraicDecisionTree.h>
 #include <gtsam/discrete/DiscreteFactor.h>
 #include <gtsam/discrete/DiscreteKey.h>
@@ -116,10 +115,6 @@ namespace gtsam {
     /// Single-key specialization, with vector of doubles.
     DecisionTreeFactor(const DiscreteKey& key, const std::vector<double>& row)
         : DecisionTreeFactor(DiscreteKeys{key}, row) {}
-
-    /// Construct from Signature
-    DecisionTreeFactor(const Signature& signature)
-        : DecisionTreeFactor(signature.discreteKeys(), signature.cpt()) {}
 
     /** Construct from a DiscreteConditional type */
     explicit DecisionTreeFactor(const DiscreteConditional& c);
