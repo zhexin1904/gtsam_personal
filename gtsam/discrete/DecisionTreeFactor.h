@@ -161,7 +161,15 @@ namespace gtsam {
 
     /// divide by factor f (safely)
     DecisionTreeFactor operator/(const DecisionTreeFactor& f) const {
-      return apply(f, safe_div);
+      KeyVector diff;
+      std::set_difference(this->keys().begin(), this->keys().end(),
+                          f.keys().begin(), f.keys().end(),
+                          std::back_inserter(diff));
+      DiscreteKeys keys;
+      for (Key key : diff) {
+        keys.push_back({key, this->cardinality(key)});
+      }
+      return DecisionTreeFactor(keys, apply(f, safe_div));
     }
 
     /// Convert into a decision tree
