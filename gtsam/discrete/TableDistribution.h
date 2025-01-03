@@ -29,8 +29,11 @@
 namespace gtsam {
 
 /**
- * Discrete Conditional Density which uses a SparseVector as the internal
+ * Distribution which uses a SparseVector as the internal
  * representation, similar to the TableFactor.
+ *
+ * This is primarily used in the case when we have a clique in the BayesTree
+ * which consists of all the discrete variables, e.g. in hybrid elimination.
  *
  * @ingroup discrete
  */
@@ -42,7 +45,7 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
 
  public:
   // typedefs needed to play nice with gtsam
-  typedef TableDistribution This;     ///< Typedef to this class
+  typedef TableDistribution This;            ///< Typedef to this class
   typedef std::shared_ptr<This> shared_ptr;  ///< shared_ptr to this class
   typedef DiscreteConditional
       BaseConditional;  ///< Typedef to our conditional base class
@@ -63,7 +66,7 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
    * `nFrontals` keys as frontals, in the order given.
    */
   TableDistribution(size_t nFrontals, const DiscreteKeys& keys,
-                           const Eigen::SparseVector<double>& potentials);
+                    const Eigen::SparseVector<double>& potentials);
 
   /** Construct from signature */
   explicit TableDistribution(const Signature& signature);
@@ -76,7 +79,7 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
    * Example: TableDistribution P(D, {B,E}, table);
    */
   TableDistribution(const DiscreteKey& key, const DiscreteKeys& parents,
-                           const Signature::Table& table)
+                    const Signature::Table& table)
       : TableDistribution(Signature(key, parents, table)) {}
 
   /**
@@ -87,9 +90,8 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
    * Example: TableDistribution P(D, {B,E}, table);
    */
   TableDistribution(const DiscreteKey& key, const DiscreteKeys& parents,
-                           const std::vector<double>& table)
-      : TableDistribution(
-            1, TableFactor(DiscreteKeys{key} & parents, table)) {}
+                    const std::vector<double>& table)
+      : TableDistribution(1, TableFactor(DiscreteKeys{key} & parents, table)) {}
 
   /**
    * Construct from key, parents, and a string specifying the conditional
@@ -101,7 +103,7 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
    * Example: TableDistribution P(D, {B,E}, "9/1 2/8 3/7 1/9");
    */
   TableDistribution(const DiscreteKey& key, const DiscreteKeys& parents,
-                           const std::string& spec)
+                    const std::string& spec)
       : TableDistribution(Signature(key, parents, spec)) {}
 
   /// No-parent specialization; can also use DiscreteDistribution.
@@ -112,17 +114,15 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
    * @brief construct P(X|Y) = f(X,Y)/f(Y) from f(X,Y) and f(Y)
    * Assumes but *does not check* that f(Y)=sum_X f(X,Y).
    */
-  TableDistribution(const TableFactor& joint,
-                           const TableFactor& marginal);
+  TableDistribution(const TableFactor& joint, const TableFactor& marginal);
 
   /**
    * @brief construct P(X|Y) = f(X,Y)/f(Y) from f(X,Y) and f(Y)
    * Assumes but *does not check* that f(Y)=sum_X f(X,Y).
    * Makes sure the keys are ordered as given. Does not check orderedKeys.
    */
-  TableDistribution(const TableFactor& joint,
-                           const TableFactor& marginal,
-                           const Ordering& orderedKeys);
+  TableDistribution(const TableFactor& joint, const TableFactor& marginal,
+                    const Ordering& orderedKeys);
 
   /**
    * @brief Combine two conditionals, yielding a new conditional with the union
@@ -139,8 +139,7 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
    *   P(A|B) * P(B|A) = ?
    * We check for overlapping frontals, but do *not* check for cyclic.
    */
-  TableDistribution operator*(
-      const TableDistribution& other) const;
+  TableDistribution operator*(const TableDistribution& other) const;
 
   /// @}
   /// @name Testable
@@ -214,7 +213,6 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
 
 // traits
 template <>
-struct traits<TableDistribution>
-    : public Testable<TableDistribution> {};
+struct traits<TableDistribution> : public Testable<TableDistribution> {};
 
 }  // namespace gtsam
