@@ -217,12 +217,6 @@ void maybeSaveDotFile(const DecisionTreeFactor& f, const string& filename) {
 #endif
 }
 
-/** Convert Signature into CPT */
-DecisionTreeFactor create(const Signature& signature) {
-  DecisionTreeFactor p(signature.discreteKeys(), signature.cpt());
-  return p;
-}
-
 /* ************************************************************************* */
 // test Asia Joint
 TEST(DecisionTreeFactor, joint) {
@@ -230,14 +224,14 @@ TEST(DecisionTreeFactor, joint) {
       D(7, 2);
 
   gttic_(asiaCPTs);
-  DecisionTreeFactor pA = create(A % "99/1");
-  DecisionTreeFactor pS = create(S % "50/50");
-  DecisionTreeFactor pT = create(T | A = "99/1 95/5");
-  DecisionTreeFactor pL = create(L | S = "99/1 90/10");
-  DecisionTreeFactor pB = create(B | S = "70/30 40/60");
-  DecisionTreeFactor pE = create((E | T, L) = "F T T T");
-  DecisionTreeFactor pX = create(X | E = "95/5 2/98");
-  DecisionTreeFactor pD = create((D | E, B) = "9/1 2/8 3/7 1/9");
+  DecisionTreeFactor pA(A % "99/1");
+  DecisionTreeFactor pS(S % "50/50");
+  DecisionTreeFactor pT(T | A = "99/1 95/5");
+  DecisionTreeFactor pL(L | S = "99/1 90/10");
+  DecisionTreeFactor pB(B | S = "70/30 40/60");
+  DecisionTreeFactor pE((E | T, L) = "F T T T");
+  DecisionTreeFactor pX(X | E = "95/5 2/98");
+  DecisionTreeFactor pD((D | E, B) = "9/1 2/8 3/7 1/9");
 
   // Create joint
   gttic_(asiaJoint);
