@@ -87,7 +87,7 @@ TEST(DiscreteSerialization, TableFactor) {
   using namespace serializationTestHelpers;
 
   DiscreteKey A(Symbol('x', 1), 3);
-  TableFactor tf(A % "1/2/2");
+  TableFactor tf(A, "1 2 2");
 
   EXPECT(equalsObj<TableFactor>(tf));
   EXPECT(equalsXML<TableFactor>(tf));
