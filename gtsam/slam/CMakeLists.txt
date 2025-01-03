@@ -4,7 +4,11 @@ set (slam_excluded_headers #"")
 )
 
 file(GLOB slam_headers "*.h")
-install(FILES ${slam_headers} DESTINATION include/gtsam/slam)
+if(QNX)
+    install(FILES ${slam_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gtsam/slam)
+else()
+    install(FILES ${slam_headers} DESTINATION include/gtsam/slam)
+endif()
 
 # Build tests
 add_subdirectory(tests)
