@@ -72,44 +72,6 @@ TableDistribution::TableDistribution(const Signature& signature)
       table_(TableFactor(signature.discreteKeys(), signature.cpt())) {}
 
 /* ************************************************************************** */
-TableDistribution TableDistribution::operator*(
-    const TableDistribution& other) const {
-  // Take union of frontal keys
-  std::set<Key> newFrontals;
-  for (auto&& key : this->frontals()) newFrontals.insert(key);
-  for (auto&& key : other.frontals()) newFrontals.insert(key);
-
-  // Check if frontals overlapped
-  if (nrFrontals() + other.nrFrontals() > newFrontals.size())
-    throw std::invalid_argument(
-        "TableDistribution::operator* called with overlapping frontal "
-        "keys.");
-
-  // Now, add cardinalities.
-  DiscreteKeys discreteKeys;
-  for (auto&& key : frontals())
-    discreteKeys.emplace_back(key, cardinality(key));
-  for (auto&& key : other.frontals())
-    discreteKeys.emplace_back(key, other.cardinality(key));
-
-  // Sort
-  std::sort(discreteKeys.begin(), discreteKeys.end());
-
-  // Add parents to set, to make them unique
-  std::set<DiscreteKey> parents;
-  for (auto&& key : this->parents())
-    if (!newFrontals.count(key)) parents.emplace(key, cardinality(key));
-  for (auto&& key : other.parents())
-    if (!newFrontals.count(key)) parents.emplace(key, other.cardinality(key));
-
-  // Finally, add parents to keys, in order
-  for (auto&& dk : parents) discreteKeys.push_back(dk);
-
-  TableFactor product = this->table_ * other.table();
-  return TableDistribution(newFrontals.size(), product);
-}
-
-/* ************************************************************************** */
 void TableDistribution::print(const string& s,
                                      const KeyFormatter& formatter) const {
   cout << s << " P( ";

@@ -124,30 +124,13 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
   TableDistribution(const TableFactor& joint, const TableFactor& marginal,
                     const Ordering& orderedKeys);
 
-  /**
-   * @brief Combine two conditionals, yielding a new conditional with the union
-   * of the frontal keys, ordered by gtsam::Key.
-   *
-   * The two conditionals must make a valid Bayes net fragment, i.e.,
-   * the frontal variables cannot overlap, and must be acyclic:
-   * Example of correct use:
-   *   P(A,B) = P(A|B) * P(B)
-   *   P(A,B|C) = P(A|B) * P(B|C)
-   *   P(A,B,C) = P(A,B|C) * P(C)
-   * Example of incorrect use:
-   *   P(A|B) * P(A|C) = ?
-   *   P(A|B) * P(B|A) = ?
-   * We check for overlapping frontals, but do *not* check for cyclic.
-   */
-  TableDistribution operator*(const TableDistribution& other) const;
-
   /// @}
   /// @name Testable
   /// @{
 
   /// GTSAM-style print
   void print(
-      const std::string& s = "Discrete Conditional: ",
+      const std::string& s = "Table Distribution: ",
       const KeyFormatter& formatter = DefaultKeyFormatter) const override;
 
   /// GTSAM-style equals
