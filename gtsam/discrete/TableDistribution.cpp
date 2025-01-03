@@ -17,9 +17,9 @@
 
 #include <gtsam/base/Testable.h>
 #include <gtsam/base/debug.h>
-#include <gtsam/discrete/TableDistribution.h>
 #include <gtsam/discrete/Ring.h>
 #include <gtsam/discrete/Signature.h>
+#include <gtsam/discrete/TableDistribution.h>
 #include <gtsam/hybrid/HybridValues.h>
 
 #include <algorithm>
@@ -39,7 +39,7 @@ namespace gtsam {
 
 /* ************************************************************************** */
 TableDistribution::TableDistribution(const size_t nrFrontals,
-                                                   const TableFactor& f)
+                                     const TableFactor& f)
     : BaseConditional(nrFrontals, DecisionTreeFactor(f.discreteKeys(), ADT())),
       table_(f / (*f.sum(nrFrontals))) {}
 
@@ -52,15 +52,15 @@ TableDistribution::TableDistribution(
 
 /* ************************************************************************** */
 TableDistribution::TableDistribution(const TableFactor& joint,
-                                                   const TableFactor& marginal)
+                                     const TableFactor& marginal)
     : BaseConditional(joint.size() - marginal.size(),
                       joint.discreteKeys() & marginal.discreteKeys(), ADT()),
       table_(joint / marginal) {}
 
 /* ************************************************************************** */
 TableDistribution::TableDistribution(const TableFactor& joint,
-                                                   const TableFactor& marginal,
-                                                   const Ordering& orderedKeys)
+                                     const TableFactor& marginal,
+                                     const Ordering& orderedKeys)
     : TableDistribution(joint, marginal) {
   keys_.clear();
   keys_.insert(keys_.end(), orderedKeys.begin(), orderedKeys.end());
@@ -73,7 +73,7 @@ TableDistribution::TableDistribution(const Signature& signature)
 
 /* ************************************************************************** */
 void TableDistribution::print(const string& s,
-                                     const KeyFormatter& formatter) const {
+                              const KeyFormatter& formatter) const {
   cout << s << " P( ";
   for (const_iterator it = beginFrontals(); it != endFrontals(); ++it) {
     cout << formatter(*it) << " ";
@@ -90,8 +90,7 @@ void TableDistribution::print(const string& s,
 }
 
 /* ************************************************************************** */
-bool TableDistribution::equals(const DiscreteFactor& other,
-                                      double tol) const {
+bool TableDistribution::equals(const DiscreteFactor& other, double tol) const {
   auto dtc = dynamic_cast<const TableDistribution*>(&other);
   if (!dtc) {
     return false;
@@ -112,8 +111,7 @@ DiscreteConditional::shared_ptr TableDistribution::max(
 }
 
 /* ****************************************************************************/
-void TableDistribution::setData(
-    const DiscreteConditional::shared_ptr& dc) {
+void TableDistribution::setData(const DiscreteConditional::shared_ptr& dc) {
   if (auto dtc = std::dynamic_pointer_cast<TableDistribution>(dc)) {
     this->table_ = dtc->table_;
   } else {
