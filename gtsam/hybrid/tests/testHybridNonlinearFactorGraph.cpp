@@ -512,7 +512,7 @@ TEST(HybridNonlinearFactorGraph, Full_Elimination) {
   // P(m1)
   EXPECT(hybridBayesNet->at(4)->frontals() == KeyVector{M(1)});
   EXPECT_LONGS_EQUAL(0, hybridBayesNet->at(4)->nrParents());
-  DiscreteTableConditional dtc = *hybridBayesNet->at(4)->asDiscrete<DiscreteTableConditional>();
+  TableDistribution dtc = *hybridBayesNet->at(4)->asDiscrete<TableDistribution>();
   EXPECT(
       DiscreteConditional(dtc.nrFrontals(), dtc.toDecisionTreeFactor())
           .equals(*discreteBayesNet.at(1)));

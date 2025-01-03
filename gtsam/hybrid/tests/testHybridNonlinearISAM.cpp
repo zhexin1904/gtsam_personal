@@ -265,7 +265,7 @@ TEST(HybridNonlinearISAM, ApproxInference) {
     1 1 1 Leaf  0.5
   */
 
-  auto discreteConditional_m0 = *dynamic_pointer_cast<DiscreteTableConditional>(
+  auto discreteConditional_m0 = *dynamic_pointer_cast<TableDistribution>(
       bayesTree[M(0)]->conditional()->inner());
   EXPECT(discreteConditional_m0.keys() == KeyVector({M(0), M(1), M(2)}));
 
@@ -517,7 +517,7 @@ TEST(HybridNonlinearISAM, NonTrivial) {
   // The final discrete graph should not be empty since we have eliminated
   // all continuous variables.
   auto discreteTree =
-      bayesTree[M(3)]->conditional()->asDiscrete<DiscreteTableConditional>();
+      bayesTree[M(3)]->conditional()->asDiscrete<TableDistribution>();
   EXPECT_LONGS_EQUAL(3, discreteTree->size());
 
   // Test if the optimal discrete mode assignment is (1, 1, 1).

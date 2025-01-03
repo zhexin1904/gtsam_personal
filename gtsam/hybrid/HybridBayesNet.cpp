@@ -52,9 +52,9 @@ HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves) const {
   // Multiply into one big conditional. NOTE: possibly quite expensive.
   DiscreteConditional joint;
   for (auto &&conditional : marginal) {
-    // The last discrete conditional may be a DiscreteTableConditional
+    // The last discrete conditional may be a TableDistribution
     if (auto dtc =
-            std::dynamic_pointer_cast<DiscreteTableConditional>(conditional)) {
+            std::dynamic_pointer_cast<TableDistribution>(conditional)) {
       DiscreteConditional dc(dtc->nrFrontals(), dtc->toDecisionTreeFactor());
       joint = joint * dc;
     } else {
@@ -133,7 +133,7 @@ HybridValues HybridBayesNet::optimize() const {
 
   for (auto &&conditional : *this) {
     if (conditional->isDiscrete()) {
-      if (auto dtc = conditional->asDiscrete<DiscreteTableConditional>()) {
+      if (auto dtc = conditional->asDiscrete<TableDistribution>()) {
         // The number of keys should be small so should not
         // be expensive to convert to DiscreteConditional.
         discrete_fg.push_back(DiscreteConditional(dtc->nrFrontals(),

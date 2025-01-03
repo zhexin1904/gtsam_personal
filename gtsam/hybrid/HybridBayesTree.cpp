@@ -20,7 +20,7 @@
 #include <gtsam/base/treeTraversal-inst.h>
 #include <gtsam/discrete/DiscreteBayesNet.h>
 #include <gtsam/discrete/DiscreteFactorGraph.h>
-#include <gtsam/discrete/DiscreteTableConditional.h>
+#include <gtsam/discrete/TableDistribution.h>
 #include <gtsam/hybrid/HybridBayesNet.h>
 #include <gtsam/hybrid/HybridBayesTree.h>
 #include <gtsam/hybrid/HybridConditional.h>
@@ -72,7 +72,7 @@ HybridValues HybridBayesTree::optimize() const {
 
   //  The root should be discrete only, we compute the MPE
   if (root_conditional->isDiscrete()) {
-    auto discrete = std::dynamic_pointer_cast<DiscreteTableConditional>(
+    auto discrete = std::dynamic_pointer_cast<TableDistribution>(
         root_conditional->asDiscrete());
     discrete_fg.push_back(discrete);
     mpe = discreteMaxProduct(discrete_fg);
@@ -202,7 +202,7 @@ VectorValues HybridBayesTree::optimize(const DiscreteValues& assignment) const {
 /* ************************************************************************* */
 void HybridBayesTree::prune(const size_t maxNrLeaves) {
   auto discreteProbs =
-      this->roots_.at(0)->conditional()->asDiscrete<DiscreteTableConditional>();
+      this->roots_.at(0)->conditional()->asDiscrete<TableDistribution>();
 
   DiscreteConditional::shared_ptr prunedDiscreteProbs =
       discreteProbs->prune(maxNrLeaves);

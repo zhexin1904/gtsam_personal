@@ -10,14 +10,14 @@
  * -------------------------------------------------------------------------- */
 
 /**
- *  @file DiscreteTableConditional.cpp
+ *  @file TableDistribution.cpp
  *  @date Dec 22, 2024
  *  @author Varun Agrawal
  */
 
 #include <gtsam/base/Testable.h>
 #include <gtsam/base/debug.h>
-#include <gtsam/discrete/DiscreteTableConditional.h>
+#include <gtsam/discrete/TableDistribution.h>
 #include <gtsam/discrete/Ring.h>
 #include <gtsam/discrete/Signature.h>
 #include <gtsam/hybrid/HybridValues.h>
@@ -38,42 +38,42 @@ using std::vector;
 namespace gtsam {
 
 /* ************************************************************************** */
-DiscreteTableConditional::DiscreteTableConditional(const size_t nrFrontals,
+TableDistribution::TableDistribution(const size_t nrFrontals,
                                                    const TableFactor& f)
     : BaseConditional(nrFrontals, DecisionTreeFactor(f.discreteKeys(), ADT())),
       table_(f / (*f.sum(nrFrontals))) {}
 
 /* ************************************************************************** */
-DiscreteTableConditional::DiscreteTableConditional(
+TableDistribution::TableDistribution(
     size_t nrFrontals, const DiscreteKeys& keys,
     const Eigen::SparseVector<double>& potentials)
     : BaseConditional(nrFrontals, keys, DecisionTreeFactor(keys, ADT())),
       table_(TableFactor(keys, potentials)) {}
 
 /* ************************************************************************** */
-DiscreteTableConditional::DiscreteTableConditional(const TableFactor& joint,
+TableDistribution::TableDistribution(const TableFactor& joint,
                                                    const TableFactor& marginal)
     : BaseConditional(joint.size() - marginal.size(),
                       joint.discreteKeys() & marginal.discreteKeys(), ADT()),
       table_(joint / marginal) {}
 
 /* ************************************************************************** */
-DiscreteTableConditional::DiscreteTableConditional(const TableFactor& joint,
+TableDistribution::TableDistribution(const TableFactor& joint,
                                                    const TableFactor& marginal,
                                                    const Ordering& orderedKeys)
-    : DiscreteTableConditional(joint, marginal) {
+    : TableDistribution(joint, marginal) {
   keys_.clear();
   keys_.insert(keys_.end(), orderedKeys.begin(), orderedKeys.end());
 }
 
 /* ************************************************************************** */
-DiscreteTableConditional::DiscreteTableConditional(const Signature& signature)
+TableDistribution::TableDistribution(const Signature& signature)
     : BaseConditional(1, DecisionTreeFactor(DiscreteKeys{{1, 1}}, ADT(1))),
       table_(TableFactor(signature.discreteKeys(), signature.cpt())) {}
 
 /* ************************************************************************** */
-DiscreteTableConditional DiscreteTableConditional::operator*(
-    const DiscreteTableConditional& other) const {
+TableDistribution TableDistribution::operator*(
+    const TableDistribution& other) const {
   // Take union of frontal keys
   std::set<Key> newFrontals;
   for (auto&& key : this->frontals()) newFrontals.insert(key);
@@ -82,7 +82,7 @@ DiscreteTableConditional DiscreteTableConditional::operator*(
   // Check if frontals overlapped
   if (nrFrontals() + other.nrFrontals() > newFrontals.size())
     throw std::invalid_argument(
-        "DiscreteTableConditional::operator* called with overlapping frontal "
+        "TableDistribution::operator* called with overlapping frontal "
         "keys.");
 
   // Now, add cardinalities.
@@ -106,11 +106,11 @@ DiscreteTableConditional DiscreteTableConditional::operator*(
   for (auto&& dk : parents) discreteKeys.push_back(dk);
 
   TableFactor product = this->table_ * other.table();
-  return DiscreteTableConditional(newFrontals.size(), product);
+  return TableDistribution(newFrontals.size(), product);
 }
 
 /* ************************************************************************** */
-void DiscreteTableConditional::print(const string& s,
+void TableDistribution::print(const string& s,
                                      const KeyFormatter& formatter) const {
   cout << s << " P( ";
   for (const_iterator it = beginFrontals(); it != endFrontals(); ++it) {
@@ -128,9 +128,9 @@ void DiscreteTableConditional::print(const string& s,
 }
 
 /* ************************************************************************** */
-bool DiscreteTableConditional::equals(const DiscreteFactor& other,
+bool TableDistribution::equals(const DiscreteFactor& other,
                                       double tol) const {
-  auto dtc = dynamic_cast<const DiscreteTableConditional*>(&other);
+  auto dtc = dynamic_cast<const TableDistribution*>(&other);
   if (!dtc) {
     return false;
   } else {
@@ -142,17 +142,17 @@ bool DiscreteTableConditional::equals(const DiscreteFactor& other,
 }
 
 /* ****************************************************************************/
-DiscreteConditional::shared_ptr DiscreteTableConditional::max(
+DiscreteConditional::shared_ptr TableDistribution::max(
     const Ordering& keys) const {
   auto m = *table_.max(keys);
 
-  return std::make_shared<DiscreteTableConditional>(m.discreteKeys().size(), m);
+  return std::make_shared<TableDistribution>(m.discreteKeys().size(), m);
 }
 
 /* ****************************************************************************/
-void DiscreteTableConditional::setData(
+void TableDistribution::setData(
     const DiscreteConditional::shared_ptr& dc) {
-  if (auto dtc = std::dynamic_pointer_cast<DiscreteTableConditional>(dc)) {
+  if (auto dtc = std::dynamic_pointer_cast<TableDistribution>(dc)) {
     this->table_ = dtc->table_;
   } else {
     this->table_ = TableFactor(dc->discreteKeys(), *dc);
@@ -160,11 +160,11 @@ void DiscreteTableConditional::setData(
 }
 
 /* ****************************************************************************/
-DiscreteConditional::shared_ptr DiscreteTableConditional::prune(
+DiscreteConditional::shared_ptr TableDistribution::prune(
     size_t maxNrAssignments) const {
   TableFactor pruned = table_.prune(maxNrAssignments);
 
-  return std::make_shared<DiscreteTableConditional>(
+  return std::make_shared<TableDistribution>(
       this->nrFrontals(), this->discreteKeys(), pruned.sparseTable());
 }
 

@@ -142,7 +142,7 @@ TEST(HybridGaussianISAM, IncrementalInference) {
 
   // Test the probability values with regression tests.
   auto discrete =
-      isam[M(1)]->conditional()->asDiscrete<DiscreteTableConditional>();
+      isam[M(1)]->conditional()->asDiscrete<TableDistribution>();
   EXPECT(assert_equal(0.095292, (*discrete)({{M(0), 0}, {M(1), 0}}), 1e-5));
   EXPECT(assert_equal(0.282758, (*discrete)({{M(0), 1}, {M(1), 0}}), 1e-5));
   EXPECT(assert_equal(0.314175, (*discrete)({{M(0), 0}, {M(1), 1}}), 1e-5));
@@ -222,7 +222,7 @@ TEST(HybridGaussianISAM, ApproxInference) {
     1 1 1 Leaf  0.5
   */
 
-  auto discreteConditional_m0 = *dynamic_pointer_cast<DiscreteTableConditional>(
+  auto discreteConditional_m0 = *dynamic_pointer_cast<TableDistribution>(
       incrementalHybrid[M(0)]->conditional()->inner());
   EXPECT(discreteConditional_m0.keys() == KeyVector({M(0), M(1), M(2)}));
 
@@ -474,7 +474,7 @@ TEST(HybridGaussianISAM, NonTrivial) {
 
   // Test if the optimal discrete mode assignment is (1, 1, 1).
   DiscreteFactorGraph discreteGraph;
-  // discreteTree is a DiscreteTableConditional, so we convert to
+  // discreteTree is a TableDistribution, so we convert to
   // DecisionTreeFactor for the DiscreteFactorGraph
   discreteGraph.push_back(discreteTree->toDecisionTreeFactor());
   DiscreteValues optimal_assignment = discreteGraph.optimize();

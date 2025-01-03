@@ -10,7 +10,7 @@
  * -------------------------------------------------------------------------- */
 
 /**
- *  @file DiscreteTableConditional.h
+ *  @file TableDistribution.h
  *  @date Dec 22, 2024
  *  @author Varun Agrawal
  */
@@ -34,7 +34,7 @@ namespace gtsam {
  *
  * @ingroup discrete
  */
-class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
+class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
  private:
   TableFactor table_;
 
@@ -42,7 +42,7 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
 
  public:
   // typedefs needed to play nice with gtsam
-  typedef DiscreteTableConditional This;     ///< Typedef to this class
+  typedef TableDistribution This;     ///< Typedef to this class
   typedef std::shared_ptr<This> shared_ptr;  ///< shared_ptr to this class
   typedef DiscreteConditional
       BaseConditional;  ///< Typedef to our conditional base class
@@ -53,42 +53,42 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
   /// @{
 
   /// Default constructor needed for serialization.
-  DiscreteTableConditional() {}
+  TableDistribution() {}
 
   /// Construct from factor, taking the first `nFrontals` keys as frontals.
-  DiscreteTableConditional(size_t nFrontals, const TableFactor& f);
+  TableDistribution(size_t nFrontals, const TableFactor& f);
 
   /**
    * Construct from DiscreteKeys and SparseVector, taking the first
    * `nFrontals` keys as frontals, in the order given.
    */
-  DiscreteTableConditional(size_t nFrontals, const DiscreteKeys& keys,
+  TableDistribution(size_t nFrontals, const DiscreteKeys& keys,
                            const Eigen::SparseVector<double>& potentials);
 
   /** Construct from signature */
-  explicit DiscreteTableConditional(const Signature& signature);
+  explicit TableDistribution(const Signature& signature);
 
   /**
    * Construct from key, parents, and a Signature::Table specifying the
    * conditional probability table (CPT) in 00 01 10 11 order. For
    * three-valued, it would be 00 01 02 10 11 12 20 21 22, etc....
    *
-   * Example: DiscreteTableConditional P(D, {B,E}, table);
+   * Example: TableDistribution P(D, {B,E}, table);
    */
-  DiscreteTableConditional(const DiscreteKey& key, const DiscreteKeys& parents,
+  TableDistribution(const DiscreteKey& key, const DiscreteKeys& parents,
                            const Signature::Table& table)
-      : DiscreteTableConditional(Signature(key, parents, table)) {}
+      : TableDistribution(Signature(key, parents, table)) {}
 
   /**
    * Construct from key, parents, and a vector<double> specifying the
    * conditional probability table (CPT) in 00 01 10 11 order. For
    * three-valued, it would be 00 01 02 10 11 12 20 21 22, etc....
    *
-   * Example: DiscreteTableConditional P(D, {B,E}, table);
+   * Example: TableDistribution P(D, {B,E}, table);
    */
-  DiscreteTableConditional(const DiscreteKey& key, const DiscreteKeys& parents,
+  TableDistribution(const DiscreteKey& key, const DiscreteKeys& parents,
                            const std::vector<double>& table)
-      : DiscreteTableConditional(
+      : TableDistribution(
             1, TableFactor(DiscreteKeys{key} & parents, table)) {}
 
   /**
@@ -98,21 +98,21 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
    *
    * The string is parsed into a Signature::Table.
    *
-   * Example: DiscreteTableConditional P(D, {B,E}, "9/1 2/8 3/7 1/9");
+   * Example: TableDistribution P(D, {B,E}, "9/1 2/8 3/7 1/9");
    */
-  DiscreteTableConditional(const DiscreteKey& key, const DiscreteKeys& parents,
+  TableDistribution(const DiscreteKey& key, const DiscreteKeys& parents,
                            const std::string& spec)
-      : DiscreteTableConditional(Signature(key, parents, spec)) {}
+      : TableDistribution(Signature(key, parents, spec)) {}
 
   /// No-parent specialization; can also use DiscreteDistribution.
-  DiscreteTableConditional(const DiscreteKey& key, const std::string& spec)
-      : DiscreteTableConditional(Signature(key, {}, spec)) {}
+  TableDistribution(const DiscreteKey& key, const std::string& spec)
+      : TableDistribution(Signature(key, {}, spec)) {}
 
   /**
    * @brief construct P(X|Y) = f(X,Y)/f(Y) from f(X,Y) and f(Y)
    * Assumes but *does not check* that f(Y)=sum_X f(X,Y).
    */
-  DiscreteTableConditional(const TableFactor& joint,
+  TableDistribution(const TableFactor& joint,
                            const TableFactor& marginal);
 
   /**
@@ -120,7 +120,7 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
    * Assumes but *does not check* that f(Y)=sum_X f(X,Y).
    * Makes sure the keys are ordered as given. Does not check orderedKeys.
    */
-  DiscreteTableConditional(const TableFactor& joint,
+  TableDistribution(const TableFactor& joint,
                            const TableFactor& marginal,
                            const Ordering& orderedKeys);
 
@@ -139,8 +139,8 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
    *   P(A|B) * P(B|A) = ?
    * We check for overlapping frontals, but do *not* check for cyclic.
    */
-  DiscreteTableConditional operator*(
-      const DiscreteTableConditional& other) const;
+  TableDistribution operator*(
+      const TableDistribution& other) const;
 
   /// @}
   /// @name Testable
@@ -210,11 +210,11 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
   }
 #endif
 };
-// DiscreteTableConditional
+// TableDistribution
 
 // traits
 template <>
-struct traits<DiscreteTableConditional>
-    : public Testable<DiscreteTableConditional> {};
+struct traits<TableDistribution>
+    : public Testable<TableDistribution> {};
 
 }  // namespace gtsam

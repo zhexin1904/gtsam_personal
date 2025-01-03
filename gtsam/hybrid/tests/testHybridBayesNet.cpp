@@ -450,9 +450,9 @@ TEST(HybridBayesNet, UpdateDiscreteConditionals) {
 
   DiscreteConditional joint;
   for (auto&& conditional : posterior->discreteMarginal()) {
-    // The last discrete conditional may be a DiscreteTableConditional
+    // The last discrete conditional may be a TableDistribution
     if (auto dtc =
-            std::dynamic_pointer_cast<DiscreteTableConditional>(conditional)) {
+            std::dynamic_pointer_cast<TableDistribution>(conditional)) {
       DiscreteConditional dc(dtc->nrFrontals(), dtc->toDecisionTreeFactor());
       joint = joint * dc;
     } else {
