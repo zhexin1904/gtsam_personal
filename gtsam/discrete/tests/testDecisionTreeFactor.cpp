@@ -72,7 +72,7 @@ TEST(DecisionTreeFactor, constructors) {
 /* ************************************************************************* */
 TEST(DecisionTreeFactor, Divide) {
   DiscreteKey A(0, 2), S(1, 2);
-  DecisionTreeFactor pA(A % "99/1"), pS(S % "50/50");
+  DecisionTreeFactor pA = create(A % "99/1"), pS = create(S % "50/50");
   DecisionTreeFactor joint = pA * pS;
   DecisionTreeFactor s = joint / pA;
   EXPECT(assert_equal(pS, s));
