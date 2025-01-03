@@ -24,13 +24,13 @@
 #include <gtsam/hybrid/HybridValues.h>
 
 #include <algorithm>
+#include <cassert>
 #include <random>
 #include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
-#include <cassert>
 
 using namespace std;
 using std::pair;

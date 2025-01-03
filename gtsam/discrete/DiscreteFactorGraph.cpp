@@ -120,13 +120,7 @@ namespace gtsam {
   static DecisionTreeFactor DiscreteProduct(
       const DiscreteFactorGraph& factors) {
     // PRODUCT: multiply all factors
-#if GTSAM_HYBRID_TIMING
-    gttic_(DiscreteProduct);
-#endif
     DecisionTreeFactor product = factors.product();
-#if GTSAM_HYBRID_TIMING
-    gttoc_(DiscreteProduct);
-#endif
 
 #if GTSAM_HYBRID_TIMING
     gttic_(DiscreteNormalize);
@@ -229,13 +223,7 @@ namespace gtsam {
     DecisionTreeFactor product = DiscreteProduct(factors);
 
     // sum out frontals, this is the factor on the separator
-#if GTSAM_HYBRID_TIMING
-    gttic_(EliminateDiscreteSum);
-#endif
     DecisionTreeFactor::shared_ptr sum = product.sum(frontalKeys);
-#if GTSAM_HYBRID_TIMING
-    gttoc_(EliminateDiscreteSum);
-#endif
 
     // Ordering keys for the conditional so that frontalKeys are really in front
     Ordering orderedKeys;
@@ -245,14 +233,8 @@ namespace gtsam {
                        sum->keys().end());
 
     // now divide product/sum to get conditional
-#if GTSAM_HYBRID_TIMING
-    gttic_(EliminateDiscreteToDiscreteConditional);
-#endif
     auto conditional =
         std::make_shared<DiscreteConditional>(product, *sum, orderedKeys);
-#if GTSAM_HYBRID_TIMING
-    gttoc_(EliminateDiscreteToDiscreteConditional);
-#endif
 
     return {conditional, sum};
   }
