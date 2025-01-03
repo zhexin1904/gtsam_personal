@@ -206,6 +206,7 @@ class GTSAM_EXPORT DiscreteTableConditional : public DiscreteConditional {
   template <class Archive>
   void serialize(Archive& ar, const unsigned int /*version*/) {
     ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(BaseConditional);
+    ar& BOOST_SERIALIZATION_NVP(table_);
   }
 #endif
 };
