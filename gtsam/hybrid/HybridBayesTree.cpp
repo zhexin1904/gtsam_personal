@@ -72,8 +72,7 @@ HybridValues HybridBayesTree::optimize() const {
 
   //  The root should be discrete only, we compute the MPE
   if (root_conditional->isDiscrete()) {
-    auto discrete = std::dynamic_pointer_cast<TableDistribution>(
-        root_conditional->asDiscrete());
+    auto discrete = root_conditional->asDiscrete<TableDistribution>();
     discrete_fg.push_back(discrete);
     mpe = discreteMaxProduct(discrete_fg);
   } else {
