@@ -236,7 +236,7 @@ class GTSAM_EXPORT HybridGaussianConditional
    * @return Shared pointer to possibly a pruned HybridGaussianConditional
    */
   HybridGaussianConditional::shared_ptr prune(
-      const DiscreteConditional::shared_ptr &discreteProbs) const;
+      const DiscreteConditional &discreteProbs) const;
 
   /// Return true if the conditional has already been pruned.
   bool pruned() const { return pruned_; }

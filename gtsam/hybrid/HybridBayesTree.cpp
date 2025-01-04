@@ -236,7 +236,7 @@ void HybridBayesTree::prune(const size_t maxNrLeaves) {
         if (!hybridGaussianCond->pruned()) {
           // Imperative
           clique->conditional() = std::make_shared<HybridConditional>(
-              hybridGaussianCond->prune(parentData.prunedDiscreteProbs));
+              hybridGaussianCond->prune(*parentData.prunedDiscreteProbs));
         }
       }
       return parentData;

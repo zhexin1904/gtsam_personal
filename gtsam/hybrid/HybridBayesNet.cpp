@@ -53,8 +53,7 @@ HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves) const {
   DiscreteConditional joint;
   for (auto &&conditional : marginal) {
     // The last discrete conditional may be a TableDistribution
-    if (auto dtc =
-            std::dynamic_pointer_cast<TableDistribution>(conditional)) {
+    if (auto dtc = std::dynamic_pointer_cast<TableDistribution>(conditional)) {
       DiscreteConditional dc(dtc->nrFrontals(), dtc->toDecisionTreeFactor());
       joint = joint * dc;
     } else {
@@ -81,7 +80,7 @@ HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves) const {
   for (auto &&conditional : *this) {
     if (auto hgc = conditional->asHybrid()) {
       // Prune the hybrid Gaussian conditional!
-      auto prunedHybridGaussianConditional = hgc->prune(pruned);
+      auto prunedHybridGaussianConditional = hgc->prune(*pruned);
 
       // Type-erase and add to the pruned Bayes Net fragment.
       result.push_back(prunedHybridGaussianConditional);
