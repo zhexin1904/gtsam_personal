@@ -168,6 +168,25 @@ virtual class DiscreteDistribution : gtsam::DiscreteConditional {
   std::vector<double> pmf() const;
 };
 
+#include <gtsam/discrete/TableFactor.h>
+virtual class TableFactor : gtsam::DiscreteFactor {
+  TableFactor();
+  TableFactor(const gtsam::DiscreteKeys& keys,
+              const gtsam::TableFactor& potentials);
+  TableFactor(const gtsam::DiscreteKeys& keys, std::vector<double>& table);
+  TableFactor(const gtsam::DiscreteKeys& keys, string spec);
+  TableFactor(const gtsam::DiscreteKeys& keys,
+              const gtsam::DecisionTreeFactor& dtf);
+  TableFactor(const gtsam::DecisionTreeFactor& dtf);
+
+  void print(string s = "TableFactor\n",
+             const gtsam::KeyFormatter& keyFormatter =
+                 gtsam::DefaultKeyFormatter) const;
+
+  double evaluate(const gtsam::DiscreteValues& values) const;
+  double error(const gtsam::DiscreteValues& values) const;
+};
+
 #include <gtsam/discrete/TableDistribution.h>
 virtual class TableDistribution : gtsam::DiscreteConditional {
   TableDistribution();
@@ -175,7 +194,7 @@ virtual class TableDistribution : gtsam::DiscreteConditional {
   TableDistribution(const gtsam::DiscreteKey& key, std::vector<double> spec);
   TableDistribution(const gtsam::DiscreteKeys& keys, std::vector<double> spec);
   TableDistribution(const gtsam::DiscreteKeys& keys, string spec);
-  TableDistribution(const gtsam::DiscreteKey& keys, string spec);
+  TableDistribution(const gtsam::DiscreteKey& key, string spec);
   TableDistribution(const gtsam::TableFactor& joint,
                     const gtsam::TableFactor& marginal);
   TableDistribution(const gtsam::TableFactor& joint,
