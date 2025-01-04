@@ -464,7 +464,7 @@ TEST(HybridEstimation, EliminateSequentialRegression) {
 
   // Create expected discrete conditional on m0.
   DiscreteKey m(M(0), 2);
-  TableDistribution expected(m % "0.51341712/1");  // regression
+  TableDistribution expected(m, "0.51341712 1");  // regression
 
   // Eliminate into BN using one ordering
   const Ordering ordering1{X(0), X(1), M(0)};

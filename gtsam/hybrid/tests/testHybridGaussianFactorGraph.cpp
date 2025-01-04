@@ -650,7 +650,7 @@ TEST(HybridGaussianFactorGraph, EliminateTiny1) {
       mode, std::vector{conditional0, conditional1});
 
   // Add prior on mode.
-  expectedBayesNet.emplace_shared<TableDistribution>(mode, "74/26");
+  expectedBayesNet.emplace_shared<TableDistribution>(mode, "74 26");
 
   // Test elimination
   const auto posterior = fg.eliminateSequential();

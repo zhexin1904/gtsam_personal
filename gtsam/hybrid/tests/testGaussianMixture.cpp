@@ -81,7 +81,7 @@ TEST(GaussianMixture, GaussianMixtureModel) {
   auto eliminationResult =
       gmm.toFactorGraph({{Z(0), Vector1(midway)}}).eliminateSequential();
   auto pMid = eliminationResult->at(0)->asDiscrete<TableDistribution>();
-  EXPECT(assert_equal(TableDistribution(m, "60/40"), *pMid));
+  EXPECT(assert_equal(TableDistribution(m, "60 40"), *pMid));
 
   // Everywhere else, the result should be a sigmoid.
   for (const double shift : {-4, -2, 0, 2, 4}) {
@@ -141,9 +141,8 @@ TEST(GaussianMixture, GaussianMixtureModel2) {
   EXPECT(assert_equal(expectedDiscretePosterior,
                       eliminationResultMax->discretePosterior(vv)));
 
-  auto pMax =
-      *eliminationResultMax->at(0)->asDiscrete<TableDistribution>();
-  EXPECT(assert_equal(TableDistribution(m, "42/58"), pMax, 1e-4));
+  auto pMax = *eliminationResultMax->at(0)->asDiscrete<TableDistribution>();
+  EXPECT(assert_equal(TableDistribution(m, "42 58"), pMax, 1e-4));
 
   // Everywhere else, the result should be a bell curve like function.
   for (const double shift : {-4, -2, 0, 2, 4}) {
