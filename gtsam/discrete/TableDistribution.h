@@ -141,6 +141,13 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
   virtual DiscreteConditional::shared_ptr max(
       const Ordering& keys) const override;
 
+  /**
+   * @brief Return assignment that maximizes value.
+   *
+   * @return maximizing assignment for the variables.
+   */
+  uint64_t argmax() const;
+
   /// @}
   /// @name Advanced Interface
   /// @{

@@ -121,6 +121,23 @@ DiscreteConditional::shared_ptr TableDistribution::max(
   return std::make_shared<TableDistribution>(m);
 }
 
+/* ************************************************************************ */
+uint64_t TableDistribution::argmax() const {
+  uint64_t maxIdx = 0;
+  double maxValue = 0.0;
+
+  Eigen::SparseVector<double> sparseTable = table_.sparseTable();
+
+  for (SparseIt it(sparseTable); it; ++it) {
+    if (it.value() > maxValue) {
+      maxIdx = it.index();
+      maxValue = it.value();
+    }
+  }
+
+  return maxIdx;
+}
+
 /* ****************************************************************************/
 void TableDistribution::prune(size_t maxNrAssignments) {
   table_ = table_.prune(maxNrAssignments);
