@@ -50,12 +50,6 @@ TableDistribution::TableDistribution(const TableFactor& f)
       table_(f / (*f.sum(f.keys().size()))) {}
 
 /* ************************************************************************** */
-TableDistribution::TableDistribution(
-    const DiscreteKeys& keys, const Eigen::SparseVector<double>& potentials)
-    : BaseConditional(keys.size(), keys, DecisionTreeFactor(keys, ADT())),
-      table_(TableFactor(keys, normalizeSparseTable(potentials))) {}
-
-/* ************************************************************************** */
 TableDistribution::TableDistribution(const DiscreteKeys& keys,
                                      const std::vector<double>& potentials)
     : BaseConditional(keys.size(), keys, DecisionTreeFactor(keys, ADT())),
@@ -69,23 +63,6 @@ TableDistribution::TableDistribution(const DiscreteKeys& keys,
     : BaseConditional(keys.size(), keys, DecisionTreeFactor(keys, ADT())),
       table_(TableFactor(
           keys, normalizeSparseTable(TableFactor::Convert(keys, potentials)))) {
-}
-
-/* **************************************************************************
- */
-TableDistribution::TableDistribution(const TableFactor& joint,
-                                     const TableFactor& marginal)
-    : BaseConditional(joint.size() - marginal.size(),
-                      joint.discreteKeys() & marginal.discreteKeys(), ADT()),
-      table_(joint / marginal) {}
-
-/* ************************************************************************** */
-TableDistribution::TableDistribution(const TableFactor& joint,
-                                     const TableFactor& marginal,
-                                     const Ordering& orderedKeys)
-    : TableDistribution(joint, marginal) {
-  keys_.clear();
-  keys_.insert(keys_.end(), orderedKeys.begin(), orderedKeys.end());
 }
 
 /* ************************************************************************** */

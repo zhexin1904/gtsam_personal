@@ -62,12 +62,6 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
   TableDistribution(const TableFactor& f);
 
   /**
-   * Construct from DiscreteKeys and SparseVector.
-   */
-  TableDistribution(const DiscreteKeys& keys,
-                    const Eigen::SparseVector<double>& potentials);
-
-  /**
    * Construct from DiscreteKeys and std::vector.
    */
   TableDistribution(const DiscreteKeys& keys,
@@ -90,20 +84,6 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
    */
   TableDistribution(const DiscreteKey& key, const std::string& potentials)
       : TableDistribution(DiscreteKeys(key), potentials) {}
-
-  /**
-   * @brief construct P(X|Y) = f(X,Y)/f(Y) from f(X,Y) and f(Y)
-   * Assumes but *does not check* that f(Y)=sum_X f(X,Y).
-   */
-  TableDistribution(const TableFactor& joint, const TableFactor& marginal);
-
-  /**
-   * @brief construct P(X|Y) = f(X,Y)/f(Y) from f(X,Y) and f(Y)
-   * Assumes but *does not check* that f(Y)=sum_X f(X,Y).
-   * Makes sure the keys are ordered as given. Does not check orderedKeys.
-   */
-  TableDistribution(const TableFactor& joint, const TableFactor& marginal,
-                    const Ordering& orderedKeys);
 
   /// @}
   /// @name Testable
