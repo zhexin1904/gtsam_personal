@@ -37,6 +37,12 @@ using std::stringstream;
 using std::vector;
 namespace gtsam {
 
+/// Normalize sparse_table
+static Eigen::SparseVector<double> normalizeSparseTable(
+    const Eigen::SparseVector<double>& sparse_table) {
+  return sparse_table / sparse_table.sum();
+}
+
 /* ************************************************************************** */
 TableDistribution::TableDistribution(const TableFactor& f)
     : BaseConditional(f.keys().size(),
@@ -47,19 +53,23 @@ TableDistribution::TableDistribution(const TableFactor& f)
 TableDistribution::TableDistribution(
     const DiscreteKeys& keys, const Eigen::SparseVector<double>& potentials)
     : BaseConditional(keys.size(), keys, DecisionTreeFactor(keys, ADT())),
-      table_(TableFactor(keys, potentials)) {}
+      table_(TableFactor(keys, normalizeSparseTable(potentials))) {}
 
 /* ************************************************************************** */
 TableDistribution::TableDistribution(const DiscreteKeys& keys,
                                      const std::vector<double>& potentials)
     : BaseConditional(keys.size(), keys, DecisionTreeFactor(keys, ADT())),
-      table_(TableFactor(keys, potentials)) {}
+      table_(TableFactor(
+          keys, normalizeSparseTable(TableFactor::Convert(keys, potentials)))) {
+}
 
 /* ************************************************************************** */
 TableDistribution::TableDistribution(const DiscreteKeys& keys,
                                      const std::string& potentials)
     : BaseConditional(keys.size(), keys, DecisionTreeFactor(keys, ADT())),
-      table_(TableFactor(keys, potentials)) {}
+      table_(TableFactor(
+          keys, normalizeSparseTable(TableFactor::Convert(keys, potentials)))) {
+}
 
 /* **************************************************************************
  */

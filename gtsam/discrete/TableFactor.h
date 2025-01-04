@@ -86,6 +86,7 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
     return DiscreteKey(keys_[i], cardinalities_.at(keys_[i]));
   }
 
+ public:
   /**
    * Convert probability table given as doubles to SparseVector.
    * Example: {0, 1, 1, 0, 0, 1, 0} -> values: {1, 1, 1}, indices: {1, 2, 5}
@@ -97,7 +98,6 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
   static Eigen::SparseVector<double> Convert(const DiscreteKeys& keys,
                                              const std::string& table);
 
- public:
   // typedefs needed to play nice with gtsam
   typedef TableFactor This;
   typedef DiscreteFactor Base;  ///< Typedef to base class
