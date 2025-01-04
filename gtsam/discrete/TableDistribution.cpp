@@ -50,6 +50,19 @@ TableDistribution::TableDistribution(
       table_(TableFactor(keys, potentials)) {}
 
 /* ************************************************************************** */
+TableDistribution::TableDistribution(const DiscreteKeys& keys,
+                                     const std::vector<double>& potentials)
+    : BaseConditional(keys.size(), keys, DecisionTreeFactor(keys, ADT())),
+      table_(TableFactor(keys, potentials)) {}
+
+/* ************************************************************************** */
+TableDistribution::TableDistribution(const DiscreteKeys& keys,
+                                     const std::string& potentials)
+    : BaseConditional(keys.size(), keys, DecisionTreeFactor(keys, ADT())),
+      table_(TableFactor(keys, potentials)) {}
+
+/* **************************************************************************
+ */
 TableDistribution::TableDistribution(const TableFactor& joint,
                                      const TableFactor& marginal)
     : BaseConditional(joint.size() - marginal.size(),
@@ -71,12 +84,6 @@ void TableDistribution::print(const string& s,
   cout << s << " P( ";
   for (const_iterator it = beginFrontals(); it != endFrontals(); ++it) {
     cout << formatter(*it) << " ";
-  }
-  if (nrParents()) {
-    cout << "| ";
-    for (const_iterator it = beginParents(); it != endParents(); ++it) {
-      cout << formatter(*it) << " ";
-    }
   }
   cout << "):\n";
   table_.print("", formatter);
