@@ -47,16 +47,7 @@ DiscreteValues HybridBayesTree::discreteMaxProduct(
     const DiscreteFactorGraph& dfg) const {
   TableFactor product = TableProduct(dfg);
 
-  uint64_t maxIdx = 0;
-  double maxValue = 0.0;
-  Eigen::SparseVector<double> sparseTable = product.sparseTable();
-  for (TableFactor::SparseIt it(sparseTable); it; ++it) {
-    if (it.value() > maxValue) {
-      maxIdx = it.index();
-      maxValue = it.value();
-    }
-  }
-
+  uint64_t maxIdx = TableDistribution(product).argmax();
   DiscreteValues assignment = product.findAssignments(maxIdx);
   return assignment;
 }
