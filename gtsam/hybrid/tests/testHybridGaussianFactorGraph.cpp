@@ -700,8 +700,7 @@ TEST(HybridGaussianFactorGraph, EliminateTiny1Swapped) {
       m1, std::vector{conditional0, conditional1});
 
   // Add prior on m1.
-  expectedBayesNet.emplace_shared<TableDistribution>(
-      m1, "0.188638/0.811362");
+  expectedBayesNet.emplace_shared<TableDistribution>(m1, "0.188638 0.811362");
 
   // Test elimination
   const auto posterior = fg.eliminateSequential();
@@ -739,7 +738,7 @@ TEST(HybridGaussianFactorGraph, EliminateTiny2) {
   // Add prior on mode.
   // Since this is the only discrete conditional, it is added as a
   // TableDistribution.
-  expectedBayesNet.emplace_shared<TableDistribution>(mode, "23/77");
+  expectedBayesNet.emplace_shared<TableDistribution>(mode, "23 77");
 
   // Test elimination
   const auto posterior = fg.eliminateSequential();
