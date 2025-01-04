@@ -168,6 +168,29 @@ virtual class DiscreteDistribution : gtsam::DiscreteConditional {
   std::vector<double> pmf() const;
 };
 
+#include <gtsam/discrete/TableDistribution.h>
+virtual class TableDistribution : gtsam::DiscreteConditional {
+  TableDistribution();
+  TableDistribution(const gtsam::TableFactor& f);
+  TableDistribution(const gtsam::DiscreteKey& key, std::vector<double> spec);
+  TableDistribution(const gtsam::DiscreteKeys& keys, std::vector<double> spec);
+  TableDistribution(const gtsam::DiscreteKeys& keys, string spec);
+  TableDistribution(const gtsam::DiscreteKey& keys, string spec);
+  TableDistribution(const gtsam::TableFactor& joint,
+                    const gtsam::TableFactor& marginal);
+  TableDistribution(const gtsam::TableFactor& joint,
+                    const gtsam::TableFactor& marginal,
+                    const gtsam::Ordering& orderedKeys);
+
+  void print(string s = "Table Distribution\n",
+             const gtsam::KeyFormatter& keyFormatter =
+                 gtsam::DefaultKeyFormatter) const;
+
+  gtsam::TableFactor table() const;
+  double evaluate(const gtsam::DiscreteValues& values) const;
+  size_t nrValues() const;
+};
+
 #include <gtsam/discrete/DiscreteBayesNet.h>
 class DiscreteBayesNet {
   DiscreteBayesNet();
