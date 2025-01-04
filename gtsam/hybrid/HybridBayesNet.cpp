@@ -61,13 +61,15 @@ HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves) const {
     }
   }
 
-  // Prune the joint. NOTE: imperative and, again, possibly quite expensive.
-  DiscreteConditional pruned(joint);
-  pruned.prune(maxNrLeaves);
-
-  // Create a the result starting with the pruned joint.
+  // Create the result starting with the pruned joint.
   HybridBayesNet result;
-  result.push_back(std::make_shared<DiscreteConditional>(pruned));
+  result.emplace_shared<DiscreteConditional>(joint);
+  // Prune the joint. NOTE: imperative and, again, possibly quite expensive.
+  result.back()->asDiscrete()->prune(maxNrLeaves);
+
+  // Get pruned discrete probabilities so
+  // we can prune HybridGaussianConditionals.
+  DiscreteConditional pruned = *result.back()->asDiscrete();
 
   /* To prune, we visitWith every leaf in the HybridGaussianConditional.
    * For each leaf, using the assignment we can check the discrete decision tree
