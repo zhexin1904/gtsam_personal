@@ -200,12 +200,11 @@ VectorValues HybridBayesTree::optimize(const DiscreteValues& assignment) const {
 
 /* ************************************************************************* */
 void HybridBayesTree::prune(const size_t maxNrLeaves) {
-  auto discreteProbs =
+  auto prunedDiscreteProbs =
       this->roots_.at(0)->conditional()->asDiscrete<TableDistribution>();
 
-  DiscreteConditional::shared_ptr prunedDiscreteProbs =
-      discreteProbs->prune(maxNrLeaves);
-  discreteProbs->setData(prunedDiscreteProbs);
+  // Imperative pruning
+  prunedDiscreteProbs->prune(maxNrLeaves);
 
   /// Helper struct for pruning the hybrid bayes tree.
   struct HybridPrunerData {
