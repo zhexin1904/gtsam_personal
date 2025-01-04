@@ -195,11 +195,6 @@ virtual class TableDistribution : gtsam::DiscreteConditional {
   TableDistribution(const gtsam::DiscreteKeys& keys, std::vector<double> spec);
   TableDistribution(const gtsam::DiscreteKeys& keys, string spec);
   TableDistribution(const gtsam::DiscreteKey& key, string spec);
-  TableDistribution(const gtsam::TableFactor& joint,
-                    const gtsam::TableFactor& marginal);
-  TableDistribution(const gtsam::TableFactor& joint,
-                    const gtsam::TableFactor& marginal,
-                    const gtsam::Ordering& orderedKeys);
 
   void print(string s = "Table Distribution\n",
              const gtsam::KeyFormatter& keyFormatter =
