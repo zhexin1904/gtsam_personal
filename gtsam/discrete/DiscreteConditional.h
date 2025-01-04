@@ -215,13 +215,13 @@ class GTSAM_EXPORT DiscreteConditional
   size_t argmax(const DiscreteValues& parentsValues = DiscreteValues()) const;
 
   /**
-   * @brief Create new conditional by maximizing over all
+   * @brief Create new factor by maximizing over all
    * values with the same separator.
    *
    * @param keys The keys to sum over.
-   * @return DiscreteConditional::shared_ptr
+   * @return DiscreteFactor::shared_ptr
    */
-  virtual DiscreteConditional::shared_ptr max(const Ordering& keys) const;
+  virtual DiscreteFactor::shared_ptr max(const Ordering& keys) const;
 
   /// @}
   /// @name Advanced Interface

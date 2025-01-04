@@ -132,14 +132,13 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
   }
 
   /**
-   * @brief Create new conditional by maximizing over all
+   * @brief Create new factor by maximizing over all
    * values with the same separator.
    *
    * @param keys The keys to sum over.
-   * @return DiscreteConditional::shared_ptr
+   * @return DiscreteFactor::shared_ptr
    */
-  virtual DiscreteConditional::shared_ptr max(
-      const Ordering& keys) const override;
+  virtual DiscreteFactor::shared_ptr max(const Ordering& keys) const override;
 
   /**
    * @brief Return assignment that maximizes value.

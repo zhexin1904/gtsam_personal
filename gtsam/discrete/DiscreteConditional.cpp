@@ -479,10 +479,9 @@ double DiscreteConditional::evaluate(const HybridValues& x) const {
 }
 
 /* ************************************************************************* */
-DiscreteConditional::shared_ptr DiscreteConditional::max(
+DiscreteFactor::shared_ptr DiscreteConditional::max(
     const Ordering& keys) const {
-  auto m = *BaseFactor::max(keys);
-  return std::make_shared<DiscreteConditional>(m.discreteKeys().size(), m);
+  return BaseFactor::max(keys);
 }
 
 /* ************************************************************************* */

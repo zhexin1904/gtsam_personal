@@ -114,11 +114,8 @@ bool TableDistribution::equals(const DiscreteFactor& other, double tol) const {
 }
 
 /* ****************************************************************************/
-DiscreteConditional::shared_ptr TableDistribution::max(
-    const Ordering& keys) const {
-  auto m = *table_.max(keys);
-
-  return std::make_shared<TableDistribution>(m);
+DiscreteFactor::shared_ptr TableDistribution::max(const Ordering& keys) const {
+  return table_.max(keys);
 }
 
 /* ************************************************************************ */
