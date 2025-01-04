@@ -83,7 +83,7 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
   /**
    * Construct from DiscreteKey and std::string.
    */
-  TableDistribution(const DiscreteKeys& key, const std::string& potentials);
+  TableDistribution(const DiscreteKeys& keys, const std::string& potentials);
 
   /**
    * Construct from single DiscreteKey and std::string.
