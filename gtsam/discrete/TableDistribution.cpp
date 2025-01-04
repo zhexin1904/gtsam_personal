@@ -38,16 +38,15 @@ using std::vector;
 namespace gtsam {
 
 /* ************************************************************************** */
-TableDistribution::TableDistribution(const size_t nrFrontals,
-                                     const TableFactor& f)
-    : BaseConditional(nrFrontals, DecisionTreeFactor(f.discreteKeys(), ADT())),
-      table_(f / (*f.sum(nrFrontals))) {}
+TableDistribution::TableDistribution(const TableFactor& f)
+    : BaseConditional(f.keys().size(),
+                      DecisionTreeFactor(f.discreteKeys(), ADT())),
+      table_(f / (*f.sum(f.keys().size()))) {}
 
 /* ************************************************************************** */
 TableDistribution::TableDistribution(
-    size_t nrFrontals, const DiscreteKeys& keys,
-    const Eigen::SparseVector<double>& potentials)
-    : BaseConditional(nrFrontals, keys, DecisionTreeFactor(keys, ADT())),
+    const DiscreteKeys& keys, const Eigen::SparseVector<double>& potentials)
+    : BaseConditional(keys.size(), keys, DecisionTreeFactor(keys, ADT())),
       table_(TableFactor(keys, potentials)) {}
 
 /* ************************************************************************** */
@@ -65,11 +64,6 @@ TableDistribution::TableDistribution(const TableFactor& joint,
   keys_.clear();
   keys_.insert(keys_.end(), orderedKeys.begin(), orderedKeys.end());
 }
-
-/* ************************************************************************** */
-TableDistribution::TableDistribution(const Signature& signature)
-    : BaseConditional(1, DecisionTreeFactor(DiscreteKeys{{1, 1}}, ADT(1))),
-      table_(TableFactor(signature.discreteKeys(), signature.cpt())) {}
 
 /* ************************************************************************** */
 void TableDistribution::print(const string& s,
@@ -107,7 +101,7 @@ DiscreteConditional::shared_ptr TableDistribution::max(
     const Ordering& keys) const {
   auto m = *table_.max(keys);
 
-  return std::make_shared<TableDistribution>(m.discreteKeys().size(), m);
+  return std::make_shared<TableDistribution>(m);
 }
 
 /* ****************************************************************************/
@@ -124,8 +118,8 @@ DiscreteConditional::shared_ptr TableDistribution::prune(
     size_t maxNrAssignments) const {
   TableFactor pruned = table_.prune(maxNrAssignments);
 
-  return std::make_shared<TableDistribution>(
-      this->nrFrontals(), this->discreteKeys(), pruned.sparseTable());
+  return std::make_shared<TableDistribution>(this->discreteKeys(),
+                                             pruned.sparseTable());
 }
 
 }  // namespace gtsam

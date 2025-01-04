@@ -58,57 +58,15 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
   /// Default constructor needed for serialization.
   TableDistribution() {}
 
-  /// Construct from factor, taking the first `nFrontals` keys as frontals.
-  TableDistribution(size_t nFrontals, const TableFactor& f);
+  /// Construct from TableFactor.
+  TableDistribution(const TableFactor& f);
 
   /**
    * Construct from DiscreteKeys and SparseVector, taking the first
    * `nFrontals` keys as frontals, in the order given.
    */
-  TableDistribution(size_t nFrontals, const DiscreteKeys& keys,
+  TableDistribution(const DiscreteKeys& keys,
                     const Eigen::SparseVector<double>& potentials);
-
-  /** Construct from signature */
-  explicit TableDistribution(const Signature& signature);
-
-  /**
-   * Construct from key, parents, and a Signature::Table specifying the
-   * conditional probability table (CPT) in 00 01 10 11 order. For
-   * three-valued, it would be 00 01 02 10 11 12 20 21 22, etc....
-   *
-   * Example: TableDistribution P(D, {B,E}, table);
-   */
-  TableDistribution(const DiscreteKey& key, const DiscreteKeys& parents,
-                    const Signature::Table& table)
-      : TableDistribution(Signature(key, parents, table)) {}
-
-  /**
-   * Construct from key, parents, and a vector<double> specifying the
-   * conditional probability table (CPT) in 00 01 10 11 order. For
-   * three-valued, it would be 00 01 02 10 11 12 20 21 22, etc....
-   *
-   * Example: TableDistribution P(D, {B,E}, table);
-   */
-  TableDistribution(const DiscreteKey& key, const DiscreteKeys& parents,
-                    const std::vector<double>& table)
-      : TableDistribution(1, TableFactor(DiscreteKeys{key} & parents, table)) {}
-
-  /**
-   * Construct from key, parents, and a string specifying the conditional
-   * probability table (CPT) in 00 01 10 11 order. For three-valued, it would
-   * be 00 01 02 10 11 12 20 21 22, etc....
-   *
-   * The string is parsed into a Signature::Table.
-   *
-   * Example: TableDistribution P(D, {B,E}, "9/1 2/8 3/7 1/9");
-   */
-  TableDistribution(const DiscreteKey& key, const DiscreteKeys& parents,
-                    const std::string& spec)
-      : TableDistribution(Signature(key, parents, spec)) {}
-
-  /// No-parent specialization; can also use DiscreteDistribution.
-  TableDistribution(const DiscreteKey& key, const std::string& spec)
-      : TableDistribution(Signature(key, {}, spec)) {}
 
   /**
    * @brief construct P(X|Y) = f(X,Y)/f(Y) from f(X,Y) and f(Y)
