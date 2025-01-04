@@ -145,7 +145,7 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
    *
    * @return maximizing assignment for the variables.
    */
-  uint64_t argmax() const;
+  DiscreteValues argmax() const;
 
   /// @}
   /// @name Advanced Interface

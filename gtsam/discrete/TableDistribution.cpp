@@ -119,7 +119,7 @@ DiscreteFactor::shared_ptr TableDistribution::max(const Ordering& keys) const {
 }
 
 /* ************************************************************************ */
-uint64_t TableDistribution::argmax() const {
+DiscreteValues TableDistribution::argmax() const {
   uint64_t maxIdx = 0;
   double maxValue = 0.0;
 
@@ -132,7 +132,7 @@ uint64_t TableDistribution::argmax() const {
     }
   }
 
-  return maxIdx;
+  return table_.findAssignments(maxIdx);
 }
 
 /* ****************************************************************************/
