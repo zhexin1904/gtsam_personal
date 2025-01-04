@@ -276,11 +276,8 @@ class GTSAM_EXPORT DiscreteConditional
    */
   double negLogConstant() const override;
 
-  /// Set the data from another DiscreteConditional.
-  virtual void setData(const DiscreteConditional::shared_ptr& dc);
-
   /// Prune the conditional
-  virtual DiscreteConditional::shared_ptr prune(size_t maxNrAssignments) const;
+  virtual void prune(size_t maxNrAssignments);
 
   /// @}
 

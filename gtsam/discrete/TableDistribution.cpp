@@ -122,21 +122,8 @@ DiscreteConditional::shared_ptr TableDistribution::max(
 }
 
 /* ****************************************************************************/
-void TableDistribution::setData(const DiscreteConditional::shared_ptr& dc) {
-  if (auto dtc = std::dynamic_pointer_cast<TableDistribution>(dc)) {
-    this->table_ = dtc->table_;
-  } else {
-    this->table_ = TableFactor(dc->discreteKeys(), *dc);
-  }
-}
-
-/* ****************************************************************************/
-DiscreteConditional::shared_ptr TableDistribution::prune(
-    size_t maxNrAssignments) const {
-  TableFactor pruned = table_.prune(maxNrAssignments);
-
-  return std::make_shared<TableDistribution>(this->discreteKeys(),
-                                             pruned.sparseTable());
+void TableDistribution::prune(size_t maxNrAssignments) {
+  table_ = table_.prune(maxNrAssignments);
 }
 
 }  // namespace gtsam

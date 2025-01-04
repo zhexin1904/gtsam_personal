@@ -479,11 +479,6 @@ double DiscreteConditional::evaluate(const HybridValues& x) const {
 }
 
 /* ************************************************************************* */
-void DiscreteConditional::setData(const DiscreteConditional::shared_ptr& dc) {
-  this->root_ = dc->root_;
-}
-
-/* ************************************************************************* */
 DiscreteConditional::shared_ptr DiscreteConditional::max(
     const Ordering& keys) const {
   auto m = *BaseFactor::max(keys);
@@ -491,10 +486,10 @@ DiscreteConditional::shared_ptr DiscreteConditional::max(
 }
 
 /* ************************************************************************* */
-DiscreteConditional::shared_ptr DiscreteConditional::prune(
-    size_t maxNrAssignments) const {
-  return std::make_shared<DiscreteConditional>(
-      this->nrFrontals(), BaseFactor::prune(maxNrAssignments));
+void DiscreteConditional::prune(size_t maxNrAssignments) {
+  // Get as DiscreteConditional so the probabilities are normalized
+  DiscreteConditional pruned(nrFrontals(), BaseFactor::prune(maxNrAssignments));
+  this->root_ = pruned.root_;
 }
 
 /* ************************************************************************* */

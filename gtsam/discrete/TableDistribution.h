@@ -145,12 +145,8 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
   /// @name Advanced Interface
   /// @{
 
-  /// Set the underlying data from the DiscreteConditional
-  virtual void setData(const DiscreteConditional::shared_ptr& dc) override;
-
   /// Prune the conditional
-  virtual DiscreteConditional::shared_ptr prune(
-      size_t maxNrAssignments) const override;
+  virtual void prune(size_t maxNrAssignments) override;
 
   /// Get a DecisionTreeFactor representation.
   DecisionTreeFactor toDecisionTreeFactor() const override {
