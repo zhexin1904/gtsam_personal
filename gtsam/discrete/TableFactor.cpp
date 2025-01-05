@@ -87,7 +87,15 @@ static Eigen::SparseVector<double> ComputeSparseTable(
   });
   sparseTable.reserve(nrValues);
 
-  std::set<Key> allKeys(dt.keys().begin(), dt.keys().end());
+  KeySet allKeys(dt.keys().begin(), dt.keys().end());
+
+  // Compute denominators to be used in computing sparse table indices
+  std::map<Key, size_t> denominators;
+  double denom = sparseTable.size();
+  for (const DiscreteKey& dkey : dkeys) {
+    denom /= dkey.second;
+    denominators.insert(std::pair<Key, double>(dkey.first, denom));
+  }
 
   /**
    * @brief Functor which is called by the DecisionTree for each leaf.
@@ -102,13 +110,13 @@ static Eigen::SparseVector<double> ComputeSparseTable(
   auto op = [&](const Assignment<Key>& assignment, double p) {
     if (p > 0) {
       // Get all the keys involved in this assignment
-      std::set<Key> assignmentKeys;
+      KeySet assignmentKeys;
       for (auto&& [k, _] : assignment) {
         assignmentKeys.insert(k);
       }
 
       // Find the keys missing in the assignment
-      std::vector<Key> diff;
+      KeyVector diff;
       std::set_difference(allKeys.begin(), allKeys.end(),
                           assignmentKeys.begin(), assignmentKeys.end(),
                           std::back_inserter(diff));
@@ -127,12 +135,10 @@ static Eigen::SparseVector<double> ComputeSparseTable(
 
         // Generate index and add to the sparse vector.
         Eigen::Index idx = 0;
-        size_t previousCardinality = 1;
         // We go in reverse since a DecisionTree has the highest label first
         for (auto&& it = updatedAssignment.rbegin();
              it != updatedAssignment.rend(); it++) {
-          idx += previousCardinality * it->second;
-          previousCardinality *= dt.cardinality(it->first);
+          idx += it->second * denominators.at(it->first);
         }
         sparseTable.coeffRef(idx) = p;
       }
@@ -252,41 +258,22 @@ DecisionTreeFactor TableFactor::operator*(const DecisionTreeFactor& f) const {
 DecisionTreeFactor TableFactor::toDecisionTreeFactor() const {
   DiscreteKeys dkeys = discreteKeys();
 
-  // Record key assignment and value pairs in pair_table.
-  // The assignments are stored in descending order of keys so that the order of
-  // the values matches what is expected by a DecisionTree.
-  // This is why we reverse the keys and then
-  // query for the key value/assignment.
-  DiscreteKeys rdkeys(dkeys.rbegin(), dkeys.rend());
-  std::vector<std::pair<uint64_t, double>> pair_table;
-  for (auto i = 0; i < sparse_table_.size(); i++) {
-    std::stringstream ss;
-    for (auto&& [key, _] : rdkeys) {
-      ss << keyValueForIndex(key, i);
+  // If no keys, then return empty DecisionTreeFactor
+  if (dkeys.size() == 0) {
+    AlgebraicDecisionTree<Key> tree;
+    // We can have an empty sparse_table_ or one with a single value.
+    if (sparse_table_.size() != 0) {
+      tree = AlgebraicDecisionTree<Key>(sparse_table_.coeff(0));
     }
-    // k will be in reverse key order already
-    uint64_t k;
-    ss >> k;
-    pair_table.push_back(std::make_pair(k, sparse_table_.coeff(i)));
+    return DecisionTreeFactor(dkeys, tree);
   }
 
-  // Sort the pair_table (of assignment-value pairs) based on assignment so we
-  // get values in reverse key order.
-  std::sort(
-      pair_table.begin(), pair_table.end(),
-      [](const std::pair<uint64_t, double>& a,
-         const std::pair<uint64_t, double>& b) { return a.first < b.first; });
+  std::vector<double> table(sparse_table_.size(), 0.0);
+  for (SparseIt it(sparse_table_); it; ++it) {
+    table[it.index()] = it.value();
+  }
 
-  // Create the table vector by extracting the values from pair_table.
-  // The pair_table has already been sorted in the desired order,
-  // so the values will be in descending key order.
-  std::vector<double> table;
-  std::for_each(pair_table.begin(), pair_table.end(),
-                [&table](const std::pair<uint64_t, double>& pair) {
-                  table.push_back(pair.second);
-                });
-
-  AlgebraicDecisionTree<Key> tree(rdkeys, table);
+  AlgebraicDecisionTree<Key> tree(dkeys, table);
   DecisionTreeFactor f(dkeys, tree);
   return f;
 }

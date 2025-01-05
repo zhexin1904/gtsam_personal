@@ -32,6 +32,12 @@
 #include <utility>
 #include <vector>
 
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
+#include <gtsam/base/MatrixSerialization.h>
+
+#include <boost/serialization/nvp.hpp>
+#endif
+
 namespace gtsam {
 
 class DiscreteConditional;
@@ -360,6 +366,19 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
   double error(const HybridValues& values) const override;
 
   /// @}
+
+ private:
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
+  /** Serialization function */
+  friend class boost::serialization::access;
+  template <class ARCHIVE>
+  void serialize(ARCHIVE& ar, const unsigned int /*version*/) {
+    ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(Base);
+    ar& BOOST_SERIALIZATION_NVP(sparse_table_);
+    ar& BOOST_SERIALIZATION_NVP(denominators_);
+    ar& BOOST_SERIALIZATION_NVP(sorted_dkeys_);
+  }
+#endif
 };
 
 // traits
