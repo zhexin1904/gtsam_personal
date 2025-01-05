@@ -256,7 +256,7 @@ DecisionTreeFactor TableFactor::operator*(const DecisionTreeFactor& f) const {
 
 /* ************************************************************************ */
 DiscreteFactor::shared_ptr TableFactor::multiply(
-    const DiscreteFactor::shared_ptr& f) const override {
+    const DiscreteFactor::shared_ptr& f) const {
   DiscreteFactor::shared_ptr result;
   if (auto tf = std::dynamic_pointer_cast<TableFactor>(f)) {
     result = std::make_shared<TableFactor>(this->operator*(*tf));
