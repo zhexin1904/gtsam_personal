@@ -262,6 +262,10 @@ DiscreteFactor::shared_ptr TableFactor::multiply(
     result = std::make_shared<TableFactor>(this->operator*(*tf));
   } else if (auto dtf = std::dynamic_pointer_cast<DecisionTreeFactor>(f)) {
     result = std::make_shared<TableFactor>(this->operator*(TableFactor(*dtf)));
+  } else {
+    // Simulate double dispatch in C++
+    result = std::make_shared<DecisionTreeFactor>(
+        f->operator*(this->toDecisionTreeFactor()));
   }
   return result;
 }
