@@ -30,6 +30,12 @@
 using namespace std;
 using namespace gtsam;
 
+/** Convert Signature into CPT */
+DecisionTreeFactor create(const Signature& signature) {
+  DecisionTreeFactor p(signature.discreteKeys(), signature.cpt());
+  return p;
+}
+
 /* ************************************************************************* */
 TEST(DecisionTreeFactor, ConstructorsMatch) {
   // Declare two keys
@@ -70,15 +76,6 @@ TEST(DecisionTreeFactor, constructors) {
 }
 
 /* ************************************************************************* */
-TEST(DecisionTreeFactor, Divide) {
-  DiscreteKey A(0, 2), S(1, 2);
-  DecisionTreeFactor pA = create(A % "99/1"), pS = create(S % "50/50");
-  DecisionTreeFactor joint = pA * pS;
-  DecisionTreeFactor s = joint / pA;
-  EXPECT(assert_equal(pS, s));
-}
-
-/* ************************************************************************* */
 TEST(DecisionTreeFactor, Error) {
   // Declare a bunch of keys
   DiscreteKey X(0, 2), Y(1, 3), Z(2, 2);
@@ -112,6 +109,15 @@ TEST(DecisionTreeFactor, multiplication) {
   DecisionTreeFactor actual = f1 * f2;
   DecisionTreeFactor expected2(v0 & v1 & v2, "5 6 14 16 15 18 28 32");
   CHECK(assert_equal(expected2, actual));
+}
+
+/* ************************************************************************* */
+TEST(DecisionTreeFactor, Divide) {
+  DiscreteKey A(0, 2), S(1, 2);
+  DecisionTreeFactor pA = create(A % "99/1"), pS = create(S % "50/50");
+  DecisionTreeFactor joint = pA * pS;
+  DecisionTreeFactor s = joint / pA;
+  EXPECT(assert_equal(pS, s));
 }
 
 /* ************************************************************************* */
@@ -224,12 +230,6 @@ void maybeSaveDotFile(const DecisionTreeFactor& f, const string& filename) {
   auto formatter = [&](Key key) { return names[key]; };
   f.dot(filename, formatter, true);
 #endif
-}
-
-/** Convert Signature into CPT */
-DecisionTreeFactor create(const Signature& signature) {
-  DecisionTreeFactor p(signature.discreteKeys(), signature.cpt());
-  return p;
 }
 
 /* ************************************************************************* */
