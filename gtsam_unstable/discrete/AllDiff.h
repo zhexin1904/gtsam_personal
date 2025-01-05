@@ -56,8 +56,8 @@ class GTSAM_UNSTABLE_EXPORT AllDiff : public Constraint {
   /// Multiply factors, DiscreteFactor::shared_ptr edition
   DiscreteFactor::shared_ptr multiply(
       const DiscreteFactor::shared_ptr& df) const override {
-    return std::make_shared<DecisionTreeFactor>(
-        this->operator*(df->toDecisionTreeFactor()));
+    return std::make_shared<DecisionTreeFactor>(this->toDecisionTreeFactor() *
+                                                df->toDecisionTreeFactor());
   }
 
   /// Compute error for each assignment and return as a tree
