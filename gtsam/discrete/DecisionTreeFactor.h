@@ -22,6 +22,7 @@
 #include <gtsam/discrete/DiscreteFactor.h>
 #include <gtsam/discrete/DiscreteKey.h>
 #include <gtsam/discrete/Ring.h>
+#include <gtsam/discrete/TableFactor.h>
 #include <gtsam/inference/Ordering.h>
 
 #include <algorithm>
@@ -146,6 +147,10 @@ namespace gtsam {
 
     /// Calculate error for DiscreteValues `x`, is -log(probability).
     double error(const DiscreteValues& values) const override;
+
+    /// Multiply factors, DiscreteFactor::shared_ptr edition
+    virtual DiscreteFactor::shared_ptr multiply(
+        const DiscreteFactor::shared_ptr& f) const override;
 
     /// multiply two factors
     DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override {

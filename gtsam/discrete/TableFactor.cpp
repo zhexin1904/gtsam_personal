@@ -255,6 +255,18 @@ DecisionTreeFactor TableFactor::operator*(const DecisionTreeFactor& f) const {
 }
 
 /* ************************************************************************ */
+DiscreteFactor::shared_ptr TableFactor::multiply(
+    const DiscreteFactor::shared_ptr& f) const override {
+  DiscreteFactor::shared_ptr result;
+  if (auto tf = std::dynamic_pointer_cast<TableFactor>(f)) {
+    result = std::make_shared<TableFactor>(this->operator*(*tf));
+  } else if (auto dtf = std::dynamic_pointer_cast<DecisionTreeFactor>(f)) {
+    result = std::make_shared<TableFactor>(this->operator*(TableFactor(*dtf)));
+  }
+  return result;
+}
+
+/* ************************************************************************ */
 DecisionTreeFactor TableFactor::toDecisionTreeFactor() const {
   DiscreteKeys dkeys = discreteKeys();
 
