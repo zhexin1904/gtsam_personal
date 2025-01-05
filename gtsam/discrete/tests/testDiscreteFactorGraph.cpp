@@ -117,9 +117,9 @@ TEST(DiscreteFactorGraph, test) {
       *std::dynamic_pointer_cast<DecisionTreeFactor>(newFactorPtr);
 
   // Normalize newFactor by max for comparison with expected
-  auto normalizer = newFactor.max(newFactor.size());
+  auto denominator = newFactor.max(newFactor.size());
 
-  newFactor = newFactor / *normalizer;
+  newFactor = newFactor / denominator;
 
   // Check Conditional
   CHECK(conditional);
@@ -131,9 +131,9 @@ TEST(DiscreteFactorGraph, test) {
   CHECK(&newFactor);
   DecisionTreeFactor expectedFactor(B & A, "10 6 6 10");
   // Normalize by max.
-  normalizer = expectedFactor.max(expectedFactor.size());
-  // Ensure normalizer is correct.
-  expectedFactor = expectedFactor / *normalizer;
+  denominator = expectedFactor.max(expectedFactor.size());
+  // Ensure denominator is correct.
+  expectedFactor = expectedFactor / denominator;
   EXPECT(assert_equal(expectedFactor, newFactor));
 
   // Test using elimination tree

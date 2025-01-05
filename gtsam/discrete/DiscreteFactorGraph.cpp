@@ -128,7 +128,7 @@ namespace gtsam {
     auto denominator = product.max(product.size());
 
     // Normalize the product factor to prevent underflow.
-    product = product / (*denominator);
+    product = product / denominator;
 
     return product;
   }

@@ -194,15 +194,17 @@ TEST(TableFactor, Conversion) {
 TEST(TableFactor, Empty) {
   DiscreteKey X(1, 2);
 
-  TableFactor single = *TableFactor({X}, "1 1").sum(1);
+  auto single = TableFactor({X}, "1 1").sum(1);
   // Should not throw a segfault
-  EXPECT(assert_equal(*DecisionTreeFactor(X, "1 1").sum(1),
-                      single.toDecisionTreeFactor()));
+  auto expected_single = DecisionTreeFactor(X, "1 1").sum(1);
+  EXPECT(assert_equal(expected_single->toDecisionTreeFactor(),
+                      single->toDecisionTreeFactor()));
 
-  TableFactor empty = *TableFactor({X}, "0 0").sum(1);
+  auto empty = TableFactor({X}, "0 0").sum(1);
   // Should not throw a segfault
-  EXPECT(assert_equal(*DecisionTreeFactor(X, "0 0").sum(1),
-                      empty.toDecisionTreeFactor()));
+  auto expected_empty = DecisionTreeFactor(X, "0 0").sum(1);
+  EXPECT(assert_equal(expected_empty->toDecisionTreeFactor(),
+                      empty->toDecisionTreeFactor()));
 }
 
 /* ************************************************************************* */
