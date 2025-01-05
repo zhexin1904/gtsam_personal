@@ -65,9 +65,16 @@ namespace gtsam {
 
   /* ************************************************************************ */
   DecisionTreeFactor DiscreteFactorGraph::product() const {
-    DiscreteFactor::shared_ptr result = *this->begin();
-    for (auto it = this->begin() + 1; it != this->end(); ++it) {
-      if (*it) result = result->multiply(*it);
+    DiscreteFactor::shared_ptr result;
+    for (auto it = this->begin(); it != this->end(); ++it) {
+      if (*it) {
+        if (result) {
+          result = result->multiply(*it);
+        } else {
+          // Assign to the first non-null factor
+          result = *it;
+        }
+      }
     }
     return result->toDecisionTreeFactor();
   }
