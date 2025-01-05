@@ -64,7 +64,7 @@ namespace gtsam {
 
   /* ************************************************************************ */
   DiscreteFactor::shared_ptr DecisionTreeFactor::multiply(
-      const DiscreteFactor::shared_ptr& f) const override {
+      const DiscreteFactor::shared_ptr& f) const {
     DiscreteFactor::shared_ptr result;
     if (auto tf = std::dynamic_pointer_cast<TableFactor>(f)) {
       result = std::make_shared<TableFactor>((*tf) * TableFactor(*this));
