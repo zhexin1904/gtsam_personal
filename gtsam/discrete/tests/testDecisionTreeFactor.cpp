@@ -116,8 +116,20 @@ TEST(DecisionTreeFactor, Divide) {
   DiscreteKey A(0, 2), S(1, 2);
   DecisionTreeFactor pA = create(A % "99/1"), pS = create(S % "50/50");
   DecisionTreeFactor joint = pA * pS;
+
   DecisionTreeFactor s = joint / pA;
-  EXPECT(assert_equal(pS, s));
+
+  // Factors are not equal due to difference in keys
+  EXPECT(assert_inequal(pS, s));
+
+  // The underlying data should be the same
+  using ADT = AlgebraicDecisionTree<Key>;
+  EXPECT(assert_equal(ADT(pS), ADT(s)));
+
+  KeySet keys(joint.keys());
+  keys.insert(pA.keys().begin(), pA.keys().end());
+  EXPECT(assert_inequal(KeySet(pS.keys()), keys));
+  
 }
 
 /* ************************************************************************* */
