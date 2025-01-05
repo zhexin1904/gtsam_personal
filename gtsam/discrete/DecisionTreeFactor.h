@@ -181,12 +181,12 @@ namespace gtsam {
     }
 
     /// Create new factor by maximizing over all values with the same separator.
-    DiscreteFactor::shared_ptr max(size_t nrFrontals) const {
+    shared_ptr max(size_t nrFrontals) const {
       return combine(nrFrontals, Ring::max);
     }
 
     /// Create new factor by maximizing over all values with the same separator.
-    DiscreteFactor::shared_ptr max(const Ordering& keys) const {
+    shared_ptr max(const Ordering& keys) const {
       return combine(keys, Ring::max);
     }
 
