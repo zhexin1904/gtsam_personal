@@ -70,6 +70,9 @@ namespace gtsam {
       result = std::make_shared<TableFactor>((*tf) * TableFactor(*this));
     } else if (auto dtf = std::dynamic_pointer_cast<DecisionTreeFactor>(f)) {
       result = std::make_shared<DecisionTreeFactor>(this->operator*(*dtf));
+    } else {
+      // Simulate double dispatch in C++
+      result = std::make_shared<DecisionTreeFactor>(f->operator*(*this));
     }
     return result;
   }

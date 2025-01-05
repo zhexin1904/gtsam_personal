@@ -256,12 +256,16 @@ DecisionTreeFactor TableFactor::operator*(const DecisionTreeFactor& f) const {
 
 /* ************************************************************************ */
 DiscreteFactor::shared_ptr TableFactor::multiply(
-    const DiscreteFactor::shared_ptr& f) const override {
+    const DiscreteFactor::shared_ptr& f) const {
   DiscreteFactor::shared_ptr result;
   if (auto tf = std::dynamic_pointer_cast<TableFactor>(f)) {
     result = std::make_shared<TableFactor>(this->operator*(*tf));
   } else if (auto dtf = std::dynamic_pointer_cast<DecisionTreeFactor>(f)) {
     result = std::make_shared<TableFactor>(this->operator*(TableFactor(*dtf)));
+  } else {
+    // Simulate double dispatch in C++
+    result = std::make_shared<DecisionTreeFactor>(
+        f->operator*(this->toDecisionTreeFactor()));
   }
   return result;
 }

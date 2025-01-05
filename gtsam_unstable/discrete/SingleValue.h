@@ -63,6 +63,13 @@ class GTSAM_UNSTABLE_EXPORT SingleValue : public Constraint {
   /// Multiply into a decisiontree
   DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override;
 
+  /// Multiply factors, DiscreteFactor::shared_ptr edition
+  DiscreteFactor::shared_ptr multiply(
+      const DiscreteFactor::shared_ptr& df) const override {
+    return std::make_shared<DecisionTreeFactor>(
+        this->operator*(df->toDecisionTreeFactor()));
+  }
+
   /*
    * Ensure Arc-consistency: just sets domain[j] to {value_}.
    * @param j domain to be checked
