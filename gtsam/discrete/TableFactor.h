@@ -179,6 +179,10 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
   /// multiply with DecisionTreeFactor
   DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override;
 
+  /// Multiply factors, DiscreteFactor::shared_ptr edition
+  virtual DiscreteFactor::shared_ptr multiply(
+      const DiscreteFactor::shared_ptr& f) const override;
+
   static double safe_div(const double& a, const double& b);
 
   /// divide by factor f (safely)
