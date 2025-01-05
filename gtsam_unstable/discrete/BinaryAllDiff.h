@@ -72,8 +72,8 @@ class BinaryAllDiff : public Constraint {
   /// Multiply factors, DiscreteFactor::shared_ptr edition
   DiscreteFactor::shared_ptr multiply(
       const DiscreteFactor::shared_ptr& df) const override {
-    return std::make_shared<DecisionTreeFactor>(this->toDecisionTreeFactor() *
-                                                df->toDecisionTreeFactor());
+    return std::make_shared<DecisionTreeFactor>(
+        this->operator*(df->toDecisionTreeFactor()));
   }
 
   /*
