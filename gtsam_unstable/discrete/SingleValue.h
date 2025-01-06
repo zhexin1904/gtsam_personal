@@ -77,25 +77,6 @@ class GTSAM_UNSTABLE_EXPORT SingleValue : public Constraint {
   /// Partially apply known values, domain version
   Constraint::shared_ptr partiallyApply(
       const Domains& domains) const override;
-
-  /// Get the number of non-zero values contained in this factor.
-  uint64_t nrValues() const override { return 1; };
-
-  DiscreteFactor::shared_ptr sum(size_t nrFrontals) const override {
-    return toDecisionTreeFactor().sum(nrFrontals);
-  }
-
-  DiscreteFactor::shared_ptr sum(const Ordering& keys) const override {
-    return toDecisionTreeFactor().sum(keys);
-  }
-
-  DiscreteFactor::shared_ptr max(size_t nrFrontals) const override {
-    return toDecisionTreeFactor().max(nrFrontals);
-  }
-
-  DiscreteFactor::shared_ptr max(const Ordering& keys) const override {
-    return toDecisionTreeFactor().max(keys);
-  }
 };
 
 }  // namespace gtsam

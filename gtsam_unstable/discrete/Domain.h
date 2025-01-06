@@ -114,22 +114,6 @@ class GTSAM_UNSTABLE_EXPORT Domain : public Constraint {
 
   /// Partially apply known values, domain version
   Constraint::shared_ptr partiallyApply(const Domains& domains) const override;
-
-  DiscreteFactor::shared_ptr sum(size_t nrFrontals) const override {
-    return toDecisionTreeFactor().sum(nrFrontals);
-  }
-
-  DiscreteFactor::shared_ptr sum(const Ordering& keys) const override {
-    return toDecisionTreeFactor().sum(keys);
-  }
-
-  DiscreteFactor::shared_ptr max(size_t nrFrontals) const override {
-    return toDecisionTreeFactor().max(nrFrontals);
-  }
-
-  DiscreteFactor::shared_ptr max(const Ordering& keys) const override {
-    return toDecisionTreeFactor().max(keys);
-  }
 };
 
 }  // namespace gtsam
