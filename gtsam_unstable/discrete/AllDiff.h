@@ -53,13 +53,6 @@ class GTSAM_UNSTABLE_EXPORT AllDiff : public Constraint {
   /// Multiply into a decisiontree
   DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override;
 
-  /// Multiply factors, DiscreteFactor::shared_ptr edition
-  DiscreteFactor::shared_ptr multiply(
-      const DiscreteFactor::shared_ptr& df) const override {
-    return std::make_shared<DecisionTreeFactor>(
-        this->operator*(df->toDecisionTreeFactor()));
-  }
-
   /// Compute error for each assignment and return as a tree
   AlgebraicDecisionTree<Key> errorTree() const override {
     throw std::runtime_error("AllDiff::error not implemented");
