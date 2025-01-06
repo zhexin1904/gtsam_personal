@@ -191,15 +191,8 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
   }
 
   /// divide by DiscreteFactor::shared_ptr f (safely)
-  TableFactor operator/(const DiscreteFactor::shared_ptr& f) const {
-    if (auto tf = std::dynamic_pointer_cast<TableFactor>(f)) {
-      return apply(*tf, safe_div);
-    } else if (auto dtf = std::dynamic_pointer_cast<DecisionTreeFactor>(f)) {
-      return apply(TableFactor(f->discreteKeys(), *dtf), safe_div);
-    } else {
-      throw std::runtime_error("Unknown derived type for DiscreteFactor");
-    }
-  }
+  DiscreteFactor::shared_ptr operator/(
+      const DiscreteFactor::shared_ptr& f) const override;
 
   /// Convert into a decisiontree
   DecisionTreeFactor toDecisionTreeFactor() const override;

@@ -50,6 +50,12 @@ DecisionTreeFactor Domain::operator*(const DecisionTreeFactor& f) const {
 }
 
 /* ************************************************************************* */
+DiscreteFactor::shared_ptr Domain::operator/(
+    const DiscreteFactor::shared_ptr& df) const {
+  return this->toDecisionTreeFactor() / df;
+}
+
+/* ************************************************************************* */
 bool Domain::ensureArcConsistency(Key j, Domains* domains) const {
   if (j != key()) throw invalid_argument("Domain check on wrong domain");
   Domain& D = domains->at(j);

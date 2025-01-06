@@ -76,6 +76,12 @@ class BinaryAllDiff : public Constraint {
         this->operator*(df->toDecisionTreeFactor()));
   }
 
+  /// divide by DiscreteFactor::shared_ptr f (safely)
+  DiscreteFactor::shared_ptr operator/(
+      const DiscreteFactor::shared_ptr& df) const override {
+    return this->toDecisionTreeFactor() / df;
+  }
+
   /*
    * Ensure Arc-consistency by checking every possible value of domain j.
    * @param j domain to be checked

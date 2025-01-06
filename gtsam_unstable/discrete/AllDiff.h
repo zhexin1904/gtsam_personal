@@ -60,6 +60,10 @@ class GTSAM_UNSTABLE_EXPORT AllDiff : public Constraint {
         this->operator*(df->toDecisionTreeFactor()));
   }
 
+  /// divide by DiscreteFactor::shared_ptr f (safely)
+  DiscreteFactor::shared_ptr operator/(
+      const DiscreteFactor::shared_ptr& df) const override;
+
   /// Compute error for each assignment and return as a tree
   AlgebraicDecisionTree<Key> errorTree() const override {
     throw std::runtime_error("AllDiff::error not implemented");

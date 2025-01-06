@@ -70,6 +70,10 @@ class GTSAM_UNSTABLE_EXPORT SingleValue : public Constraint {
         this->operator*(df->toDecisionTreeFactor()));
   }
 
+  /// divide by DiscreteFactor::shared_ptr f (safely)
+  DiscreteFactor::shared_ptr operator/(
+      const DiscreteFactor::shared_ptr& df) const override;
+
   /*
    * Ensure Arc-consistency: just sets domain[j] to {value_}.
    * @param j domain to be checked
