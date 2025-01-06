@@ -306,14 +306,17 @@ TEST(TableFactor, sum_max) {
 
   TableFactor expected(v1, "9 12");
   auto actual = std::dynamic_pointer_cast<TableFactor>(f1.sum(1));
+  CHECK(actual);
   CHECK(assert_equal(expected, *actual, 1e-5));
 
   TableFactor expected2(v1, "5 6");
   auto actual2 = std::dynamic_pointer_cast<TableFactor>(f1.max(1));
+  CHECK(actual2);
   CHECK(assert_equal(expected2, *actual2));
 
   TableFactor f2(v1 & v0, "1 2  3 4  5 6");
   auto actual22 = std::dynamic_pointer_cast<TableFactor>(f2.sum(1));
+  CHECK(actual22);
 }
 
 /* ************************************************************************* */
