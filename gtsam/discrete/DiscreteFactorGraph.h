@@ -148,7 +148,7 @@ class GTSAM_EXPORT DiscreteFactorGraph
   DiscreteKeys discreteKeys() const;
 
   /** return product of all factors as a single factor */
-  DecisionTreeFactor product() const;
+  DiscreteFactor::shared_ptr product() const;
 
   /** 
    * Evaluates the factor graph given values, returns the joint probability of
