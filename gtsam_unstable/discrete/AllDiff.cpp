@@ -57,12 +57,6 @@ DecisionTreeFactor AllDiff::operator*(const DecisionTreeFactor& f) const {
 }
 
 /* ************************************************************************* */
-DiscreteFactor::shared_ptr AllDiff::operator/(
-    const DiscreteFactor::shared_ptr& df) const {
-  return this->toDecisionTreeFactor() / df;
-}
-
-/* ************************************************************************* */
 bool AllDiff::ensureArcConsistency(Key j, Domains* domains) const {
   Domain& Dj = domains->at(j);
 

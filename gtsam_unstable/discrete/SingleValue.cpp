@@ -42,12 +42,6 @@ DecisionTreeFactor SingleValue::operator*(const DecisionTreeFactor& f) const {
 }
 
 /* ************************************************************************* */
-DiscreteFactor::shared_ptr SingleValue::operator/(
-    const DiscreteFactor::shared_ptr& df) const {
-  return this->toDecisionTreeFactor() / df;
-}
-
-/* ************************************************************************* */
 bool SingleValue::ensureArcConsistency(Key j, Domains* domains) const {
   if (j != keys_[0])
     throw invalid_argument("SingleValue check on wrong domain");

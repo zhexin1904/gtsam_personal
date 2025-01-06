@@ -86,6 +86,12 @@ class GTSAM_UNSTABLE_EXPORT Constraint : public DiscreteFactor {
         this->operator*(df->toDecisionTreeFactor()));
   }
 
+  /// divide by DiscreteFactor::shared_ptr f (safely)
+  DiscreteFactor::shared_ptr operator/(
+      const DiscreteFactor::shared_ptr& df) const override {
+    return this->toDecisionTreeFactor() / df;
+  }
+
   /// @}
   /// @name Wrapper support
   /// @{
