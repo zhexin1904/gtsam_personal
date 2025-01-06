@@ -94,7 +94,7 @@ TEST_UNSAFE( DiscreteFactorGraph, DiscreteFactorGraphEvaluationTest) {
   EXPECT_DOUBLES_EQUAL( 1.944, graph(values), 1e-9);
 
   // Check if graph product works
-  DecisionTreeFactor product = graph.product();
+  DecisionTreeFactor product = graph.product()->toDecisionTreeFactor();
   EXPECT_DOUBLES_EQUAL( 1.944, product(values), 1e-9);
 }
 
@@ -117,7 +117,7 @@ TEST(DiscreteFactorGraph, test) {
       *std::dynamic_pointer_cast<DecisionTreeFactor>(newFactorPtr);
 
   // Normalize newFactor by max for comparison with expected
-  auto denominator = newFactor.max(newFactor.size());
+  auto denominator = newFactor.max(newFactor.size())->toDecisionTreeFactor();
 
   newFactor = newFactor / denominator;
 
@@ -131,7 +131,8 @@ TEST(DiscreteFactorGraph, test) {
   CHECK(&newFactor);
   DecisionTreeFactor expectedFactor(B & A, "10 6 6 10");
   // Normalize by max.
-  denominator = expectedFactor.max(expectedFactor.size());
+  denominator =
+      expectedFactor.max(expectedFactor.size())->toDecisionTreeFactor();
   // Ensure denominator is correct.
   expectedFactor = expectedFactor / denominator;
   EXPECT(assert_equal(expectedFactor, newFactor));
