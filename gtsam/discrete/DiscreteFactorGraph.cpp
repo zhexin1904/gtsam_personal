@@ -118,12 +118,7 @@ namespace gtsam {
 //      }
 //  }
 
-  /**
-   * @brief Multiply all the `factors`.
-   *
-   * @param factors The factors to multiply as a DiscreteFactorGraph.
-   * @return DiscreteFactor::shared_ptr
-   */
+  /* ************************************************************************ */
   DiscreteFactor::shared_ptr DiscreteFactorGraph::scaledProduct() const {
     // PRODUCT: multiply all factors
     gttic(product);
