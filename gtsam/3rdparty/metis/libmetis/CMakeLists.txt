@@ -10,7 +10,6 @@ endif()
 
 if(WIN32)
 		set_target_properties(metis-gtsam PROPERTIES
-			PREFIX ""
 			COMPILE_FLAGS /w
 			WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
