@@ -1063,8 +1063,8 @@ TEST(HybridNonlinearFactorGraph, DifferentCovariances) {
   DiscreteValues dv0{{M(1), 0}};
   DiscreteValues dv1{{M(1), 1}};
 
-  DiscreteConditional expected_m1(m1, "0.5/0.5");
-  DiscreteConditional actual_m1 = *(hbn->at(2)->asDiscrete());
+  TableDistribution expected_m1(m1, "0.5 0.5");
+  TableDistribution actual_m1 = *(hbn->at(2)->asDiscrete<TableDistribution>());
 
   EXPECT(assert_equal(expected_m1, actual_m1));
 }
