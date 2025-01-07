@@ -284,7 +284,7 @@ TableFactor TableProduct(const DiscreteFactorGraph &factors) {
   // Max over all the potentials by pretending all keys are frontal:
   auto denominator = product.max(product.size());
   // Normalize the product factor to prevent underflow.
-  product = product / (*denominator);
+  product = product / *std::dynamic_pointer_cast<TableFactor>(denominator);
 #if GTSAM_HYBRID_TIMING
   gttoc_(DiscreteNormalize);
 #endif
@@ -367,7 +367,7 @@ discreteElimination(const HybridGaussianFactorGraph &factors,
     gttoc_(EliminateDiscreteFormDiscreteConditional);
 #endif
 
-    TableFactor::shared_ptr sum = product.sum(frontalKeys);
+    DiscreteFactor::shared_ptr sum = product.sum(frontalKeys);
 
     return {std::make_shared<HybridConditional>(conditional), sum};
 

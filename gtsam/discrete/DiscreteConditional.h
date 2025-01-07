@@ -221,7 +221,7 @@ class GTSAM_EXPORT DiscreteConditional
    * @param keys The keys to sum over.
    * @return DiscreteFactor::shared_ptr
    */
-  virtual DiscreteFactor::shared_ptr max(const Ordering& keys) const;
+  virtual DiscreteFactor::shared_ptr max(const Ordering& keys) const override;
 
   /// @}
   /// @name Advanced Interface

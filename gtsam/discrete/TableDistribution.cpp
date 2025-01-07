@@ -47,7 +47,8 @@ static Eigen::SparseVector<double> normalizeSparseTable(
 TableDistribution::TableDistribution(const TableFactor& f)
     : BaseConditional(f.keys().size(),
                       DecisionTreeFactor(f.discreteKeys(), ADT())),
-      table_(f / (*f.sum(f.keys().size()))) {}
+      table_(f / (*std::dynamic_pointer_cast<TableFactor>(
+                     f.sum(f.keys().size())))) {}
 
 /* ************************************************************************** */
 TableDistribution::TableDistribution(const DiscreteKeys& keys,

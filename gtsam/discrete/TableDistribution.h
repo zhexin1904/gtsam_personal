@@ -140,7 +140,7 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
   }
 
   /// Get the number of non-zero values.
-  size_t nrValues() const { return table_.sparseTable().nonZeros(); }
+  uint64_t nrValues() const override { return table_.sparseTable().nonZeros(); }
 
   /// @}
 
