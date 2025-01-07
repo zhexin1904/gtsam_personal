@@ -271,13 +271,4 @@ template <>
 struct traits<HybridGaussianFactorGraph>
     : public Testable<HybridGaussianFactorGraph> {};
 
-/**
- * @brief Multiply all the `factors` and normalize the
- * product to prevent underflow.
- *
- * @param factors The factors to multiply as a DiscreteFactorGraph.
- * @return TableFactor
- */
-TableFactor TableProduct(const DiscreteFactorGraph& factors);
-
 }  // namespace gtsam

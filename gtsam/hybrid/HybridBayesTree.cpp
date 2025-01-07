@@ -45,9 +45,16 @@ bool HybridBayesTree::equals(const This& other, double tol) const {
 /* ************************************************************************* */
 DiscreteValues HybridBayesTree::discreteMaxProduct(
     const DiscreteFactorGraph& dfg) const {
-  TableFactor product = TableProduct(dfg);
+  DiscreteFactor::shared_ptr product = dfg.scaledProduct();
 
-  DiscreteValues assignment = TableDistribution(product).argmax();
+  // Check type of product, and get as TableFactor for efficiency.
+  TableFactor p;
+  if (auto tf = std::dynamic_pointer_cast<TableFactor>(product)) {
+    p = *tf;
+  } else {
+    p = TableFactor(product->toDecisionTreeFactor());
+  }
+  DiscreteValues assignment = TableDistribution(p).argmax();
   return assignment;
 }
 
