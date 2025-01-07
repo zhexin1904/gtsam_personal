@@ -150,6 +150,11 @@ class GTSAM_EXPORT DiscreteFactorGraph
   /** return product of all factors as a single factor */
   DiscreteFactor::shared_ptr product() const;
 
+  /** Return product of all factors as a single factor,
+   * which is scaled by the max to prevent underflow
+   */
+  DiscreteFactor::shared_ptr scaledProduct() const;
+
   /** 
    * Evaluates the factor graph given values, returns the joint probability of
    * the factor graph given specific instantiation of values
