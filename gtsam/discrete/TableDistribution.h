@@ -18,7 +18,6 @@
 #pragma once
 
 #include <gtsam/discrete/DiscreteConditional.h>
-#include <gtsam/discrete/Signature.h>
 #include <gtsam/discrete/TableFactor.h>
 #include <gtsam/inference/Conditional-inst.h>
 

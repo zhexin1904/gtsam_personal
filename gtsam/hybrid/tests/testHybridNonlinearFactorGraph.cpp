@@ -20,6 +20,7 @@
 #include <gtsam/discrete/DiscreteBayesNet.h>
 #include <gtsam/discrete/DiscreteDistribution.h>
 #include <gtsam/discrete/DiscreteFactorGraph.h>
+#include <gtsam/discrete/TableDistribution.h>
 #include <gtsam/geometry/Pose2.h>
 #include <gtsam/hybrid/HybridEliminationTree.h>
 #include <gtsam/hybrid/HybridFactor.h>
@@ -512,10 +513,10 @@ TEST(HybridNonlinearFactorGraph, Full_Elimination) {
   // P(m1)
   EXPECT(hybridBayesNet->at(4)->frontals() == KeyVector{M(1)});
   EXPECT_LONGS_EQUAL(0, hybridBayesNet->at(4)->nrParents());
-  TableDistribution dtc = *hybridBayesNet->at(4)->asDiscrete<TableDistribution>();
-  EXPECT(
-      DiscreteConditional(dtc.nrFrontals(), dtc.toDecisionTreeFactor())
-          .equals(*discreteBayesNet.at(1)));
+  TableDistribution dtc =
+      *hybridBayesNet->at(4)->asDiscrete<TableDistribution>();
+  EXPECT(DiscreteConditional(dtc.nrFrontals(), dtc.toDecisionTreeFactor())
+             .equals(*discreteBayesNet.at(1)));
 }
 
 /****************************************************************************

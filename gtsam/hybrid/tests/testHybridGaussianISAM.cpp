@@ -19,6 +19,7 @@
 #include <gtsam/discrete/DiscreteBayesNet.h>
 #include <gtsam/discrete/DiscreteDistribution.h>
 #include <gtsam/discrete/DiscreteFactorGraph.h>
+#include <gtsam/discrete/TableDistribution.h>
 #include <gtsam/geometry/Pose2.h>
 #include <gtsam/hybrid/HybridConditional.h>
 #include <gtsam/hybrid/HybridGaussianISAM.h>
@@ -141,8 +142,7 @@ TEST(HybridGaussianISAM, IncrementalInference) {
       expectedRemainingGraph->eliminateMultifrontal(discreteOrdering);
 
   // Test the probability values with regression tests.
-  auto discrete =
-      isam[M(1)]->conditional()->asDiscrete<TableDistribution>();
+  auto discrete = isam[M(1)]->conditional()->asDiscrete<TableDistribution>();
   EXPECT(assert_equal(0.095292, (*discrete)({{M(0), 0}, {M(1), 0}}), 1e-5));
   EXPECT(assert_equal(0.282758, (*discrete)({{M(0), 1}, {M(1), 0}}), 1e-5));
   EXPECT(assert_equal(0.314175, (*discrete)({{M(0), 0}, {M(1), 1}}), 1e-5));
