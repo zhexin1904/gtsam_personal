@@ -45,15 +45,14 @@ static Eigen::SparseVector<double> normalizeSparseTable(
 
 /* ************************************************************************** */
 TableDistribution::TableDistribution(const TableFactor& f)
-    : BaseConditional(f.keys().size(),
-                      DecisionTreeFactor(f.discreteKeys(), ADT())),
+    : BaseConditional(f.keys().size(), f.discreteKeys(), ADT(nullptr)),
       table_(f / (*std::dynamic_pointer_cast<TableFactor>(
                      f.sum(f.keys().size())))) {}
 
 /* ************************************************************************** */
 TableDistribution::TableDistribution(const DiscreteKeys& keys,
                                      const std::vector<double>& potentials)
-    : BaseConditional(keys.size(), keys, DecisionTreeFactor(keys, ADT())),
+    : BaseConditional(keys.size(), keys, ADT(nullptr)),
       table_(TableFactor(
           keys, normalizeSparseTable(TableFactor::Convert(keys, potentials)))) {
 }
@@ -61,7 +60,7 @@ TableDistribution::TableDistribution(const DiscreteKeys& keys,
 /* ************************************************************************** */
 TableDistribution::TableDistribution(const DiscreteKeys& keys,
                                      const std::string& potentials)
-    : BaseConditional(keys.size(), keys, DecisionTreeFactor(keys, ADT())),
+    : BaseConditional(keys.size(), keys, ADT(nullptr)),
       table_(TableFactor(
           keys, normalizeSparseTable(TableFactor::Convert(keys, potentials)))) {
 }
