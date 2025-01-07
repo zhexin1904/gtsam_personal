@@ -133,6 +133,13 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
    */
   DiscreteValues argmax() const;
 
+  /**
+   * sample
+   * @param parentsValues Known values of the parents
+   * @return sample from conditional
+   */
+  virtual size_t sample(const DiscreteValues& parentsValues) const override;
+
   /// @}
   /// @name Advanced Interface
   /// @{

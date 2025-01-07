@@ -138,4 +138,37 @@ void TableDistribution::prune(size_t maxNrAssignments) {
   table_ = table_.prune(maxNrAssignments);
 }
 
+/* ****************************************************************************/
+size_t TableDistribution::sample(const DiscreteValues& parentsValues) const {
+  static mt19937 rng(2);  // random number generator
+
+  DiscreteKeys parentsKeys;
+  for (auto&& [key, _] : parentsValues) {
+    parentsKeys.push_back({key, table_.cardinality(key)});
+  }
+
+  // Get the correct conditional distribution: P(F|S=parentsValues)
+  TableFactor pFS = table_.choose(parentsValues, parentsKeys);
+
+  // TODO(Duy): only works for one key now, seems horribly slow this way
+  if (nrFrontals() != 1) {
+    throw std::invalid_argument(
+        "TableDistribution::sample can only be called on single variable "
+        "conditionals");
+  }
+  Key key = firstFrontalKey();
+  size_t nj = cardinality(key);
+  vector<double> p(nj);
+  DiscreteValues frontals;
+  for (size_t value = 0; value < nj; value++) {
+    frontals[key] = value;
+    p[value] = pFS(frontals);  // P(F=value|S=parentsValues)
+    if (p[value] == 1.0) {
+      return value;  // shortcut exit
+    }
+  }
+  std::discrete_distribution<size_t> distribution(p.begin(), p.end());
+  return distribution(rng);
+}
+
 }  // namespace gtsam

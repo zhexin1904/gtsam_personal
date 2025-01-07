@@ -199,7 +199,7 @@ class GTSAM_EXPORT DiscreteConditional
    * @param parentsValues Known values of the parents
    * @return sample from conditional
    */
-  size_t sample(const DiscreteValues& parentsValues) const;
+  virtual size_t sample(const DiscreteValues& parentsValues) const;
 
   /// Single parent version.
   size_t sample(size_t parent_value) const;

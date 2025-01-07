@@ -211,7 +211,7 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
   DecisionTreeFactor toDecisionTreeFactor() const override;
 
   /// Create a TableFactor that is a subset of this TableFactor
-  TableFactor choose(const DiscreteValues assignments,
+  TableFactor choose(const DiscreteValues parentAssignments,
                      DiscreteKeys parent_keys) const;
 
   /// Create new factor by summing all values with the same separator values
