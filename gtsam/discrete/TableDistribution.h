@@ -111,14 +111,17 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
     return table_.evaluate(values);
   }
 
-  /**
-   * @brief Create new factor by maximizing over all
-   * values with the same separator.
-   *
-   * @param keys The keys to sum over.
-   * @return DiscreteFactor::shared_ptr
-   */
-  virtual DiscreteFactor::shared_ptr max(const Ordering& keys) const override;
+  /// Create new factor by summing all values with the same separator values
+  DiscreteFactor::shared_ptr sum(size_t nrFrontals) const override;
+
+  /// Create new factor by summing all values with the same separator values
+  DiscreteFactor::shared_ptr sum(const Ordering& keys) const override;
+
+  /// Create new factor by maximizing over all values with the same separator.
+  DiscreteFactor::shared_ptr max(size_t nrFrontals) const override;
+
+  /// Create new factor by maximizing over all values with the same separator.
+  DiscreteFactor::shared_ptr max(const Ordering& keys) const override;
 
   /**
    * @brief Return assignment that maximizes value.

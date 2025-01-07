@@ -92,6 +92,21 @@ bool TableDistribution::equals(const DiscreteFactor& other, double tol) const {
 }
 
 /* ****************************************************************************/
+DiscreteFactor::shared_ptr TableDistribution::sum(size_t nrFrontals) const {
+  return table_.sum(nrFrontals);
+}
+
+/* ****************************************************************************/
+DiscreteFactor::shared_ptr TableDistribution::sum(const Ordering& keys) const {
+  return table_.sum(keys);
+}
+
+/* ****************************************************************************/
+DiscreteFactor::shared_ptr TableDistribution::max(size_t nrFrontals) const {
+  return table_.max(nrFrontals);
+}
+
+/* ****************************************************************************/
 DiscreteFactor::shared_ptr TableDistribution::max(const Ordering& keys) const {
   return table_.max(keys);
 }
