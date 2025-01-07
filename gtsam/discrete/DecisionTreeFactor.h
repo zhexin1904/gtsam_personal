@@ -147,6 +147,23 @@ namespace gtsam {
     /// Calculate error for DiscreteValues `x`, is -log(probability).
     double error(const DiscreteValues& values) const override;
 
+    /**
+     * @brief Multiply factors, DiscreteFactor::shared_ptr edition.
+     *
+     * This method accepts `DiscreteFactor::shared_ptr` and uses dynamic
+     * dispatch and specializations to perform the most efficient
+     * multiplication.
+     *
+     * While converting a DecisionTreeFactor to a TableFactor is efficient, the
+     * reverse is not. Hence we specialize the code to return a TableFactor if
+     * `f` is a TableFactor, and DecisionTreeFactor otherwise.
+     *
+     * @param f The factor to multiply with.
+     * @return DiscreteFactor::shared_ptr
+     */
+    virtual DiscreteFactor::shared_ptr multiply(
+        const DiscreteFactor::shared_ptr& f) const override;
+
     /// multiply two factors
     DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override {
       return apply(f, Ring::mul);
@@ -154,31 +171,43 @@ namespace gtsam {
 
     static double safe_div(const double& a, const double& b);
 
-    /// divide by factor f (safely)
+    /**
+     * @brief Divide by factor f (safely).
+     * Division of a factor \f$f(x, y)\f$ by another factor \f$g(y, z)\f$
+     * results in a function which involves all keys
+     * \f$(\frac{f}{g})(x, y, z) = f(x, y) / g(y, z)\f$
+     * 
+     * @param f The DecisinTreeFactor to divide by.
+     * @return DecisionTreeFactor 
+     */
     DecisionTreeFactor operator/(const DecisionTreeFactor& f) const {
       return apply(f, safe_div);
     }
+
+    /// divide by DiscreteFactor::shared_ptr f (safely)
+    DiscreteFactor::shared_ptr operator/(
+        const DiscreteFactor::shared_ptr& f) const override;
 
     /// Convert into a decision tree
     DecisionTreeFactor toDecisionTreeFactor() const override { return *this; }
 
     /// Create new factor by summing all values with the same separator values
-    shared_ptr sum(size_t nrFrontals) const {
+    DiscreteFactor::shared_ptr sum(size_t nrFrontals) const override {
       return combine(nrFrontals, Ring::add);
     }
 
     /// Create new factor by summing all values with the same separator values
-    shared_ptr sum(const Ordering& keys) const {
+    DiscreteFactor::shared_ptr sum(const Ordering& keys) const override {
       return combine(keys, Ring::add);
     }
 
     /// Create new factor by maximizing over all values with the same separator.
-    shared_ptr max(size_t nrFrontals) const {
+    DiscreteFactor::shared_ptr max(size_t nrFrontals) const override {
       return combine(nrFrontals, Ring::max);
     }
 
     /// Create new factor by maximizing over all values with the same separator.
-    shared_ptr max(const Ordering& keys) const {
+    DiscreteFactor::shared_ptr max(const Ordering& keys) const override {
       return combine(keys, Ring::max);
     }
 
@@ -258,6 +287,12 @@ namespace gtsam {
      * @return DecisionTreeFactor
      */
     DecisionTreeFactor prune(size_t maxNrAssignments) const;
+
+    /**
+     * Get the number of non-zero values contained in this factor.
+     * It could be much smaller than `prod_{key}(cardinality(key))`.
+     */
+    uint64_t nrValues() const override { return nrLeaves(); }
 
     /// @}
     /// @name Wrapper support
