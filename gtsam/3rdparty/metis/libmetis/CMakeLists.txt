@@ -3,7 +3,6 @@ include_directories(.)
 # Find sources.
 file(GLOB metis_sources *.c)
 # Build libmetis.
-add_definitions(-fPIC)
 add_library(metis-gtsam ${METIS_LIBRARY_TYPE} ${GKlib_sources} ${metis_sources})
 if(UNIX)
   target_link_libraries(metis-gtsam m)
