@@ -77,6 +77,13 @@ DiscreteConditional::DiscreteConditional(const Signature& signature)
 /* ************************************************************************** */
 DiscreteConditional DiscreteConditional::operator*(
     const DiscreteConditional& other) const {
+  // If the root is a nullptr, we have a TableDistribution
+  // TODO(Varun) Revisit this hack after RSS2025 submission
+  if (!other.root_) {
+    DiscreteConditional dc(other.nrFrontals(), other.toDecisionTreeFactor());
+    return dc * (*this);
+  }
+
   // Take union of frontal keys
   std::set<Key> newFrontals;
   for (auto&& key : this->frontals()) newFrontals.insert(key);
