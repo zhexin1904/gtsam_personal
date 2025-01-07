@@ -123,6 +123,10 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
   /// Create new factor by maximizing over all values with the same separator.
   DiscreteFactor::shared_ptr max(const Ordering& keys) const override;
 
+  /// divide by DiscreteFactor::shared_ptr f (safely)
+  DiscreteFactor::shared_ptr operator/(
+      const DiscreteFactor::shared_ptr& f) const override;
+
   /**
    * @brief Return assignment that maximizes value.
    *

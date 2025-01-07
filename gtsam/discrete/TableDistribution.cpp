@@ -111,6 +111,12 @@ DiscreteFactor::shared_ptr TableDistribution::max(const Ordering& keys) const {
   return table_.max(keys);
 }
 
+/* ****************************************************************************/
+DiscreteFactor::shared_ptr TableDistribution::operator/(
+    const DiscreteFactor::shared_ptr& f) const {
+  return table_ / f;
+}
+
 /* ************************************************************************ */
 DiscreteValues TableDistribution::argmax() const {
   uint64_t maxIdx = 0;
