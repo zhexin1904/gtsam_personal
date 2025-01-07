@@ -19,6 +19,7 @@
 #include <gtsam/discrete/DiscreteBayesNet.h>
 #include <gtsam/discrete/DiscreteConditional.h>
 #include <gtsam/discrete/DiscreteFactorGraph.h>
+#include <gtsam/discrete/TableDistribution.h>
 #include <gtsam/hybrid/HybridBayesNet.h>
 #include <gtsam/hybrid/HybridValues.h>
 
@@ -52,13 +53,7 @@ HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves) const {
   // Multiply into one big conditional. NOTE: possibly quite expensive.
   DiscreteConditional joint;
   for (auto &&conditional : marginal) {
-    // The last discrete conditional may be a TableDistribution
-    if (auto dtc = std::dynamic_pointer_cast<TableDistribution>(conditional)) {
-      DiscreteConditional dc(dtc->nrFrontals(), dtc->toDecisionTreeFactor());
-      joint = joint * dc;
-    } else {
-      joint = joint * (*conditional);
-    }
+    joint = joint * (*conditional);
   }
 
   // Create the result starting with the pruned joint.
