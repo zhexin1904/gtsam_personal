@@ -131,17 +131,11 @@ namespace gtsam {
     DiscreteFactor::shared_ptr product = factors.product();
     gttoc(product);
 
-#if GTSAM_HYBRID_TIMING
-    gttic_(DiscreteNormalize);
-#endif
     // Max over all the potentials by pretending all keys are frontal:
     auto denominator = product->max(product->size());
 
     // Normalize the product factor to prevent underflow.
     product = product->operator/(denominator);
-#if GTSAM_HYBRID_TIMING
-    gttoc_(DiscreteNormalize);
-#endif
 
     return product;
   }
