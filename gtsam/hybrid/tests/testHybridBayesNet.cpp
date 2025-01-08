@@ -552,19 +552,25 @@ TEST(HybridBayesNet, Sampling) {
   EXPECT_LONGS_EQUAL(2, average_continuous.size());
   EXPECT_LONGS_EQUAL(num_samples, discrete_samples.size());
 
-  // Regressions don't work across platforms :-(
-  // // regression for specific RNG seed
-  // double discrete_sum =
-  //     std::accumulate(discrete_samples.begin(), discrete_samples.end(),
-  //                     decltype(discrete_samples)::value_type(0));
-  // EXPECT_DOUBLES_EQUAL(0.477, discrete_sum / num_samples, 1e-9);
+  // regression for specific RNG seed
+  double discrete_sum =
+      std::accumulate(discrete_samples.begin(), discrete_samples.end(),
+                      decltype(discrete_samples)::value_type(0));
+#if __APPLE__
+  EXPECT_DOUBLES_EQUAL(0.477, discrete_sum / num_samples, 1e-9);
+#elif __linux__
+  EXPECT_DOUBLES_EQUAL(0.477, discrete_sum / num_samples, 1e-9);
+#endif
 
-  // VectorValues expected;
-  // expected.insert({X(0), Vector1(-0.0131207162712)});
-  // expected.insert({X(1), Vector1(-0.499026377568)});
-  // // regression for specific RNG seed
-  // EXPECT(assert_equal(expected, average_continuous.scale(1.0 /
-  // num_samples)));
+  VectorValues expected;
+  expected.insert({X(0), Vector1(-0.0131207162712)});
+  expected.insert({X(1), Vector1(-0.499026377568)});
+  // regression for specific RNG seed
+#if __APPLE__
+  EXPECT(assert_equal(expected, average_continuous.scale(1.0 / num_samples)));
+#elif __linux__
+  EXPECT(assert_equal(expected, average_continuous.scale(1.0 / num_samples)));
+#endif
 }
 
 /* ****************************************************************************/
