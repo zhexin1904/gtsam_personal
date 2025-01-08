@@ -557,25 +557,23 @@ TEST(HybridBayesNet, Sampling) {
   double discrete_sum =
       std::accumulate(discrete_samples.begin(), discrete_samples.end(),
                       decltype(discrete_samples)::value_type(0));
-#if __APPLE__
+#if __APPLE__ || _WIN32
   EXPECT_DOUBLES_EQUAL(0.477, discrete_sum / num_samples, 1e-9);
 #elif __linux__
-  EXPECT_DOUBLES_EQUAL(0.477, discrete_sum / num_samples, 1e-9);
-#elif _WIN32
   EXPECT_DOUBLES_EQUAL(0.477, discrete_sum / num_samples, 1e-9);
 #endif
 
   VectorValues expected;
+  // regression for specific RNG seed
+#if __APPLE__ || _WIN32
   expected.insert({X(0), Vector1(-0.0131207162712)});
   expected.insert({X(1), Vector1(-0.499026377568)});
-  // regression for specific RNG seed
-#if __APPLE__
-  EXPECT(assert_equal(expected, average_continuous.scale(1.0 / num_samples)));
 #elif __linux__
-  EXPECT(assert_equal(expected, average_continuous.scale(1.0 / num_samples)));
-#elif _WIN32
-  EXPECT(assert_equal(expected, average_continuous.scale(1.0 / num_samples)));
+  expected.insert({X(0), Vector1(-0.00799425)});
+  expected.insert({X(1), Vector1(-0.526464)});
 #endif
+
+  EXPECT(assert_equal(expected, average_continuous.scale(1.0 / num_samples)));
 }
 
 /* ****************************************************************************/

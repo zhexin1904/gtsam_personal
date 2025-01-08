@@ -205,14 +205,20 @@ TEST(ShonanAveraging3, CheckWithEigen) {
       ShonanAveraging3::LiftwithDescent(4, Qstar3, descentDirection);
   EXPECT_LONGS_EQUAL(5, initialQ4.size());
 
-  // TODO(frank): uncomment this regression test: currently not repeatable
-  // across platforms.
-  // Matrix expected(4, 4);
-  // expected << 0.0459224, -0.688689, -0.216922, 0.690321, //
-  //     0.92381, 0.191931, 0.255854, 0.21042,              //
-  //     -0.376669, 0.301589, 0.687953, 0.542111,           //
-  //     -0.0508588, 0.630804, -0.643587, 0.43046;
-  // EXPECT(assert_equal(SOn(expected), initialQ4.at<SOn>(0), 1e-5));
+  Matrix expected(4, 4);
+#if __APPLE__ || _WIN32
+  expected << 0.0459224, -0.688689, -0.216922, 0.690321,  //
+      0.92381, 0.191931, 0.255854, 0.21042,               //
+      -0.376669, 0.301589, 0.687953, 0.542111,            //
+      -0.0508588, 0.630804, -0.643587, 0.43046;
+#elif __linux__
+  expected << 0.0459224, -0.688689, -0.216922, 0.690321,  //
+      0.92381, 0.191931, 0.255854, 0.21042,               //
+      -0.376669, 0.301589, 0.687953, 0.542111,            //
+      -0.0508588, 0.630804, -0.643587, 0.43046;
+#endif
+
+  EXPECT(assert_equal(SOn(expected), initialQ4.at<SOn>(0), 1e-5));
 }
 
 /* ************************************************************************* */

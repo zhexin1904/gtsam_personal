@@ -465,12 +465,10 @@ TEST(GaussianConditional, sample) {
   auto actual3 = conditional.sample(given, &rng);
   EXPECT_LONGS_EQUAL(1, actual2.size());
   // regressions
-#ifdef __APPLE__
+#if __APPLE__ || _WIN32
   EXPECT(assert_equal(Vector2(31.0111856, 64.9850775), actual2[X(0)], 1e-5));
 #elif __linux__
-  EXPECT(assert_equal(Vector2(31.0111856, 64.9850775), actual2[X(0)], 1e-5));
-#elif _WIN32
-  EXPECT(assert_equal(Vector2(31.0111856, 64.9850775), actual2[X(0)], 1e-5));
+  EXPECT(assert_equal(Vector2(30.9809331, 64.9927588), actual2[X(0)], 1e-5));
 #endif
 }
 
@@ -523,7 +521,7 @@ TEST(GaussianConditional, Print) {
     "  d = [ 20 40 ]\n"
     "  mean: 1 elements\n"
     "  x0: 20 40\n"
-    "  logNormalizationConstant: -4.0351\n"
+    "  logNormalizationConstant: -4.03510164\n"
     "isotropic dim=2 sigma=3\n";
   EXPECT(assert_print_equal(expected, conditional, "GaussianConditional"));
 
