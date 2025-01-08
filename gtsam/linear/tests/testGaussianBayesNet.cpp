@@ -194,6 +194,9 @@ TEST(GaussianBayesNet, sample) {
 #elif __linux__
   EXPECT(assert_equal(Vector2(20.0129382, 40.0039798), actual[X(1)], 1e-5));
   EXPECT(assert_equal(Vector2(110.032083, 230.039811), actual[X(0)], 1e-5));
+#elif _WIN32
+  EXPECT(assert_equal(Vector2(20.0129382, 40.0039798), actual[X(1)], 1e-5));
+  EXPECT(assert_equal(Vector2(110.032083, 230.039811), actual[X(0)], 1e-5));
 #endif
 }
 

@@ -469,6 +469,8 @@ TEST(GaussianConditional, sample) {
   EXPECT(assert_equal(Vector2(31.0111856, 64.9850775), actual2[X(0)], 1e-5));
 #elif __linux__
   EXPECT(assert_equal(Vector2(31.0111856, 64.9850775), actual2[X(0)], 1e-5));
+#elif _WIN32
+  EXPECT(assert_equal(Vector2(31.0111856, 64.9850775), actual2[X(0)], 1e-5));
 #endif
 }
 
