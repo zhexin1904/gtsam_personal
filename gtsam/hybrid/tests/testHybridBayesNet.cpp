@@ -34,6 +34,7 @@
 #include <CppUnitLite/TestHarness.h>
 
 #include <memory>
+#include <numeric>
 
 using namespace std;
 using namespace gtsam;
