@@ -464,8 +464,12 @@ TEST(GaussianConditional, sample) {
   std::mt19937_64 rng(4242);
   auto actual3 = conditional.sample(given, &rng);
   EXPECT_LONGS_EQUAL(1, actual2.size());
-  // regression is not repeatable across platforms/versions :-(
-  // EXPECT(assert_equal(Vector2(31.0111856, 64.9850775), actual2[X(0)], 1e-5));
+  // regressions
+#ifdef __APPLE__
+  EXPECT(assert_equal(Vector2(31.0111856, 64.9850775), actual2[X(0)], 1e-5));
+#elif __linux__
+  EXPECT(assert_equal(Vector2(31.0111856, 64.9850775), actual2[X(0)], 1e-5));
+#endif
 }
 
 /* ************************************************************************* */
