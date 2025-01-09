@@ -557,11 +557,7 @@ TEST(HybridBayesNet, Sampling) {
   double discrete_sum =
       std::accumulate(discrete_samples.begin(), discrete_samples.end(),
                       decltype(discrete_samples)::value_type(0));
-#if __APPLE__ || _WIN32
   EXPECT_DOUBLES_EQUAL(0.477, discrete_sum / num_samples, 1e-9);
-#elif __linux__
-  EXPECT_DOUBLES_EQUAL(0.477, discrete_sum / num_samples, 1e-9);
-#endif
 
   VectorValues expected;
   // regression for specific RNG seed
