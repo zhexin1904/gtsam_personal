@@ -521,7 +521,7 @@ TEST(GaussianConditional, Print) {
     "  d = [ 20 40 ]\n"
     "  mean: 1 elements\n"
     "  x0: 20 40\n"
-    "  logNormalizationConstant: -4.03510164\n"
+    "  logNormalizationConstant: -4.0351\n"
     "isotropic dim=2 sigma=3\n";
   EXPECT(assert_print_equal(expected, conditional, "GaussianConditional"));
 

@@ -573,6 +573,8 @@ TEST(HybridBayesNet, Sampling) {
   expected.insert({X(1), Vector1(-0.526464)});
 #endif
 
+  std::cout << std::setprecision(12);
+  average_continuous.scale(1.0 / num_samples).print();
   EXPECT(assert_equal(expected, average_continuous.scale(1.0 / num_samples)));
 }
 
