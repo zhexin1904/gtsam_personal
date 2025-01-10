@@ -33,10 +33,8 @@ TEST(dataSet, sfmDataSerialization) {
   SfmData mydata = SfmData::FromBalFile(filename);
 
   // round-trip equality check on serialization and subsequent deserialization
-  #ifndef __QNX__ //Floating Point Issue
   EXPECT(equalsObj(mydata));
   EXPECT(equalsXML(mydata));
-  #endif
   EXPECT(equalsBinary(mydata));
 }
 
@@ -49,10 +47,8 @@ TEST(dataSet, sfmTrackSerialization) {
   SfmTrack track = mydata.track(0);
 
   // round-trip equality check on serialization and subsequent deserialization
-  #ifndef __QNX__ //Floating Point Issue
   EXPECT(equalsObj(track));
   EXPECT(equalsXML(track));
-  #endif
   EXPECT(equalsBinary(track));
 }
 

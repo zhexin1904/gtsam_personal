@@ -44,7 +44,7 @@ TEST(Matrix, constructor_data )
 
   EQUALITY(A,B);
 }
-//#ifndef __QNX__
+
 /* ************************************************************************* */
 TEST(Matrix, Matrix_ )
 {

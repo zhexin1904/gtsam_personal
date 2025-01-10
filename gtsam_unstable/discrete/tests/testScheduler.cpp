@@ -140,11 +140,7 @@ TEST(schedulingExample, test) {
 
 /* ************************************************************************* */
 TEST(schedulingExample, smallFromFile) {
-<<<<<<< HEAD
-  #ifndef __QNX__
-=======
   #if !defined(__QNX__)
->>>>>>> 93f463ddbf8e990e6dccc622fcb8ecb67f21549a
   string path(TOPSRCDIR "/gtsam_unstable/discrete/examples/");
   #else
   string path(""); //Same Directory

@@ -105,19 +105,11 @@ TEST ( Partition, edgePartitionByMetis2 )
   graph.push_back(std::make_shared<GenericFactor3D>(2, 3, 2, NODE_POSE_3D, NODE_POSE_3D, 20));
   graph.push_back(std::make_shared<GenericFactor3D>(3, 4, 3, NODE_POSE_3D, NODE_POSE_3D, 1));
   //QNX Testing: fix tiebreaker to match 
-<<<<<<< HEAD
-  #ifndef __QNX__
-  std::vector<size_t> keys{0, 1, 2, 3, 4};
-  #else
-  //Anything where 2 is before 0 will work.
-  std::vector<size_t> keys{2, 0, 1, 3, 4};
-=======
   #if !defined(__QNX__)
   std::vector<size_t> keys{0, 1, 2, 3, 4};
   #else
   //Anything where 2 is before 0 will work.
   std::vector<size_t> keys{2, 0, 3, 1, 4};
->>>>>>> 93f463ddbf8e990e6dccc622fcb8ecb67f21549a
   #endif
 
   WorkSpace workspace(6);

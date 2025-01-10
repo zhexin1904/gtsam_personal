@@ -32,6 +32,7 @@ using namespace std;
 using namespace gtsam;
 using namespace gtsam::serializationTestHelpers;
 
+
 /* ************************************************************************* */
 // Create GUIDs for Noisemodels
 BOOST_CLASS_EXPORT_GUID(gtsam::noiseModel::Diagonal, "gtsam_noiseModel_Diagonal")
