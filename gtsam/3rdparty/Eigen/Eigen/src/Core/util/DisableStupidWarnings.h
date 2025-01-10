@@ -66,7 +66,6 @@
   #endif
   #if __GNUC__>=6
     #pragma GCC diagnostic ignored "-Wignored-attributes"
-    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
   #endif
   #if __GNUC__==7
     // See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89325
