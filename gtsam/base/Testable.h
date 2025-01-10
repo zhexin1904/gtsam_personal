@@ -41,7 +41,6 @@
 #include <string>
 
 #define GTSAM_PRINT(x)((x).print(#x))
-#define GTSAM_COUT(x) (std::cout << #x ": " << x << std::endl)
 
 namespace gtsam {
 
