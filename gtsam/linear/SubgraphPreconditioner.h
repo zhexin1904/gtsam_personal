@@ -125,6 +125,9 @@ namespace gtsam {
     /** Apply operator A in place: needs e allocated already */
     void multiplyInPlace(const VectorValues& y, Errors& e) const;
 
+    /** Apply operator A' */
+    VectorValues operator^(const Errors& e) const;
+
     /**
     * Add A'*e to y
     *  y += alpha*A'*[e1;e2] = [alpha*e1; alpha*inv(R1')*A2'*e2]

@@ -150,6 +150,20 @@ void SubgraphPreconditioner::multiplyInPlace(const VectorValues& y, Errors& e) c
 }
 
 /* ************************************************************************* */
+// Apply operator A', A'*e = [I inv(R1')*A2']*e = e1 + inv(R1')*A2'*e2
+VectorValues SubgraphPreconditioner::operator^(const Errors& e) const {
+
+  Errors::const_iterator it = e.begin();
+  VectorValues y = zero();
+  for(auto& key_value: y) {
+    key_value.second = *it;
+    ++it;
+  }
+  transposeMultiplyAdd2(1.0, it, e.end(), y);
+  return y;
+}
+
+/* ************************************************************************* */
 // y += alpha*A'*e
 void SubgraphPreconditioner::transposeMultiplyAdd
 (double alpha, const Errors& e, VectorValues& y) const {

@@ -59,6 +59,11 @@ namespace gtsam {
     /** Access b vector */
     const Vector& b() const { return b_; }
 
+    /** Apply operator A'*e */
+    Vector operator^(const Vector& e) const {
+      return A_.transpose() * e;
+    }
+
     /**
      * Print with optional string
      */
