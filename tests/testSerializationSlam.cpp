@@ -634,7 +634,6 @@ TEST(SubgraphSolver, Solves) {
     KeyInfo keyInfo(Ab);
     std::map<Key, Vector> lambda;
     system.build(Ab, keyInfo, lambda);
-
     // Create a perturbed (non-zero) RHS
     const auto xbar = system.Rc1().optimize();  // merely for use in zero below
     auto values_y = VectorValues::Zero(xbar);
