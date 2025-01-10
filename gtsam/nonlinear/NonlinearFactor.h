@@ -22,13 +22,14 @@
 #pragma once
 
 #include <gtsam/nonlinear/Values.h>
+#include <gtsam/hybrid/HybridValues.h>
 #include <gtsam/linear/NoiseModel.h>
 #include <gtsam/linear/JacobianFactor.h>
 #include <gtsam/inference/Factor.h>
 #include <gtsam/base/OptionalJacobian.h>
 #include <gtsam/base/utilities.h>
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 #include <boost/serialization/base_object.hpp>
 #endif
 #include <cstddef>
@@ -302,7 +303,7 @@ public:
   shared_ptr cloneWithNewNoiseModel(const SharedNoiseModel newNoise) const;
 
  private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
   template<class ARCHIVE>
@@ -433,7 +434,7 @@ class NoiseModelFactorN
       public detail::NoiseModelFactorAliases<ValueTypes...> {
  public:
   /// N is the number of variables (N-way factor)
-  enum { N = sizeof...(ValueTypes) };
+  inline constexpr static auto N = sizeof...(ValueTypes);
 
   using NoiseModelFactor::unwhitenedError;
 
@@ -714,7 +715,7 @@ protected:
     }
   }
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
   template <class ARCHIVE>

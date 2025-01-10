@@ -11,7 +11,7 @@
 #pragma once
 
 // Defined only if boost serialization is enabled
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 #include <optional>
 #include <boost/config.hpp>
 
@@ -52,6 +52,10 @@ namespace boost { namespace serialization { struct U; } }
 namespace std { template<> struct is_trivially_default_constructible<boost::serialization::U> : std::false_type {}; }
 namespace std { template<> struct is_trivially_copy_constructible<boost::serialization::U> : std::false_type {}; }
 namespace std { template<> struct is_trivially_move_constructible<boost::serialization::U> : std::false_type {}; }
+// QCC (The QNX GCC-based Compiler) also has this issue, but it also extends to trivial destructor.
+#if defined(__QNX__)
+namespace std { template<> struct is_trivially_destructible<boost::serialization::U> : std::false_type {}; }
+#endif
 #endif
 #endif
 

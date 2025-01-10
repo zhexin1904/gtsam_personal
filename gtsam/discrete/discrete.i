@@ -61,14 +61,14 @@ virtual class DecisionTreeFactor : gtsam::DiscreteFactor {
   DecisionTreeFactor(const std::vector<gtsam::DiscreteKey>& keys, string table);
 
   DecisionTreeFactor(const gtsam::DiscreteConditional& c);
-  
+
   void print(string s = "DecisionTreeFactor\n",
              const gtsam::KeyFormatter& keyFormatter =
                  gtsam::DefaultKeyFormatter) const;
   bool equals(const gtsam::DecisionTreeFactor& other, double tol = 1e-9) const;
 
   size_t cardinality(gtsam::Key j) const;
-  
+
   double operator()(const gtsam::DiscreteValues& values) const;
   gtsam::DecisionTreeFactor operator*(const gtsam::DecisionTreeFactor& f) const;
   size_t cardinality(gtsam::Key j) const;
@@ -166,6 +166,43 @@ virtual class DiscreteDistribution : gtsam::DiscreteConditional {
                  gtsam::DefaultKeyFormatter) const;
   double operator()(size_t value) const;
   std::vector<double> pmf() const;
+};
+
+#include <gtsam/discrete/TableFactor.h>
+virtual class TableFactor : gtsam::DiscreteFactor {
+  TableFactor();
+  TableFactor(const gtsam::DiscreteKeys& keys,
+              const gtsam::TableFactor& potentials);
+  TableFactor(const gtsam::DiscreteKeys& keys, std::vector<double>& table);
+  TableFactor(const gtsam::DiscreteKeys& keys, string spec);
+  TableFactor(const gtsam::DiscreteKeys& keys,
+              const gtsam::DecisionTreeFactor& dtf);
+  TableFactor(const gtsam::DecisionTreeFactor& dtf);
+
+  void print(string s = "TableFactor\n",
+             const gtsam::KeyFormatter& keyFormatter =
+                 gtsam::DefaultKeyFormatter) const;
+
+  double evaluate(const gtsam::DiscreteValues& values) const;
+  double error(const gtsam::DiscreteValues& values) const;
+};
+
+#include <gtsam/discrete/TableDistribution.h>
+virtual class TableDistribution : gtsam::DiscreteConditional {
+  TableDistribution();
+  TableDistribution(const gtsam::TableFactor& f);
+  TableDistribution(const gtsam::DiscreteKey& key, std::vector<double> spec);
+  TableDistribution(const gtsam::DiscreteKeys& keys, std::vector<double> spec);
+  TableDistribution(const gtsam::DiscreteKeys& keys, string spec);
+  TableDistribution(const gtsam::DiscreteKey& key, string spec);
+
+  void print(string s = "Table Distribution\n",
+             const gtsam::KeyFormatter& keyFormatter =
+                 gtsam::DefaultKeyFormatter) const;
+
+  gtsam::TableFactor table() const;
+  double evaluate(const gtsam::DiscreteValues& values) const;
+  size_t nrValues() const;
 };
 
 #include <gtsam/discrete/DiscreteBayesNet.h>

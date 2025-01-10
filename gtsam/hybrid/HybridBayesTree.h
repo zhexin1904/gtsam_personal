@@ -115,7 +115,11 @@ class GTSAM_EXPORT HybridBayesTree : public BayesTree<HybridBayesTreeClique> {
   /// @}
 
  private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+  /// Helper method to compute the max product assignment
+  /// given a DiscreteFactorGraph
+  DiscreteValues discreteMaxProduct(const DiscreteFactorGraph& dfg) const;
+
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
   template <class ARCHIVE>

@@ -19,10 +19,12 @@
 #include <gtsam/base/Testable.h>
 #include <gtsam/base/debug.h>
 #include <gtsam/discrete/DiscreteConditional.h>
+#include <gtsam/discrete/Ring.h>
 #include <gtsam/discrete/Signature.h>
 #include <gtsam/hybrid/HybridValues.h>
 
 #include <algorithm>
+#include <cassert>
 #include <random>
 #include <set>
 #include <stdexcept>
@@ -42,8 +44,9 @@ template class GTSAM_EXPORT
 
 /* ************************************************************************** */
 DiscreteConditional::DiscreteConditional(const size_t nrFrontals,
-                                         const DecisionTreeFactor& f)
-    : BaseFactor(f / (*f.sum(nrFrontals))), BaseConditional(nrFrontals) {}
+                                         const DiscreteFactor& f)
+    : BaseFactor((f / f.sum(nrFrontals))->toDecisionTreeFactor()),
+      BaseConditional(nrFrontals) {}
 
 /* ************************************************************************** */
 DiscreteConditional::DiscreteConditional(size_t nrFrontals,
@@ -74,6 +77,13 @@ DiscreteConditional::DiscreteConditional(const Signature& signature)
 /* ************************************************************************** */
 DiscreteConditional DiscreteConditional::operator*(
     const DiscreteConditional& other) const {
+  // If the root is a nullptr, we have a TableDistribution
+  // TODO(Varun) Revisit this hack after RSS2025 submission
+  if (!other.root_) {
+    DiscreteConditional dc(other.nrFrontals(), other.toDecisionTreeFactor());
+    return dc * (*this);
+  }
+
   // Take union of frontal keys
   std::set<Key> newFrontals;
   for (auto&& key : this->frontals()) newFrontals.insert(key);
@@ -104,7 +114,7 @@ DiscreteConditional DiscreteConditional::operator*(
   // Finally, add parents to keys, in order
   for (auto&& dk : parents) discreteKeys.push_back(dk);
 
-  ADT product = ADT::apply(other, ADT::Ring::mul);
+  ADT product = ADT::apply(other, Ring::mul);
   return DiscreteConditional(newFrontals.size(), discreteKeys, product);
 }
 
@@ -148,11 +158,11 @@ void DiscreteConditional::print(const string& s,
 /* ************************************************************************** */
 bool DiscreteConditional::equals(const DiscreteFactor& other,
                                  double tol) const {
-  if (!dynamic_cast<const DecisionTreeFactor*>(&other)) {
+  if (!dynamic_cast<const BaseFactor*>(&other)) {
     return false;
   } else {
-    const DecisionTreeFactor& f(static_cast<const DecisionTreeFactor&>(other));
-    return DecisionTreeFactor::equals(f, tol);
+    const BaseFactor& f(static_cast<const BaseFactor&>(other));
+    return BaseFactor::equals(f, tol);
   }
 }
 
@@ -373,7 +383,7 @@ std::string DiscreteConditional::markdown(const KeyFormatter& keyFormatter,
   ss << "*\n" << std::endl;
   if (nrParents() == 0) {
     // We have no parents, call factor method.
-    ss << DecisionTreeFactor::markdown(keyFormatter, names);
+    ss << BaseFactor::markdown(keyFormatter, names);
     return ss.str();
   }
 
@@ -425,7 +435,7 @@ string DiscreteConditional::html(const KeyFormatter& keyFormatter,
   ss << "</i></p>\n";
   if (nrParents() == 0) {
     // We have no parents, call factor method.
-    ss << DecisionTreeFactor::html(keyFormatter, names);
+    ss << BaseFactor::html(keyFormatter, names);
     return ss.str();
   }
 
@@ -473,7 +483,20 @@ string DiscreteConditional::html(const KeyFormatter& keyFormatter,
 
 /* ************************************************************************* */
 double DiscreteConditional::evaluate(const HybridValues& x) const {
-  return this->evaluate(x.discrete());
+  return this->operator()(x.discrete());
+}
+
+/* ************************************************************************* */
+DiscreteFactor::shared_ptr DiscreteConditional::max(
+    const Ordering& keys) const {
+  return BaseFactor::max(keys);
+}
+
+/* ************************************************************************* */
+void DiscreteConditional::prune(size_t maxNrAssignments) {
+  // Get as DiscreteConditional so the probabilities are normalized
+  DiscreteConditional pruned(nrFrontals(), BaseFactor::prune(maxNrAssignments));
+  this->root_ = pruned.root_;
 }
 
 /* ************************************************************************* */

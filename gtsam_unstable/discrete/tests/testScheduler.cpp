@@ -113,7 +113,7 @@ TEST(schedulingExample, test) {
   EXPECT(assert_equal(expected, (DiscreteFactorGraph)s));
 
   // Do brute force product and output that to file
-  DecisionTreeFactor product = s.product();
+  DecisionTreeFactor product = s.product()->toDecisionTreeFactor();
   // product.dot("scheduling", false);
 
   // Do exact inference
@@ -140,7 +140,11 @@ TEST(schedulingExample, test) {
 
 /* ************************************************************************* */
 TEST(schedulingExample, smallFromFile) {
+<<<<<<< HEAD
   #ifndef __QNX__
+=======
+  #if !defined(__QNX__)
+>>>>>>> 93f463ddbf8e990e6dccc622fcb8ecb67f21549a
   string path(TOPSRCDIR "/gtsam_unstable/discrete/examples/");
   #else
   string path(""); //Same Directory
