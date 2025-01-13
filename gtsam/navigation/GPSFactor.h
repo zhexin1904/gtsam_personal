@@ -39,6 +39,7 @@ private:
   typedef NoiseModelFactorN<Pose3> Base;
 
   Point3 nT_; ///< Position measurement in cartesian coordinates
+  Point3 B_t_BG_; ///< Lever arm between GPS and BODY frame
 
 public:
 
@@ -52,7 +53,7 @@ public:
   typedef GPSFactor This;
 
   /** default constructor - only use for serialization */
-  GPSFactor(): nT_(0, 0, 0) {}
+  GPSFactor(): nT_(0, 0, 0), B_t_BG_(0, 0, 0) {}
 
   ~GPSFactor() override {}
 
@@ -63,8 +64,8 @@ public:
    * @param gpsIn measurement already in correct coordinates
    * @param model Gaussian noise model
    */
-  GPSFactor(Key key, const Point3& gpsIn, const SharedNoiseModel& model) :
-      Base(model, key), nT_(gpsIn) {
+  GPSFactor(Key key, const Point3& gpsIn, const SharedNoiseModel& model, const Point3& leverArm) :
+      Base(model, key), nT_(gpsIn), B_t_BG_(leverArm) {
   }
 
   /// @return a deep copy of this factor
@@ -85,6 +86,10 @@ public:
 
   inline const Point3 & measurementIn() const {
     return nT_;
+  }
+
+  inline const Point3 & leverArm() const {
+    return B_t_BG_;
   }
 
   /**
@@ -122,6 +127,7 @@ private:
   typedef NoiseModelFactorN<NavState> Base;
 
   Point3 nT_; ///< Position measurement in cartesian coordinates
+  Point3 B_t_BG_; ///< Lever arm between GPS and BODY frame
 
 public:
 
@@ -135,13 +141,13 @@ public:
   typedef GPSFactor2 This;
 
   /// default constructor - only use for serialization
-  GPSFactor2():nT_(0, 0, 0) {}
+  GPSFactor2():nT_(0, 0, 0), B_t_BG_(0, 0, 0) {}
 
   ~GPSFactor2() override {}
 
   /// Constructor from a measurement in a Cartesian frame.
-  GPSFactor2(Key key, const Point3& gpsIn, const SharedNoiseModel& model) :
-      Base(model, key), nT_(gpsIn) {
+  GPSFactor2(Key key, const Point3& gpsIn, const SharedNoiseModel& model, const Point3& leverArm) :
+      Base(model, key), nT_(gpsIn), B_t_BG_(leverArm) {
   }
 
   /// @return a deep copy of this factor
@@ -162,6 +168,10 @@ public:
 
   inline const Point3 & measurementIn() const {
     return nT_;
+  }
+
+  inline const Point3 & leverArm() const {
+    return B_t_BG_;
   }
 
 private:
