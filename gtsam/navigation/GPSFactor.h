@@ -112,6 +112,7 @@ private:
         & boost::serialization::make_nvp("NoiseModelFactor1",
             boost::serialization::base_object<Base>(*this));
     ar & BOOST_SERIALIZATION_NVP(nT_);
+    ar & BOOST_SERIALIZATION_NVP(B_t_BG_);
   }
 #endif
 };
@@ -186,6 +187,7 @@ private:
         & boost::serialization::make_nvp("NoiseModelFactor1",
             boost::serialization::base_object<Base>(*this));
     ar & BOOST_SERIALIZATION_NVP(nT_);
+    ar & BOOST_SERIALIZATION_NVP(B_t_BG_);
   }
 #endif
 };
