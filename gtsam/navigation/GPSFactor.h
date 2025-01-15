@@ -176,14 +176,6 @@ public:
     return bL_;
   }
 
-  /**
-   *  Convenience function to estimate state at time t, given two GPS
-   *  readings (in local NED Cartesian frame) bracketing t
-   *  Assumes roll is zero, calculates yaw and pitch from NED1->NED2 vector.
-   */
-  static std::pair<Pose3, Vector3> EstimateState(double t1, const Point3& NED1,
-      double t2, const Point3& NED2, double timestamp);
-
 };
 
 /**
