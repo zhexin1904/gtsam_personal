@@ -136,10 +136,10 @@ NavState NavState::Expmap(const Vector9& xi, OptionalJacobian<9, 9> Hxi) {
   if (Hxi) {
     // See Pose3::Expamp for explanation of the Jacobians
     const Matrix3 Jr = local.rightJacobian();
-    const Matrix3 X = Jr * local.leftJacobianInverse();
+    const Matrix3 M = R.matrix();
     *Hxi << Jr, Z_3x3, Z_3x3,  //
-        X * H_t_w, Jr, Z_3x3,  //
-        X * H_v_w, Z_3x3, Jr;
+        M.transpose() * H_t_w, Jr, Z_3x3,  //
+        M.transpose() * H_v_w, Z_3x3, Jr;
   }
 
   return NavState(R, t, v);
@@ -250,10 +250,10 @@ Matrix9 NavState::LogmapDerivative(const NavState& state) {
   local.applyLeftJacobian(rho, H_t_w);
   local.applyLeftJacobian(nu, H_v_w);
 
-  // Multiply with X, translates from left to right for our expmap convention:
-  const Matrix3 X = local.rightJacobian() * local.leftJacobianInverse();
-  const Matrix3 Qt = X * H_t_w;
-  const Matrix3 Qv = X * H_v_w;
+  // Multiply with R^T, translates from left to right for our expmap convention:
+  const Matrix3 R = local.expmap();
+  const Matrix3 Qt = R.transpose() * H_t_w;
+  const Matrix3 Qv = R.transpose() * H_v_w;
 
   const Matrix3 Jw = Rot3::LogmapDerivative(w);
   const Matrix3 Qt2 = -Jw * Qt * Jw;
