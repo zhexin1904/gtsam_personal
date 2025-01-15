@@ -18,31 +18,31 @@
 
 using namespace gtsam;
 
-// /* ************************************************************************* */
-// TEST(PenaltyOptimizer, constrained_example1) {
-//   using namespace constrained_example1;
+/* ************************************************************************* */
+TEST(PenaltyOptimizer, constrained_example1) {
+  using namespace constrained_example1;
 
-//   auto params = std::make_shared<PenaltyOptimizerParams>();
-//   params->verbose = true;
-//   PenaltyOptimizer optimizer(problem, params);
-//   Values results = optimizer.optimize();
+  auto params = std::make_shared<PenaltyOptimizerParams>();
+  params->verbose = true;
+  PenaltyOptimizer optimizer(problem, params);
+  Values results = optimizer.optimize();
 
-//   /// Check the result is correct within tolerance.
-//   EXPECT(assert_equal(optimal_values, results, 1e-4));
-// }
+  /// Check the result is correct within tolerance.
+  EXPECT(assert_equal(optimal_values, results, 1e-4));
+}
 
-// /* ************************************************************************* */
-// TEST(PenaltyOptimizer, constrained_example2) {
-//   using namespace constrained_example2;
+/* ************************************************************************* */
+TEST(PenaltyOptimizer, constrained_example2) {
+  using namespace constrained_example2;
 
-//   auto params = std::make_shared<PenaltyOptimizerParams>();
-//   params->verbose = true;
-//   PenaltyOptimizer optimizer(problem, params);
-//   Values results = optimizer.optimize();
+  auto params = std::make_shared<PenaltyOptimizerParams>();
+  params->verbose = true;
+  PenaltyOptimizer optimizer(problem, params);
+  Values results = optimizer.optimize();
 
-//   /// Check the result is correct within tolerance.
-//   EXPECT(assert_equal(optimal_values, results, 1e-4));
-// }
+  /// Check the result is correct within tolerance.
+  EXPECT(assert_equal(optimal_values, results, 1e-4));
+}
 
 int main() {
   TestResult tr;
