@@ -26,31 +26,20 @@ namespace gtsam {
 void GPSFactor::print(const string& s, const KeyFormatter& keyFormatter) const {
   cout << (s.empty() ? "" : s + " ") << "GPSFactor on " << keyFormatter(key())
        << "\n";
-  cout << "  GPS measurement: " << nT_.transpose() << "\n";
-  cout << "  Lever arm: " << B_t_BG_.transpose() << "\n";
+  cout << "  GPS measurement: " << nT_ << "\n";
   noiseModel_->print("  noise model: ");
 }
 
 //***************************************************************************
 bool GPSFactor::equals(const NonlinearFactor& expected, double tol) const {
   const This* e = dynamic_cast<const This*>(&expected);
-  return e != nullptr && Base::equals(*e, tol) &&
-         traits<Point3>::Equals(nT_, e->nT_, tol) &&
-         traits<Point3>::Equals(B_t_BG_, e->B_t_BG_, tol);
+  return e != nullptr && Base::equals(*e, tol) && traits<Point3>::Equals(nT_, e->nT_, tol);
 }
 
 //***************************************************************************
 Vector GPSFactor::evaluateError(const Pose3& p,
     OptionalMatrixType H) const {
-  const Matrix3 rot = p.rotation().matrix();
-  if (H) {
-    H->resize(3, 6);
-
-    H->block<3, 3>(0, 0) = -rot * skewSymmetric(B_t_BG_);
-    H->block<3, 3>(0, 3) = rot;
-  }
-
-  return p.translation() - (nT_ - rot * B_t_BG_);
+  return p.translation(H) -nT_;
 }
 
 //***************************************************************************
@@ -78,8 +67,7 @@ pair<Pose3, Vector3> GPSFactor::EstimateState(double t1, const Point3& NED1,
 //***************************************************************************
 void GPSFactor2::print(const string& s, const KeyFormatter& keyFormatter) const {
   cout << s << "GPSFactor2 on " << keyFormatter(key()) << "\n";
-  cout << "  GPS measurement: " << nT_.transpose() << "\n";
-  cout << "  Lever arm: " << B_t_BG_.transpose() << "\n";
+  cout << "  GPS measurement: " << nT_.transpose() << endl;
   noiseModel_->print("  noise model: ");
 }
 
@@ -87,23 +75,13 @@ void GPSFactor2::print(const string& s, const KeyFormatter& keyFormatter) const 
 bool GPSFactor2::equals(const NonlinearFactor& expected, double tol) const {
   const This* e = dynamic_cast<const This*>(&expected);
   return e != nullptr && Base::equals(*e, tol) &&
-         traits<Point3>::Equals(nT_, e->nT_, tol) &&
-         traits<Point3>::Equals(B_t_BG_, e->B_t_BG_, tol);
+         traits<Point3>::Equals(nT_, e->nT_, tol);
 }
 
 //***************************************************************************
 Vector GPSFactor2::evaluateError(const NavState& p,
     OptionalMatrixType H) const {
-  const Matrix3 rot = p.attitude().matrix();
-  if (H) {
-    H->resize(3, 9);
-
-    H->block<3, 3>(0, 0) = -rot * skewSymmetric(B_t_BG_);
-    H->block<3, 3>(0, 3) = rot;
-    H->block<3, 3>(0, 6).setZero();
-  }
-
-  return p.position() - (nT_ - rot * B_t_BG_);
+  return p.position(H) -nT_;
 }
 
 //***************************************************************************

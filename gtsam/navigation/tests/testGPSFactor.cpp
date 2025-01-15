@@ -45,9 +45,6 @@ LocalCartesian origin_ENU(lat0, lon0, h0, kWGS84);
 
 // Dekalb-Peachtree Airport runway 2L
 const double lat = 33.87071, lon = -84.30482, h = 274;
-
-// Random lever arm
-const Point3 leverArm(0.1, 0.2, 0.3);
 }
 
 // *************************************************************************
@@ -64,12 +61,10 @@ TEST( GPSFactor, Constructor ) {
   // Factor
   Key key(1);
   SharedNoiseModel model = noiseModel::Isotropic::Sigma(3, 0.25);
-  GPSFactor factor(key, Point3(E, N, U), model, leverArm);
+  GPSFactor factor(key, Point3(E, N, U), model);
 
   // Create a linearization point at zero error
-  const Rot3 rot = Rot3::RzRyRx(0.15, -0.30, 0.45);
-  const Point3 p = Point3(E, N, U) - rot * leverArm;
-  Pose3 T(rot, p);
+  Pose3 T(Rot3::RzRyRx(0.15, -0.30, 0.45), Point3(E, N, U));
   EXPECT(assert_equal(Z_3x1,factor.evaluateError(T),1e-5));
 
   // Calculate numerical derivatives
@@ -95,12 +90,10 @@ TEST( GPSFactor2, Constructor ) {
   // Factor
   Key key(1);
   SharedNoiseModel model = noiseModel::Isotropic::Sigma(3, 0.25);
-  GPSFactor2 factor(key, Point3(E, N, U), model, leverArm);
+  GPSFactor2 factor(key, Point3(E, N, U), model);
 
   // Create a linearization point at zero error
-  const Rot3 rot = Rot3::RzRyRx(0.15, -0.30, 0.45);
-  const Point3 p = Point3(E, N, U) - rot * leverArm;
-  NavState T(rot, p, Vector3::Zero());
+  NavState T(Rot3::RzRyRx(0.15, -0.30, 0.45), Point3(E, N, U), Vector3::Zero());
   EXPECT(assert_equal(Z_3x1,factor.evaluateError(T),1e-5));
 
   // Calculate numerical derivatives

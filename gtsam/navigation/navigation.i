@@ -329,8 +329,7 @@ virtual class Pose3AttitudeFactor : gtsam::NoiseModelFactor {
 #include <gtsam/navigation/GPSFactor.h>
 virtual class GPSFactor : gtsam::NonlinearFactor{
   GPSFactor(size_t key, const gtsam::Point3& gpsIn,
-            const gtsam::noiseModel::Base* model,
-            const gtsam::Point3& leverArm);
+            const gtsam::noiseModel::Base* model);
 
   // Testable
   void print(string s = "", const gtsam::KeyFormatter& keyFormatter =
@@ -339,7 +338,6 @@ virtual class GPSFactor : gtsam::NonlinearFactor{
 
   // Standard Interface
   gtsam::Point3 measurementIn() const;
-  gtsam::Point3 leverArm() const;
 
   // enable serialization functionality
   void serialize() const;
@@ -347,8 +345,7 @@ virtual class GPSFactor : gtsam::NonlinearFactor{
 
 virtual class GPSFactor2 : gtsam::NonlinearFactor {
   GPSFactor2(size_t key, const gtsam::Point3& gpsIn,
-            const gtsam::noiseModel::Base* model,
-            const gtsam::Point3& leverArm);
+            const gtsam::noiseModel::Base* model);
 
   // Testable
   void print(string s = "", const gtsam::KeyFormatter& keyFormatter =
@@ -357,7 +354,6 @@ virtual class GPSFactor2 : gtsam::NonlinearFactor {
 
   // Standard Interface
   gtsam::Point3 measurementIn() const;
-  gtsam::Point3 leverArm() const;
 
   // enable serialization functionality
   void serialize() const;

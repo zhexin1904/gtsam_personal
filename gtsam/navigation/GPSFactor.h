@@ -39,7 +39,6 @@ private:
   typedef NoiseModelFactorN<Pose3> Base;
 
   Point3 nT_; ///< Position measurement in cartesian coordinates
-  Point3 B_t_BG_; ///< Lever arm between GPS and BODY frame
 
 public:
 
@@ -53,7 +52,7 @@ public:
   typedef GPSFactor This;
 
   /** default constructor - only use for serialization */
-  GPSFactor(): nT_(0, 0, 0), B_t_BG_(0, 0, 0) {}
+  GPSFactor(): nT_(0, 0, 0) {}
 
   ~GPSFactor() override {}
 
@@ -64,8 +63,8 @@ public:
    * @param gpsIn measurement already in correct coordinates
    * @param model Gaussian noise model
    */
-  GPSFactor(Key key, const Point3& gpsIn, const SharedNoiseModel& model, const Point3& leverArm) :
-      Base(model, key), nT_(gpsIn), B_t_BG_(leverArm) {
+  GPSFactor(Key key, const Point3& gpsIn, const SharedNoiseModel& model) :
+      Base(model, key), nT_(gpsIn) {
   }
 
   /// @return a deep copy of this factor
@@ -88,10 +87,6 @@ public:
     return nT_;
   }
 
-  inline const Point3 & leverArm() const {
-    return B_t_BG_;
-  }
-
   /**
    *  Convenience function to estimate state at time t, given two GPS
    *  readings (in local NED Cartesian frame) bracketing t
@@ -112,7 +107,6 @@ private:
         & boost::serialization::make_nvp("NoiseModelFactor1",
             boost::serialization::base_object<Base>(*this));
     ar & BOOST_SERIALIZATION_NVP(nT_);
-    ar & BOOST_SERIALIZATION_NVP(B_t_BG_);
   }
 #endif
 };
@@ -128,7 +122,6 @@ private:
   typedef NoiseModelFactorN<NavState> Base;
 
   Point3 nT_; ///< Position measurement in cartesian coordinates
-  Point3 B_t_BG_; ///< Lever arm between GPS and BODY frame
 
 public:
 
@@ -142,13 +135,13 @@ public:
   typedef GPSFactor2 This;
 
   /// default constructor - only use for serialization
-  GPSFactor2():nT_(0, 0, 0), B_t_BG_(0, 0, 0) {}
+  GPSFactor2():nT_(0, 0, 0) {}
 
   ~GPSFactor2() override {}
 
   /// Constructor from a measurement in a Cartesian frame.
-  GPSFactor2(Key key, const Point3& gpsIn, const SharedNoiseModel& model, const Point3& leverArm) :
-      Base(model, key), nT_(gpsIn), B_t_BG_(leverArm) {
+  GPSFactor2(Key key, const Point3& gpsIn, const SharedNoiseModel& model) :
+      Base(model, key), nT_(gpsIn) {
   }
 
   /// @return a deep copy of this factor
@@ -171,10 +164,6 @@ public:
     return nT_;
   }
 
-  inline const Point3 & leverArm() const {
-    return B_t_BG_;
-  }
-
 private:
 
 #if GTSAM_ENABLE_BOOST_SERIALIZATION
@@ -187,7 +176,6 @@ private:
         & boost::serialization::make_nvp("NoiseModelFactor1",
             boost::serialization::base_object<Base>(*this));
     ar & BOOST_SERIALIZATION_NVP(nT_);
-    ar & BOOST_SERIALIZATION_NVP(B_t_BG_);
   }
 #endif
 };
