@@ -11,9 +11,9 @@
 
 /**
 *  @file   IncrementalFixedLagExample.cpp
-*  @brief  An incremental fixed-lag smoother in GTSAM using real-world data.
+*  @brief  Example of incremental fixed-lag smoother using real-world data.
 *  @author Xiangcheng Hu (xhubd@connect.ust.hk), Frank Dellaert, Kevin Doherty
-*  @date   Janaury 2025
+*  @date   Janaury 15, 2025
 *
 * Key objectives:
 *   - Validate `IncrementalFixedLagSmoother` functionality with real-world data.
@@ -58,7 +58,6 @@
 #include <gtsam/nonlinear/ISAM2.h>
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
-#include <gtsam/slam/PriorFactor.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
 #include <gtsam/inference/Symbol.h>
@@ -146,12 +145,9 @@ void saveG2oGraph(const NonlinearFactorGraph &graph, const Values &estimate,
  *  5) Save the resulting factor graph and estimate of the last sliding window to a .g2o file.
  */
 int main() {
-    // Path to the test data file
-    ifstream infile("IncrementalFixedLagSmootherTestData.txt");
-    if (!infile.is_open()) {
-        cerr << "Failed to open factor graph file: IncrementalFixedLagSmootherTestData.txt" << endl;
-        return -1;
-    }
+    string factor_loc = findExampleDataFile("issue1452.txt");
+    ifstream factor_file(factor_loc.c_str());
+    cout << "Reading factors data file: " << factor_loc << endl;
 
     // Configure ISAM2 parameters for the fixed-lag smoother
     ISAM2Params isamParameters;
@@ -172,15 +168,16 @@ int main() {
     FixedLagSmoother::KeyTimestampMap newTimestamps;
     // For tracking the latest estimate of all states in the sliding window
     Values currentEstimate;
-    Pose3 lastPose;  // Used to provide an initial guess for new poses
+    Pose3 lastPose;
 
     // Read and process each line in the factor graph file
     string line;
     int lineCount = 0;
-    while (getline(infile, line)) {
+    while (getline(factor_file, line)) {
         if (line.empty()) continue;  // Skip empty lines
         cout << "\n======================== Processing line " << ++lineCount
              << " =========================" << endl;
+
         istringstream iss(line);
         int factorType;
         iss >> factorType;
@@ -198,7 +195,7 @@ int main() {
             Matrix6 cov = readCovarianceMatrix(iss);
             auto noise = noiseModel::Gaussian::Covariance(cov);
             // Add prior factor
-            newFactors.add(PriorFactor<Pose3>(X(key), pose, noise));
+            newFactors.addPrior(X(key), pose, noise);
             cout << "Add PRIOR factor on key " << key << endl;
             // Provide initial guess if not already in the graph
             if (!newValues.exists(X(key))) {
@@ -219,7 +216,7 @@ int main() {
             Matrix6 cov = readCovarianceMatrix(iss);
             auto noise = noiseModel::Gaussian::Covariance(cov);
             // Add between factor
-            newFactors.add(BetweenFactor<Pose3>(X(key1), X(key2), relativePose, noise));
+            newFactors.emplace_shared<BetweenFactor<Pose3>>(X(key1), X(key2), relativePose, noise);
             cout << "Add BETWEEN factor: " << key1 << " -> " << key2 << endl;
             // Provide an initial guess if needed
             if (!newValues.exists(X(key2))) {
@@ -256,6 +253,7 @@ int main() {
                 Key lastKey = currentEstimate.keys().back();
                 lastPose = currentEstimate.at<Pose3>(lastKey);
             }
+
             // Clear containers for the next iteration
             newFactors.resize(0);
             newValues.clear();
@@ -265,9 +263,10 @@ int main() {
         }
     }
 
-    // Save final graph and estimates to a g2o file
     // The results of the last sliding window are saved to a g2o file for visualization or further analysis.
-    saveG2oGraph(smoother.getFactors(), currentEstimate, path + "isam", lineCount);
-    infile.close();
+    saveG2oGraph(smoother.getFactors(), currentEstimate, "isam", lineCount);
+    factor_file.close();
+
     return 0;
 }
+
