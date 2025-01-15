@@ -24,7 +24,10 @@
 namespace gtsam {
 
 /**
- * Prior on position in a Cartesian frame.
+ * Prior on position in a Cartesian frame, assuming position prior is in body
+ * frame.
+ * If there exists a non-zero lever arm between body frame and GPS
+ * antenna, instead use GPSFactorArm.
  * Possibilities include:
  *   ENU: East-North-Up navigation frame at some local origin
  *   NED: North-East-Down navigation frame at some local origin
@@ -112,7 +115,81 @@ private:
 };
 
 /**
- * Version of GPSFactor for NavState
+ * Version of GPSFactor (for Pose3) with lever arm between GPS and Body frame.
+ * Because the actual location of the antenna depends on both position and
+ * attitude, providing a lever arm makes components of the attitude observable
+ * and accounts for position measurement vs state discrepancies while turning.
+ * @ingroup navigation
+ */
+class GTSAM_EXPORT GPSFactorArm: public NoiseModelFactorN<Pose3> {
+
+private:
+
+  typedef NoiseModelFactorN<Pose3> Base;
+
+  Point3 nT_;  ///< Position measurement in cartesian coordinates
+  Point3 bL_;  ///< bL_ is a lever arm in the body frame, denoting the 3D
+               ///< position of the GPS antenna in the body frame
+
+public:
+
+  // Provide access to the Matrix& version of evaluateError:
+  using Base::evaluateError;
+
+  /// shorthand for a smart pointer to a factor
+  typedef std::shared_ptr<GPSFactorArm> shared_ptr;
+
+  /// Typedef to this class
+  typedef GPSFactorArm This;
+
+  /// default constructor - only use for serialization
+  GPSFactorArm():nT_(0, 0, 0), bL_(0, 0, 0) {}
+
+  ~GPSFactorArm() override {}
+
+  /// Constructor from a measurement in a Cartesian frame.
+  GPSFactorArm(Key key, const Point3& gpsIn, const Point3& leverArm, const SharedNoiseModel& model) :
+      Base(model, key), nT_(gpsIn), bL_(leverArm) {
+  }
+
+  /// @return a deep copy of this factor
+  gtsam::NonlinearFactor::shared_ptr clone() const override {
+    return std::static_pointer_cast<gtsam::NonlinearFactor>(
+        gtsam::NonlinearFactor::shared_ptr(new This(*this)));
+  }
+
+  /// print
+  void print(const std::string& s = "", const KeyFormatter& keyFormatter =
+                                            DefaultKeyFormatter) const override;
+
+  /// equals
+  bool equals(const NonlinearFactor& expected, double tol = 1e-9) const override;
+
+  /// vector of errors
+  Vector evaluateError(const Pose3& p, OptionalMatrixType H) const override;
+
+  inline const Point3 & measurementIn() const {
+    return nT_;
+  }
+
+  inline const Point3 & leverArm() const {
+    return bL_;
+  }
+
+  /**
+   *  Convenience function to estimate state at time t, given two GPS
+   *  readings (in local NED Cartesian frame) bracketing t
+   *  Assumes roll is zero, calculates yaw and pitch from NED1->NED2 vector.
+   */
+  static std::pair<Pose3, Vector3> EstimateState(double t1, const Point3& NED1,
+      double t2, const Point3& NED2, double timestamp);
+
+};
+
+/**
+ * Version of GPSFactor for NavState, assuming zero lever arm between body frame
+ * and GPS. If there exists a non-zero lever arm between body frame and GPS
+ * antenna, instead use GPSFactor2Arm.
  * @ingroup navigation
  */
 class GTSAM_EXPORT GPSFactor2: public NoiseModelFactorN<NavState> {
@@ -178,6 +255,70 @@ private:
     ar & BOOST_SERIALIZATION_NVP(nT_);
   }
 #endif
+};
+
+/**
+ * Version of GPSFactor2 with lever arm between GPS and Body frame.
+ * Because the actual location of the antenna depends on both position and
+ * attitude, providing a lever arm makes components of the attitude observable
+ * and accounts for position measurement vs state discrepancies while turning.
+ * @ingroup navigation
+ */
+class GTSAM_EXPORT GPSFactor2Arm: public NoiseModelFactorN<NavState> {
+
+private:
+
+  typedef NoiseModelFactorN<NavState> Base;
+
+  Point3 nT_;  ///< Position measurement in cartesian coordinates
+  Point3 bL_;  ///< bL_ is a lever arm in the body frame, denoting the 3D
+               ///< position of the GPS antenna in the body frame
+
+public:
+
+  // Provide access to the Matrix& version of evaluateError:
+  using Base::evaluateError;
+
+  /// shorthand for a smart pointer to a factor
+  typedef std::shared_ptr<GPSFactor2Arm> shared_ptr;
+
+  /// Typedef to this class
+  typedef GPSFactor2Arm This;
+
+  /// default constructor - only use for serialization
+  GPSFactor2Arm():nT_(0, 0, 0), bL_(0, 0, 0) {}
+
+  ~GPSFactor2Arm() override {}
+
+  /// Constructor from a measurement in a Cartesian frame.
+  GPSFactor2Arm(Key key, const Point3& gpsIn, const Point3& leverArm, const SharedNoiseModel& model) :
+      Base(model, key), nT_(gpsIn), bL_(leverArm) {
+  }
+
+  /// @return a deep copy of this factor
+  gtsam::NonlinearFactor::shared_ptr clone() const override {
+    return std::static_pointer_cast<gtsam::NonlinearFactor>(
+        gtsam::NonlinearFactor::shared_ptr(new This(*this)));
+  }
+
+  /// print
+  void print(const std::string& s = "", const KeyFormatter& keyFormatter =
+                                            DefaultKeyFormatter) const override;
+
+  /// equals
+  bool equals(const NonlinearFactor& expected, double tol = 1e-9) const override;
+
+  /// vector of errors
+  Vector evaluateError(const NavState& p, OptionalMatrixType H) const override;
+
+  inline const Point3 & measurementIn() const {
+    return nT_;
+  }
+
+  inline const Point3 & leverArm() const {
+    return bL_;
+  }
+
 };
 
 } /// namespace gtsam
