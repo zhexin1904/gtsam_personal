@@ -123,7 +123,7 @@ NavState NavState::Expmap(const Vector9& xi, OptionalJacobian<9, 9> Hxi) {
 
   // Compute rotation using Expmap
 #ifdef GTSAM_USE_QUATERNIONS
-  const Rot3 R = traits<gtsam::Quaternion>::Expmap(v);
+  const Rot3 R = traits<gtsam::Quaternion>::Expmap(w);
 #else
   const Rot3 R(local.expmap());
 #endif

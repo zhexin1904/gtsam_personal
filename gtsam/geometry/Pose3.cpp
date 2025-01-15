@@ -189,7 +189,7 @@ Pose3 Pose3::Expmap(const Vector6& xi, OptionalJacobian<6, 6> Hxi) {
 
   // Compute rotation using Expmap
 #ifdef GTSAM_USE_QUATERNIONS
-  const Rot3 R = traits<gtsam::Quaternion>::Expmap(v);
+  const Rot3 R = traits<gtsam::Quaternion>::Expmap(w);
 #else
   const Rot3 R(local.expmap());
 #endif
