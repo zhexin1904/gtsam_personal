@@ -85,6 +85,7 @@ public:
   /// vector of errors
   Vector evaluateError(const Pose3& p, OptionalMatrixType H) const override;
 
+  /// return the measurement, in the navigation frame
   inline const Point3 & measurementIn() const {
     return nT_;
   }
@@ -146,7 +147,12 @@ public:
 
   ~GPSFactorArm() override {}
 
-  /// Constructor from a measurement in a Cartesian frame.
+  /** Constructor from a measurement in a Cartesian frame.
+   * @param key       key of the Pose3 variable related to this measurement
+   * @param gpsIn     gps measurement, in Cartesian navigation frame
+   * @param leverArm  translation from the body frame origin to the gps antenna, in body frame
+   * @param model     Gaussian noise model
+  */
   GPSFactorArm(Key key, const Point3& gpsIn, const Point3& leverArm, const SharedNoiseModel& model) :
       Base(model, key), nT_(gpsIn), bL_(leverArm) {
   }
@@ -167,10 +173,12 @@ public:
   /// vector of errors
   Vector evaluateError(const Pose3& p, OptionalMatrixType H) const override;
 
+  /// return the measurement, in the navigation frame
   inline const Point3 & measurementIn() const {
     return nT_;
   }
 
+  /// return the lever arm, a position in the body frame
   inline const Point3 & leverArm() const {
     return bL_;
   }
@@ -207,7 +215,11 @@ public:
 
   ~GPSFactor2() override {}
 
-  /// Constructor from a measurement in a Cartesian frame.
+  /** Constructor from a measurement in a Cartesian frame.
+   * @param key       key of the NavState variable related to this measurement
+   * @param gpsIn     gps measurement, in Cartesian navigation frame
+   * @param model     Gaussian noise model
+  */
   GPSFactor2(Key key, const Point3& gpsIn, const SharedNoiseModel& model) :
       Base(model, key), nT_(gpsIn) {
   }
@@ -228,6 +240,7 @@ public:
   /// vector of errors
   Vector evaluateError(const NavState& p, OptionalMatrixType H) const override;
 
+  /// return the measurement, in the navigation frame
   inline const Point3 & measurementIn() const {
     return nT_;
   }
@@ -281,7 +294,12 @@ public:
 
   ~GPSFactor2Arm() override {}
 
-  /// Constructor from a measurement in a Cartesian frame.
+  /** Constructor from a measurement in a Cartesian frame.
+   * @param key       key of the NavState variable related to this measurement
+   * @param gpsIn     gps measurement, in Cartesian navigation frame
+   * @param leverArm  translation from the body frame origin to the gps antenna, in body frame
+   * @param model     noise model for the factor's residual
+  */
   GPSFactor2Arm(Key key, const Point3& gpsIn, const Point3& leverArm, const SharedNoiseModel& model) :
       Base(model, key), nT_(gpsIn), bL_(leverArm) {
   }
@@ -302,10 +320,12 @@ public:
   /// vector of errors
   Vector evaluateError(const NavState& p, OptionalMatrixType H) const override;
 
+  /// return the measurement, in the navigation frame
   inline const Point3 & measurementIn() const {
     return nT_;
   }
 
+  /// return the lever arm, a position in the body frame
   inline const Point3 & leverArm() const {
     return bL_;
   }
