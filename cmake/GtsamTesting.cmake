@@ -197,9 +197,9 @@ macro(gtsamAddTestsGlob_impl groupName globPatterns excludedFiles linkLibraries)
 
 				# Add TOPSRCDIR
 				set_property(SOURCE ${script_src} APPEND PROPERTY COMPILE_DEFINITIONS "TOPSRCDIR=\"${GTSAM_SOURCE_DIR}\"")
-				
+
 				# Exclude from 'make all' and 'make install'
-				if(NOT QNX OR NOT DEFINED ENV{QNX_BUILD_TESTS})
+				if(NOT QNX)
 					set_target_properties(${script_name} PROPERTIES EXCLUDE_FROM_ALL ON)
 				endif()
 
@@ -242,7 +242,7 @@ macro(gtsamAddTestsGlob_impl groupName globPatterns excludedFiles linkLibraries)
 			set_property(SOURCE ${script_srcs} APPEND PROPERTY COMPILE_DEFINITIONS "TOPSRCDIR=\"${GTSAM_SOURCE_DIR}\"")
 
 			# Exclude from 'make all' and 'make install'
-			if(NOT QNX OR NOT DEFINED ENV{QNX_BUILD_TESTS})
+			if(NOT QNX)
 				set_target_properties(${target_name} PROPERTIES EXCLUDE_FROM_ALL ON)
 			endif()
 		

@@ -101,7 +101,7 @@ ENDIF(MSVC)
 # Generate and install config and dllexport files
 #For config.in searches
 if(QNX)
-set(QNX_TARGET_DATASET_DIR "$ENV{QNX_TARGET_DATASET_DIR}")
+set(QNX_TARGET_DATASET_DIR "/data/home/root/qnxuser/test" CACHE STRING "Path to your on-target testing folder.")
 endif()
 configure_file(config.h.in config.h)
 set(library_name GTSAM) # For substitution in dllexport.h.in
