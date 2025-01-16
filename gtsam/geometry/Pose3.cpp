@@ -212,8 +212,8 @@ Pose3 Pose3::Expmap(const Vector6& xi, OptionalJacobian<6, 6> Hxi) {
     // We are creating a Pose3, so we still need to chain H with R^T, the
     // Jacobian of Pose3::Create with respect to t.
     const Matrix3 Q = R.matrix().transpose() * H;
-    *Hxi << Jr, Z_3x3,  //
-        Q, Jr;
+    *Hxi << Jr, Z_3x3,  // Jr here *is* the Jacobian of expmap
+        Q, Jr;  // Here Jr = R^T * J_l, with J_l the Jacobian of t in v.
   }
 
   return Pose3(R, t);
