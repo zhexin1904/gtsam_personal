@@ -115,6 +115,46 @@ TEST( GPSFactorArm, Constructor ) {
 }
 
 // *************************************************************************
+TEST( GPSFactorArmCalib, Constructor ) {
+  using namespace example;
+
+  // From lat-lon to geocentric
+  double E, N, U;
+  origin_ENU.Forward(lat, lon, h, E, N, U);
+
+  // Factor
+  Key key1(1), key2(2);
+  SharedNoiseModel model = noiseModel::Isotropic::Sigma(3, 0.25);
+  GPSFactorArmCalib factor(key1, key2, Point3(E, N, U), model);
+
+  // Create a linearization point at zero error
+  const Rot3 nRb = Rot3::RzRyRx(0.15, -0.30, 0.45);
+  const Point3 np = Point3(E, N, U) - nRb * leverArm;
+  Pose3 T(nRb, np);
+  EXPECT(assert_equal(Z_3x1,factor.evaluateError(T, leverArm),1e-5));
+
+  // Calculate numerical derivatives
+  Matrix expectedH1 = numericalDerivative11<Vector, Pose3>(
+      [&factor, &leverArm](const Pose3& pose_arg) {
+        return factor.evaluateError(pose_arg, leverArm);
+      },
+      T);
+  Matrix expectedH2 = numericalDerivative11<Vector, Point3>(
+      [&factor, &T](const Point3& point_arg) {
+        return factor.evaluateError(T, point_arg);
+      },
+      leverArm);
+
+  // Use the factor to calculate the derivative
+  Matrix actualH1, actualH2;
+  factor.evaluateError(T, leverArm, actualH1, actualH2);
+
+  // Verify we get the expected error
+  EXPECT(assert_equal(expectedH1, actualH1, 1e-8));
+  EXPECT(assert_equal(expectedH2, actualH2, 1e-8));
+}
+
+// *************************************************************************
 TEST( GPSFactor2, Constructor ) {
   using namespace example;
 
@@ -172,6 +212,46 @@ TEST( GPSFactor2Arm, Constructor ) {
 
   // Verify we get the expected error
   EXPECT(assert_equal(expectedH, actualH, 1e-8));
+}
+
+// *************************************************************************
+TEST( GPSFactor2ArmCalib, Constructor ) {
+  using namespace example;
+
+  // From lat-lon to geocentric
+  double E, N, U;
+  origin_ENU.Forward(lat, lon, h, E, N, U);
+
+  // Factor
+  Key key1(1), key2(2);
+  SharedNoiseModel model = noiseModel::Isotropic::Sigma(3, 0.25);
+  GPSFactor2ArmCalib factor(key1, key2, Point3(E, N, U), model);
+
+  // Create a linearization point at zero error
+  const Rot3 nRb = Rot3::RzRyRx(0.15, -0.30, 0.45);
+  const Point3 np = Point3(E, N, U) - nRb * leverArm;
+  NavState T(nRb, np, Vector3::Zero());
+  EXPECT(assert_equal(Z_3x1,factor.evaluateError(T, leverArm),1e-5));
+
+  // Calculate numerical derivatives
+  Matrix expectedH1 = numericalDerivative11<Vector, NavState>(
+      [&factor, &leverArm](const NavState& nav_arg) {
+        return factor.evaluateError(nav_arg, leverArm);
+      },
+      T);
+  Matrix expectedH2 = numericalDerivative11<Vector, Point3>(
+      [&factor, &T](const Point3& point_arg) {
+        return factor.evaluateError(T, point_arg);
+      },
+      leverArm);
+
+  // Use the factor to calculate the derivative
+  Matrix actualH1, actualH2;
+  factor.evaluateError(T, leverArm, actualH1, actualH2);
+
+  // Verify we get the expected error
+  EXPECT(assert_equal(expectedH1, actualH1, 1e-8));
+  EXPECT(assert_equal(expectedH2, actualH2, 1e-8));
 }
 
 //***************************************************************************
