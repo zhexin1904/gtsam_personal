@@ -134,8 +134,9 @@ NavState NavState::Expmap(const Vector9& xi, OptionalJacobian<9, 9> Hxi) {
   const Vector3 v = local.applyLeftJacobian(nu, Hxi ? &H_v_w : nullptr);
 
   if (Hxi) {
-    // See Pose3::Expamp for explanation of the Jacobians
     const Matrix3 Jr = local.rightJacobian();
+    // We are creating a NavState, so we still need to chain H_t_w and H_v_w
+    // with R^T, the Jacobian of Navstate::Create with respect to both t and v.
     const Matrix3 M = R.matrix();
     *Hxi << Jr, Z_3x3, Z_3x3,  //
         M.transpose() * H_t_w, Jr, Z_3x3,  //
@@ -250,11 +251,12 @@ Matrix9 NavState::LogmapDerivative(const NavState& state) {
   local.applyLeftJacobian(rho, H_t_w);
   local.applyLeftJacobian(nu, H_v_w);
 
-  // Multiply with R^T, translates from left to right for our expmap convention:
+  // Multiply with R^T to account for NavState::Create Jacobian.
   const Matrix3 R = local.expmap();
   const Matrix3 Qt = R.transpose() * H_t_w;
   const Matrix3 Qv = R.transpose() * H_v_w;
 
+  // Now compute the blocks of the LogmapDerivative Jacobian
   const Matrix3 Jw = Rot3::LogmapDerivative(w);
   const Matrix3 Qt2 = -Jw * Qt * Jw;
   const Matrix3 Qv2 = -Jw * Qv * Jw;

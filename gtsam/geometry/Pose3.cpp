@@ -209,8 +209,8 @@ Pose3 Pose3::Expmap(const Vector6& xi, OptionalJacobian<6, 6> Hxi) {
   if (Hxi) {
     // The Jacobian of expmap is given by the right Jacobian of SO(3):
     const Matrix3 Jr = local.rightJacobian();
-    // We multiply H, the derivative of applyLeftJacobian in omega, with R^T
-    // to translate from left to right for our right expmap convention:
+    // We are creating a Pose3, so we still need to chain H with R^T, the
+    // Jacobian of Pose3::Create with respect to t.
     const Matrix3 Q = R.matrix().transpose() * H;
     *Hxi << Jr, Z_3x3,  //
         Q, Jr;
@@ -288,8 +288,9 @@ Matrix3 Pose3::ComputeQforExpmapDerivative(const Vector6& xi,
   Matrix3 H;
   local.applyLeftJacobian(v, H);
 
-  // Multiply with R^T, translates from left to right for our expmap convention:
-  return local.expmap().transpose() * H;
+  // Multiply with R^T to account for the Pose3::Create Jacobian.
+  const Matrix3 R = local.expmap();
+  return R.transpose() * H;
 }
 
 /* ************************************************************************* */
