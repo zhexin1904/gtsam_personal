@@ -117,7 +117,7 @@ Vector GPSFactor2::evaluateError(const NavState& p,
 
 //***************************************************************************
 void GPSFactor2Arm::print(const string& s, const KeyFormatter& keyFormatter) const {
-  cout << s << "GPSFactorArm on " << keyFormatter(key()) << "\n";
+  cout << s << "GPSFactor2Arm on " << keyFormatter(key()) << "\n";
   cout << "  GPS measurement: " << nT_.transpose() << "\n";
   cout << "  Lever arm: " << bL_.transpose() << "\n";
   noiseModel_->print("  noise model: ");
