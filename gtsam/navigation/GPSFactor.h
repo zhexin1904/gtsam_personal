@@ -24,8 +24,7 @@
 namespace gtsam {
 
 /**
- * Prior on position in a Cartesian frame, assuming position prior is in body
- * frame.
+ * Prior on position in a Cartesian frame.
  * If there exists a non-zero lever arm between body frame and GPS
  * antenna, instead use GPSFactorArm.
  * Possibilities include:
@@ -41,7 +40,7 @@ private:
 
   typedef NoiseModelFactorN<Pose3> Base;
 
-  Point3 nT_; ///< Position measurement in cartesian coordinates
+  Point3 nT_; ///< Position measurement in cartesian coordinates (navigation frame)
 
 public:
 
@@ -127,7 +126,7 @@ private:
 
   typedef NoiseModelFactorN<Pose3> Base;
 
-  Point3 nT_;  ///< Position measurement in cartesian coordinates
+  Point3 nT_;  ///< Position measurement in cartesian coordinates (navigation frame)
   Point3 bL_;  ///< bL_ is a lever arm in the body frame, denoting the 3D
                ///< position of the GPS antenna in the body frame
 
@@ -190,7 +189,7 @@ private:
 
   typedef NoiseModelFactorN<NavState> Base;
 
-  Point3 nT_; ///< Position measurement in cartesian coordinates
+  Point3 nT_; ///< Position measurement in cartesian coordinates (navigation frame)
 
 public:
 
@@ -262,7 +261,7 @@ private:
 
   typedef NoiseModelFactorN<NavState> Base;
 
-  Point3 nT_;  ///< Position measurement in cartesian coordinates
+  Point3 nT_;  ///< Position measurement in cartesian coordinates (navigation frame)
   Point3 bL_;  ///< bL_ is a lever arm in the body frame, denoting the 3D
                ///< position of the GPS antenna in the body frame
 
