@@ -48,7 +48,7 @@
  */
 #ifdef __GNUC__
 #if __GNUC__ >= 7 && __cplusplus >= 201703L
-namespace boost { namespace serialization { struct U; } }
+namespace boost { namespace serialization { struct U{}; } }
 namespace std { template<> struct is_trivially_default_constructible<boost::serialization::U> : std::false_type {}; }
 namespace std { template<> struct is_trivially_copy_constructible<boost::serialization::U> : std::false_type {}; }
 namespace std { template<> struct is_trivially_move_constructible<boost::serialization::U> : std::false_type {}; }
