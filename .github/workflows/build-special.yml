@@ -116,7 +116,7 @@ jobs:
           fi
 
       - name: Install Boost
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.flag != 'no_boost'
         run: |
           sudo apt-get -y install libboost-all-dev
 
