@@ -2,8 +2,8 @@ name: Linux CI
 
 on: [pull_request]
 
-# Every time you make a push to your PR, it cancel immediately the previous checks, 
-# and start a new one. The other runner will be available more quickly to your PR. 
+# Every time you make a push to your PR, it cancel immediately the previous checks,
+# and start a new one. The other runner will be available more quickly to your PR.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -24,12 +24,15 @@ jobs:
       matrix:
         # Github Actions requires a single row to be added to the build matrix.
         # See https://help.github.com/en/articles/workflow-syntax-for-github-actions.
-        name: [
-          ubuntu-20.04-gcc-9,
-          ubuntu-20.04-clang-9,
-          ubuntu-22.04-gcc-12,
-          ubuntu-22.04-clang-14,
-        ]
+        name:
+          [
+            ubuntu-20.04-gcc-9,
+            ubuntu-20.04-clang-9,
+            ubuntu-22.04-gcc-12,
+            ubuntu-22.04-clang-14,
+            ubuntu-24.04-gcc-13,
+            ubuntu-24.04-clang-16,
+          ]
 
         build_type: [Debug, Release]
         build_unstable: [ON]
@@ -53,6 +56,16 @@ jobs:
             os: ubuntu-22.04
             compiler: clang
             version: "14"
+
+          - name: ubuntu-24.04-gcc-13
+            os: ubuntu-24.04
+            compiler: gcc
+            version: "13"
+
+          - name: ubuntu-24.04-clang-16
+            os: ubuntu-24.04
+            compiler: clang
+            version: "16"
 
     steps:
       - name: Checkout
