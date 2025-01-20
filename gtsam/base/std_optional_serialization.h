@@ -48,6 +48,7 @@
  */
 #ifdef __GNUC__
 #if __GNUC__ >= 7 && __cplusplus >= 201703L
+// Based on https://github.com/borglab/gtsam/issues/1738, we define U as a complete type.
 namespace boost { namespace serialization { struct U{}; } }
 namespace std { template<> struct is_trivially_default_constructible<boost::serialization::U> : std::false_type {}; }
 namespace std { template<> struct is_trivially_copy_constructible<boost::serialization::U> : std::false_type {}; }
