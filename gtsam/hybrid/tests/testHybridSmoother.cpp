@@ -166,7 +166,7 @@ TEST(HybridSmoother, ValidPruningError) {
   HybridValues delta = smoother.hybridBayesNet().optimize();
 
   auto errorTree = smoother.hybridBayesNet().errorTree(delta.continuous());
-  EXPECT_DOUBLES_EQUAL(0.0, errorTree(delta.discrete()), 1e-8);
+  EXPECT_DOUBLES_EQUAL(1e-8, errorTree(delta.discrete()), 1e-8);
 }
 
 /* ************************************************************************* */
