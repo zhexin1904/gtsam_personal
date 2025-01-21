@@ -401,6 +401,27 @@ TEST(HybridBayesNet, Error) {
 }
 
 /* ****************************************************************************/
+// Test Bayes net pruning
+TEST(HybridBayesNet, Prune) {
+  Switching s(3);
+
+  HybridBayesNet::shared_ptr posterior =
+      s.linearizedFactorGraph().eliminateSequential();
+  EXPECT_LONGS_EQUAL(7, posterior->size());
+
+  // Call Max-Product to get MAP
+  HybridValues delta = posterior->optimize();
+
+  // Prune the Bayes net
+  auto prunedBayesNet = posterior->prune(2);
+
+  // Test if Max-Product gives the same result as unpruned version
+  HybridValues pruned_delta = prunedBayesNet.optimize();
+  EXPECT(assert_equal(delta.discrete(), pruned_delta.discrete()));
+  EXPECT(assert_equal(delta.continuous(), pruned_delta.continuous()));
+}
+
+/* ****************************************************************************/
 // Test Bayes net error and log-probability after pruning
 TEST(HybridBayesNet, ErrorAfterPruning) {
   using namespace hbn_error;
