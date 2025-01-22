@@ -370,6 +370,41 @@ TEST(DiscreteBayesTree, Lookup) {
 }
 
 /* ************************************************************************* */
+// Test creating a Bayes tree directly from cliques
+TEST(DiscreteBayesTree, DirectFromCliques) {
+  // Create a BayesNet
+  DiscreteBayesNet bayesNet;
+  DiscreteKey key0(0, 2), key1(1, 2), key2(2, 2);
+  bayesNet.add(key0 % "1/3");
+  bayesNet.add(key1 | key0 = "1/3 3/1");
+  bayesNet.add(key2 | key1 = "3/1 3/1");
+
+  // Create cliques directly
+  auto clique2 = std::make_shared<DiscreteBayesTree::Clique>(
+      std::make_shared<DiscreteConditional>(key2 | key1 = "3/1 3/1"));
+  auto clique1 = std::make_shared<DiscreteBayesTree::Clique>(
+      std::make_shared<DiscreteConditional>(key1 | key0 = "1/3 3/1"));
+  auto clique0 = std::make_shared<DiscreteBayesTree::Clique>(
+      std::make_shared<DiscreteConditional>(key0 % "1/3"));
+
+  // Create a BayesTree
+  DiscreteBayesTree bayesTree;
+  bayesTree.insertRoot(clique2);
+  bayesTree.addClique(clique1, clique2);
+  bayesTree.addClique(clique0, clique1);
+
+  // Check that the BayesTree is correct
+  DiscreteValues values;
+  values[0] = 1;
+  values[1] = 1;
+  values[2] = 1;
+
+  double expected = bayesNet.evaluate(values);
+  double actual = bayesTree.evaluate(values);
+  DOUBLES_EQUAL(expected, actual, 1e-9);
+}
+
+/* ************************************************************************* */
 int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);
