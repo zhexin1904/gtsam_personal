@@ -170,7 +170,7 @@ double HybridConditional::evaluate(const HybridValues &values) const {
 }
 
 /* ************************************************************************ */
-void HybridConditional::removeModes(const DiscreteValues &given) {
+void HybridConditional::removeDiscreteModes(const DiscreteValues &given) {
   if (this->isDiscrete()) {
     auto d = this->asDiscrete();
 
@@ -187,22 +187,6 @@ void HybridConditional::removeModes(const DiscreteValues &given) {
       }
     }
     inner_ = std::make_shared<DiscreteConditional>(dkeys.size(), dkeys, tree);
-
-  } else if (this->isHybrid()) {
-    auto d = this->asHybrid();
-    HybridGaussianFactor::FactorValuePairs tree = d->factors();
-    for (auto [key, value] : given) {
-      tree = tree.choose(key, value);
-    }
-
-    // Get the leftover DiscreteKeys
-    DiscreteKeys dkeys;
-    for (DiscreteKey dkey : d->discreteKeys()) {
-      if (given.count(dkey.first) == 0) {
-        dkeys.emplace_back(dkey);
-      }
-    }
-    inner_ = std::make_shared<HybridGaussianConditional>(dkeys, tree);
   }
 }
 

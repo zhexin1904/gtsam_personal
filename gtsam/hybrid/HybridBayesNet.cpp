@@ -88,7 +88,7 @@ HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves,
     }
 
     // Remove the modes (imperative)
-    result.back()->removeModes(deadModesValues);
+    result.back()->removeDiscreteModes(deadModesValues);
     pruned = *result.back()->asDiscrete();
   }
 
