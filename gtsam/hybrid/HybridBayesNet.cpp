@@ -83,7 +83,7 @@ HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves,
       }
 
       if (index >= 0) {
-        deadModesValues.insert(std::make_pair(dkey.first, index));
+        deadModesValues.emplace(dkey.first, index);
       }
     }
 
