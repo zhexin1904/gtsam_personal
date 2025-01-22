@@ -508,20 +508,20 @@ void DiscreteConditional::removeDiscreteModes(const DiscreteValues& given) {
 
   // Get the leftover DiscreteKey frontals
   DiscreteKeys frontals;
-  for (Key key : this->frontals()) {
+  std::for_each(this->frontals().begin(), this->frontals().end(), [&](Key key) {
     // Check if frontal key exists in given, if not add to new frontals
     if (given.count(key) == 0) {
-      frontals.emplace_back(key, cardinalities_.at(key));
+      frontals.emplace_back(key, this->cardinalities_.at(key));
     }
-  }
+  });
   // Get the leftover DiscreteKey parents
   DiscreteKeys parents;
-  for (Key key : this->parents()) {
+  std::for_each(this->parents().begin(), this->parents().end(), [&](Key key) {
     // Check if parent key exists in given, if not add to new parents
     if (given.count(key) == 0) {
-      parents.emplace_back(key, cardinalities_.at(key));
+      parents.emplace_back(key, this->cardinalities_.at(key));
     }
-  }
+  });
 
   DiscreteKeys allDkeys(frontals);
   allDkeys.insert(allDkeys.end(), parents.begin(), parents.end());
