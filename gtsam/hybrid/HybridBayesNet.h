@@ -209,9 +209,10 @@ class GTSAM_EXPORT HybridBayesNet : public BayesNet<HybridConditional> {
    * @brief Prune the Bayes Net such that we have at most maxNrLeaves leaves.
    *
    * @param maxNrLeaves Continuous values at which to compute the error.
+   * @param removeDeadModes
    * @return A pruned HybridBayesNet
    */
-  HybridBayesNet prune(size_t maxNrLeaves) const;
+  HybridBayesNet prune(size_t maxNrLeaves, bool removeDeadModes = false) const;
 
   /**
    * @brief Error method using HybridValues which returns specific error for

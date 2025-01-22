@@ -407,7 +407,7 @@ TEST(HybridBayesNet, Prune) {
 
   HybridBayesNet::shared_ptr posterior =
       s.linearizedFactorGraph().eliminateSequential();
-  EXPECT_LONGS_EQUAL(7, posterior->size());
+  EXPECT_LONGS_EQUAL(5, posterior->size());
 
   // Call Max-Product to get MAP
   HybridValues delta = posterior->optimize();
@@ -419,6 +419,35 @@ TEST(HybridBayesNet, Prune) {
   HybridValues pruned_delta = prunedBayesNet.optimize();
   EXPECT(assert_equal(delta.discrete(), pruned_delta.discrete()));
   EXPECT(assert_equal(delta.continuous(), pruned_delta.continuous()));
+}
+
+/* ****************************************************************************/
+// Test Bayes net pruning and dead node removal
+TEST(HybridBayesNet, RemoveDeadNodes) {
+  Switching s(3);
+
+  HybridBayesNet::shared_ptr posterior =
+      s.linearizedFactorGraph().eliminateSequential();
+  EXPECT_LONGS_EQUAL(5, posterior->size());
+
+  // Call Max-Product to get MAP
+  HybridValues delta = posterior->optimize();
+
+  // Prune the Bayes net
+  const bool pruneDeadVariables = true;
+  auto prunedBayesNet = posterior->prune(2, pruneDeadVariables);
+
+  // Check that discrete joint only has M0 and not (M0, M1)
+  // since M0 is removed
+  KeyVector actual_keys = prunedBayesNet.at(0)->asDiscrete()->keys();
+  EXPECT(KeyVector{M(0)} == actual_keys);
+
+  // Check that hybrid conditionals that only depend on M1 are no longer hybrid
+  EXPECT(prunedBayesNet.at(0)->isDiscrete());
+  EXPECT(prunedBayesNet.at(1)->isHybrid());
+  // Only P(X2 | X1, M1) depends on M1, so it is Gaussian
+  EXPECT(prunedBayesNet.at(2)->isContinuous());
+  EXPECT(prunedBayesNet.at(3)->isHybrid());
 }
 
 /* ****************************************************************************/
