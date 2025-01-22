@@ -442,10 +442,12 @@ TEST(HybridBayesNet, RemoveDeadNodes) {
   KeyVector actual_keys = prunedBayesNet.at(0)->asDiscrete()->keys();
   EXPECT(KeyVector{M(0)} == actual_keys);
 
-  // Check that hybrid conditionals that only depend on M1 are no longer hybrid
+  // Check that hybrid conditionals that only depend on M1
+  // are now Gaussian and not Hybrid
   EXPECT(prunedBayesNet.at(0)->isDiscrete());
   EXPECT(prunedBayesNet.at(1)->isHybrid());
-  // Only P(X2 | X1, M1) depends on M1, so it is Gaussian
+  // Only P(X2 | X1, M1) depends on M1,
+  // so it gets convert to a Gaussian P(X2 | X1)
   EXPECT(prunedBayesNet.at(2)->isContinuous());
   EXPECT(prunedBayesNet.at(3)->isHybrid());
 }
