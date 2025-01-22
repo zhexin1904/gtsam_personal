@@ -215,16 +215,6 @@ class GTSAM_EXPORT HybridConditional
     return true;
   }
 
-  /**
-   * @brief Remove the discrete modes whose assignments are given to us.
-   * Only applies to discrete conditionals.
-   *
-   * Imperative method so we can update nodes in the Bayes net or Bayes tree.
-   *
-   * @param given The discrete modes whose assignments we know.
-   */
-  void removeDiscreteModes(const DiscreteValues& given);
-
   /// @}
 
  private:
