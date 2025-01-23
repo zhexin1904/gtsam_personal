@@ -378,7 +378,7 @@ namespace gtsam {
         typename CLIQUE::FactorGraphType(p_S_B).eliminatePartialMultifrontal(
             Ordering(S_setminus_B), eliminate);
     return bayesTree;
-  };
+  }
   
   /* ************************************************************************* */
   template <class CLIQUE>
