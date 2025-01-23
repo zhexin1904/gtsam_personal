@@ -104,14 +104,16 @@ namespace gtsam {
   }
 
   /* ************************************************************************* */
-  // The shortcut density is a conditional P(S|R) of the separator of this
-  // clique on the root. We can compute it recursively from the parent shortcut
-  // P(Sp|R) as \int P(Fp|Sp) P(Sp|R), where Fp are the frontal nodes in p
-  /* ************************************************************************* */
-  template<class DERIVED, class FACTORGRAPH>
+  // The shortcut density is a conditional P(S|B) of the separator of this
+  // clique on the root or common ancestor B. We can compute it recursively from
+  // the parent shortcut P(Sp|B) as \int P(Fp|Sp) P(Sp|B), where Fp are the
+  // frontal nodes in p
+  /* *************************************************************************
+   */
+  template <class DERIVED, class FACTORGRAPH>
   typename BayesTreeCliqueBase<DERIVED, FACTORGRAPH>::BayesNetType
-    BayesTreeCliqueBase<DERIVED, FACTORGRAPH>::shortcut(const derived_ptr& B, Eliminate function) const
-  {
+  BayesTreeCliqueBase<DERIVED, FACTORGRAPH>::shortcut(
+      const derived_ptr& B, Eliminate function) const {
     gttic(BayesTreeCliqueBase_shortcut);
     // We only calculate the shortcut when this clique is not B
     // and when the S\B is not empty
