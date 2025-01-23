@@ -23,7 +23,6 @@
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/slam/BetweenFactor.h>
-#include <gtsam/slam/PriorFactor.h>
 #include <gtsam/slam/dataset.h>
 #include <time.h>
 
@@ -51,7 +50,7 @@ noiseModel::Diagonal::shared_ptr prior_noise_model =
 
 noiseModel::Diagonal::shared_ptr pose_noise_model =
     noiseModel::Diagonal::Sigmas(
-        (Vector(3) << 1.0 / 50.0, 1.0 / 50.0, 1.0 / 100.0).finished());
+        (Vector(3) << 1.0 / 30.0, 1.0 / 30.0, 1.0 / 100.0).finished());
 
 /**
  * @brief Write the results of optimization to filename.
@@ -90,12 +89,10 @@ int main(int argc, char* argv[]) {
   std::list<double> time_list;
 
   ISAM2Params parameters;
-
   parameters.optimizationParams = gtsam::ISAM2GaussNewtonParams(0.0);
-
   parameters.relinearizeThreshold = 0.01;
-
   parameters.relinearizeSkip = 1;
+
   ISAM2* isam2 = new ISAM2(parameters);
 
   NonlinearFactorGraph* graph = new NonlinearFactorGraph();
@@ -112,7 +109,7 @@ int main(int argc, char* argv[]) {
   init_values.insert(X(0), prior_pose);
   pose_count++;
 
-  graph->add(PriorFactor<Pose2>(X(0), prior_pose, prior_noise_model));
+  graph->addPrior<Pose2>(X(0), prior_pose, prior_noise_model);
 
   isam2->update(*graph, init_values);
   graph->resize(0);
@@ -165,12 +162,11 @@ int main(int argc, char* argv[]) {
     init_values.clear();
     results = isam2->calculateBestEstimate();
 
-    //*
+    // Print loop index and time taken in processor clock ticks
     if (index % 50 == 0 && key_s != key_t - 1) {
       std::cout << "index: " << index << std::endl;
       std::cout << "acc_time:  " << time_list.back() << std::endl;
     }
-    // */
 
     if (key_s == key_t - 1) {
       clock_t cur_time = clock();
