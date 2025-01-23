@@ -18,9 +18,11 @@
  */
 
 #include <gtsam/geometry/Pose2.h>
+#include <gtsam/hybrid/HybridNonlinearFactor.h>
+#include <gtsam/hybrid/HybridNonlinearFactorGraph.h>
+#include <gtsam/hybrid/HybridNonlinearISAM.h>
+#include <gtsam/hybrid/HybridValues.h>
 #include <gtsam/inference/Symbol.h>
-#include <gtsam/nonlinear/ISAM2.h>
-#include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include <gtsam/slam/PriorFactor.h>
@@ -37,13 +39,11 @@ using namespace std;
 using namespace gtsam;
 using namespace boost::algorithm;
 
+using symbol_shorthand::M;
 using symbol_shorthand::X;
 
 // Testing params
-const size_t max_loop_count = 2000;  // 200 //2000 //8000
-
-const bool is_with_ambiguity = false;  // run original iSAM2 without ambiguities
-// const bool is_with_ambiguity = true;  // run original iSAM2 with ambiguities
+const size_t max_loop_count = 1000;  // 2000;  // 200 //2000 //8000
 
 noiseModel::Diagonal::shared_ptr prior_noise_model =
     noiseModel::Diagonal::Sigmas(
@@ -51,7 +51,7 @@ noiseModel::Diagonal::shared_ptr prior_noise_model =
 
 noiseModel::Diagonal::shared_ptr pose_noise_model =
     noiseModel::Diagonal::Sigmas(
-        (Vector(3) << 1.0 / 50.0, 1.0 / 50.0, 1.0 / 100.0).finished());
+        (Vector(3) << 1.0 / 30.0, 1.0 / 30.0, 1.0 / 100.0).finished());
 
 /**
  * @brief Write the results of optimization to filename.
@@ -84,24 +84,19 @@ int main(int argc, char* argv[]) {
 
   // ifstream in("../data/mh_All_city10000_groundtruth.txt");
 
-  size_t pose_count = 0;
+  size_t pose_count = 0, discrete_count = 0;
   size_t index = 0;
 
   std::list<double> time_list;
 
-  ISAM2Params parameters;
+  HybridNonlinearISAM isam;
 
-  parameters.optimizationParams = gtsam::ISAM2GaussNewtonParams(0.0);
-
-  parameters.relinearizeThreshold = 0.01;
-
-  parameters.relinearizeSkip = 1;
-  ISAM2* isam2 = new ISAM2(parameters);
-
-  NonlinearFactorGraph* graph = new NonlinearFactorGraph();
+  HybridNonlinearFactorGraph graph;
 
   Values init_values;
   Values results;
+
+  size_t maxNrHypotheses = 3;
 
   double x = 0.0;
   double y = 0.0;
@@ -110,23 +105,21 @@ int main(int argc, char* argv[]) {
   Pose2 prior_pose(x, y, rad);
 
   init_values.insert(X(0), prior_pose);
-  pose_count++;
+  pose_count += 1;
 
-  graph->add(PriorFactor<Pose2>(X(0), prior_pose, prior_noise_model));
+  graph.push_back(PriorFactor<Pose2>(X(0), prior_pose, prior_noise_model));
 
-  isam2->update(*graph, init_values);
-  graph->resize(0);
+  isam.update(graph, init_values, maxNrHypotheses);
+
+  graph.resize(0);
   init_values.clear();
-  results = isam2->calculateBestEstimate();
+  results = isam.estimate();
 
-  //*
-  size_t key_s = 0;
-  size_t key_t = 0;
+  size_t key_s, key_t;
 
   clock_t start_time = clock();
-  string str;
+  std::string str;
   while (getline(in, str) && index < max_loop_count) {
-    // cout << str << endl;
     vector<string> parts;
     split(parts, str, is_any_of(" "));
 
@@ -142,35 +135,47 @@ int main(int argc, char* argv[]) {
       pose_array[i] = Pose2(x, y, rad);
     }
 
-    Pose2 odom_pose;
-    if (is_with_ambiguity) {
-      // Get wrong intentionally
-      int id = index % num_measurements;
-      odom_pose = Pose2(pose_array[id]);
-    } else {
-      odom_pose = pose_array[0];
-    }
-
+    // Take the first one as the initial estimate
+    Pose2 odom_pose = pose_array[0];
     if (key_s == key_t - 1) {  // new X(key)
       init_values.insert(X(key_t), results.at<Pose2>(X(key_s)) * odom_pose);
       pose_count++;
     } else {  // loop
-      index++;
+      // index++;
     }
-    graph->add(
-        BetweenFactor<Pose2>(X(key_s), X(key_t), odom_pose, pose_noise_model));
 
-    isam2->update(*graph, init_values);
-    graph->resize(0);
+    if (num_measurements == 2) {
+      // Add hybrid factor which considers both measurements
+      DiscreteKey m(M(discrete_count), num_measurements);
+      discrete_count++;
+
+      graph.push_back(DecisionTreeFactor(m, "0.6 0.4"));
+
+      auto f0 = std::make_shared<BetweenFactor<Pose2>>(
+          X(key_s), X(key_t), pose_array[0], pose_noise_model);
+      auto f1 = std::make_shared<BetweenFactor<Pose2>>(
+          X(key_s), X(key_t), pose_array[1], pose_noise_model);
+      std::vector<NonlinearFactorValuePair> factors{{f0, 0.0}, {f1, 0.0}};
+      // HybridNonlinearFactor mixtureFactor(m, factors);
+      HybridNonlinearFactor mixtureFactor(m, {f0, f1});
+      graph.push_back(mixtureFactor);
+
+    } else {
+      graph.add(BetweenFactor<Pose2>(X(key_s), X(key_t), odom_pose,
+                                     pose_noise_model));
+    }
+
+    isam.update(graph, init_values, maxNrHypotheses);
+    graph.resize(0);
     init_values.clear();
-    results = isam2->calculateBestEstimate();
+    results = isam.estimate();
+    isam.assignment().print("The Discrete Assignment");
 
-    //*
+    // Print loop index and time taken in processor clock ticks
     if (index % 50 == 0 && key_s != key_t - 1) {
       std::cout << "index: " << index << std::endl;
       std::cout << "acc_time:  " << time_list.back() << std::endl;
     }
-    // */
 
     if (key_s == key_t - 1) {
       clock_t cur_time = clock();
@@ -181,7 +186,8 @@ int main(int argc, char* argv[]) {
       string step_file_idx = std::to_string(100000 + time_list.size());
 
       ofstream step_outfile;
-      string step_file_name = "step_files/ISAM2_city10000_S" + step_file_idx;
+      string step_file_name =
+          "step_files/HybridISAM_city10000_S" + step_file_idx;
       step_outfile.open(step_file_name + ".txt");
       for (size_t i = 0; i < (key_t + 1); ++i) {
         Pose2 out_pose = results.at<Pose2>(X(i));
@@ -190,6 +196,8 @@ int main(int argc, char* argv[]) {
       }
       step_outfile.close();
     }
+
+    index += 1;
   }
 
   clock_t end_time = clock();
@@ -197,10 +205,10 @@ int main(int argc, char* argv[]) {
   cout << "total_time: " << total_time << endl;
 
   /// Write results to file
-  write_results(results, (key_t + 1));
+  write_results(results, (key_t + 1), "HybridISAM_city10000.txt");
 
   ofstream outfile_time;
-  std::string time_file_name = "ISAM2_city10000_time.txt";
+  std::string time_file_name = "HybridISAM_city10000_time.txt";
   outfile_time.open(time_file_name);
   for (auto acc_time : time_list) {
     outfile_time << acc_time << std::endl;
