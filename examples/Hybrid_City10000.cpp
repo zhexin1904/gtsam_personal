@@ -43,7 +43,7 @@ using symbol_shorthand::M;
 using symbol_shorthand::X;
 
 // Testing params
-const size_t max_loop_count = 1000;  // 2000;  // 200 //2000 //8000
+const size_t max_loop_count = 2000;  // 2000;  // 200 //2000 //8000
 
 noiseModel::Diagonal::shared_ptr prior_noise_model =
     noiseModel::Diagonal::Sigmas(
@@ -84,12 +84,11 @@ int main(int argc, char* argv[]) {
 
   // ifstream in("../data/mh_All_city10000_groundtruth.txt");
 
-  size_t pose_count = 0, discrete_count = 0;
-  size_t index = 0;
+  size_t discrete_count = 0, index = 0;
 
   std::list<double> time_list;
 
-  HybridNonlinearISAM isam;
+  HybridNonlinearISAM isam(100);
 
   HybridNonlinearFactorGraph graph;
 
@@ -105,7 +104,6 @@ int main(int argc, char* argv[]) {
   Pose2 prior_pose(x, y, rad);
 
   init_values.insert(X(0), prior_pose);
-  pose_count += 1;
 
   graph.push_back(PriorFactor<Pose2>(X(0), prior_pose, prior_noise_model));
 
@@ -139,7 +137,7 @@ int main(int argc, char* argv[]) {
     Pose2 odom_pose = pose_array[0];
     if (key_s == key_t - 1) {  // new X(key)
       init_values.insert(X(key_t), results.at<Pose2>(X(key_s)) * odom_pose);
-      pose_count++;
+
     } else {  // loop
       // index++;
     }
@@ -169,7 +167,6 @@ int main(int argc, char* argv[]) {
     graph.resize(0);
     init_values.clear();
     results = isam.estimate();
-    isam.assignment().print("The Discrete Assignment");
 
     // Print loop index and time taken in processor clock ticks
     if (index % 50 == 0 && key_s != key_t - 1) {
