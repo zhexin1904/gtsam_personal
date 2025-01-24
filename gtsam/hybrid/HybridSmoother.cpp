@@ -68,8 +68,7 @@ void HybridSmoother::update(HybridGaussianFactorGraph graph,
   }
 
   // Add the necessary conditionals from the previous timestep(s).
-  std::tie(graph, hybridBayesNet_) =
-      addConditionals(graph, hybridBayesNet_, ordering);
+  std::tie(graph, hybridBayesNet_) = addConditionals(graph, hybridBayesNet_);
 
   // Eliminate.
   HybridBayesNet bayesNetFragment = *graph.eliminateSequential(ordering);
@@ -88,20 +87,17 @@ void HybridSmoother::update(HybridGaussianFactorGraph graph,
 /* ************************************************************************* */
 std::pair<HybridGaussianFactorGraph, HybridBayesNet>
 HybridSmoother::addConditionals(const HybridGaussianFactorGraph &originalGraph,
-                                const HybridBayesNet &originalHybridBayesNet,
-                                const Ordering &ordering) const {
+                                const HybridBayesNet &hybridBayesNet) const {
   HybridGaussianFactorGraph graph(originalGraph);
-  HybridBayesNet hybridBayesNet(originalHybridBayesNet);
+  HybridBayesNet updatedHybridBayesNet(hybridBayesNet);
+
+  KeySet factorKeys = graph.keys();
 
   // If hybridBayesNet is not empty,
   // it means we have conditionals to add to the factor graph.
   if (!hybridBayesNet.empty()) {
     // We add all relevant hybrid conditionals on the last continuous variable
     // in the previous `hybridBayesNet` to the graph
-
-    // Conditionals to remove from the bayes net
-    // since the conditional will be updated.
-    std::vector<HybridConditional::shared_ptr> conditionals_to_erase;
 
     // New conditionals to add to the graph
     gtsam::HybridBayesNet newConditionals;
@@ -112,25 +108,24 @@ HybridSmoother::addConditionals(const HybridGaussianFactorGraph &originalGraph,
       auto conditional = hybridBayesNet.at(i);
 
       for (auto &key : conditional->frontals()) {
-        if (std::find(ordering.begin(), ordering.end(), key) !=
-            ordering.end()) {
+        if (std::find(factorKeys.begin(), factorKeys.end(), key) !=
+            factorKeys.end()) {
           newConditionals.push_back(conditional);
-          conditionals_to_erase.push_back(conditional);
+
+          // Remove the conditional from the updated Bayes net
+          auto it = find(updatedHybridBayesNet.begin(),
+                         updatedHybridBayesNet.end(), conditional);
+          updatedHybridBayesNet.erase(it);
 
           break;
         }
       }
     }
-    // Remove conditionals at the end so we don't affect the order in the
-    // original bayes net.
-    for (auto &&conditional : conditionals_to_erase) {
-      auto it = find(hybridBayesNet.begin(), hybridBayesNet.end(), conditional);
-      hybridBayesNet.erase(it);
-    }
 
     graph.push_back(newConditionals);
   }
-  return {graph, hybridBayesNet};
+
+  return {graph, updatedHybridBayesNet};
 }
 
 /* ************************************************************************* */

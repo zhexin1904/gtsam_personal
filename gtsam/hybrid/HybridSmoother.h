@@ -66,7 +66,7 @@ class GTSAM_EXPORT HybridSmoother {
    */
   std::pair<HybridGaussianFactorGraph, HybridBayesNet> addConditionals(
       const HybridGaussianFactorGraph& graph,
-      const HybridBayesNet& hybridBayesNet, const Ordering& ordering) const;
+      const HybridBayesNet& hybridBayesNet) const;
 
   /**
    * @brief Get the hybrid Gaussian conditional from
