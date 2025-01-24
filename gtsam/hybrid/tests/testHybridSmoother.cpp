@@ -95,16 +95,15 @@ TEST(HybridSmoother, IncrementalSmoother) {
     initial.insert(X(k), switching.linearizationPoint.at<double>(X(k)));
 
     HybridGaussianFactorGraph linearized = *graph.linearize(initial);
-    Ordering ordering = smoother.getOrdering(linearized);
 
-    smoother.update(linearized, maxNrLeaves, ordering);
+    smoother.update(linearized, maxNrLeaves);
 
     // Clear all the factors from the graph
     graph.resize(0);
   }
 
   EXPECT_LONGS_EQUAL(11,
-                     smoother.hybridBayesNet().at(0)->asDiscrete()->nrValues());
+                     smoother.hybridBayesNet().at(3)->asDiscrete()->nrValues());
 
   // Get the continuous delta update as well as
   // the optimal discrete assignment.
@@ -150,16 +149,15 @@ TEST(HybridSmoother, ValidPruningError) {
     initial.insert(X(k), switching.linearizationPoint.at<double>(X(k)));
 
     HybridGaussianFactorGraph linearized = *graph.linearize(initial);
-    Ordering ordering = smoother.getOrdering(linearized);
 
-    smoother.update(linearized, maxNrLeaves, ordering);
+    smoother.update(linearized, maxNrLeaves);
 
     // Clear all the factors from the graph
     graph.resize(0);
   }
 
   EXPECT_LONGS_EQUAL(14,
-                     smoother.hybridBayesNet().at(0)->asDiscrete()->nrValues());
+                     smoother.hybridBayesNet().at(6)->asDiscrete()->nrValues());
 
   // Get the continuous delta update as well as
   // the optimal discrete assignment.
