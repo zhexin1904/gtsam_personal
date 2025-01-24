@@ -49,11 +49,35 @@ class GTSAM_EXPORT HybridSmoother {
    * @param given_ordering The (optional) ordering for elimination, only
    * continuous variables are allowed
    */
-  void update(HybridGaussianFactorGraph graph,
+  void update(const HybridGaussianFactorGraph& graph,
               std::optional<size_t> maxNrLeaves = {},
               const std::optional<Ordering> given_ordering = {});
 
-  Ordering getOrdering(const HybridGaussianFactorGraph& newFactors);
+  /**
+   * @brief Get an elimination ordering which eliminates continuous and then
+   * discrete.
+   *
+   * Expects `newFactors` to already have the necessary conditionals connected
+   * to the
+   *
+   * @param factors
+   * @return Ordering
+   */
+
+  /**
+   * @brief Get an elimination ordering which eliminates continuous
+   * and then discrete.
+   *
+   * Expects `factors` to already have the necessary conditionals
+   * which were connected to the variables in the newly added factors.
+   * Those variables should be in `newFactorKeys`.
+   *
+   * @param factors All the new factors and connected conditionals.
+   * @param newFactorKeys The keys/variables in the newly added factors.
+   * @return Ordering
+   */
+  Ordering getOrdering(const HybridGaussianFactorGraph& factors,
+                       const KeySet& newFactorKeys);
 
   /**
    * @brief Add conditionals from previous timestep as part of liquefication.

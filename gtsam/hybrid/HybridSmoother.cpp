@@ -24,17 +24,14 @@
 namespace gtsam {
 
 /* ************************************************************************* */
-Ordering HybridSmoother::getOrdering(
-    const HybridGaussianFactorGraph &newFactors) {
-  HybridGaussianFactorGraph factors(hybridBayesNet());
-  factors.push_back(newFactors);
-
+Ordering HybridSmoother::getOrdering(const HybridGaussianFactorGraph &factors,
+                                     const KeySet &newFactorKeys) {
   // Get all the discrete keys from the factors
   KeySet allDiscrete = factors.discreteKeySet();
 
   // Create KeyVector with continuous keys followed by discrete keys.
   KeyVector newKeysDiscreteLast;
-  const KeySet newFactorKeys = newFactors.keys();
+
   // Insert continuous keys first.
   for (auto &k : newFactorKeys) {
     if (!allDiscrete.exists(k)) {
@@ -56,22 +53,29 @@ Ordering HybridSmoother::getOrdering(
 }
 
 /* ************************************************************************* */
-void HybridSmoother::update(HybridGaussianFactorGraph graph,
+void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
                             std::optional<size_t> maxNrLeaves,
                             const std::optional<Ordering> given_ordering) {
+  HybridGaussianFactorGraph updatedGraph;
+  // Add the necessary conditionals from the previous timestep(s).
+  std::tie(updatedGraph, hybridBayesNet_) =
+      addConditionals(graph, hybridBayesNet_);
+
   Ordering ordering;
   // If no ordering provided, then we compute one
   if (!given_ordering.has_value()) {
-    ordering = this->getOrdering(graph);
+    // Get the keys from the new factors
+    const KeySet newFactorKeys = graph.keys();
+
+    // Since updatedGraph now has all the connected conditionals,
+    // we can get the correct ordering.
+    ordering = this->getOrdering(updatedGraph, newFactorKeys);
   } else {
     ordering = *given_ordering;
   }
 
-  // Add the necessary conditionals from the previous timestep(s).
-  std::tie(graph, hybridBayesNet_) = addConditionals(graph, hybridBayesNet_);
-
   // Eliminate.
-  HybridBayesNet bayesNetFragment = *graph.eliminateSequential(ordering);
+  HybridBayesNet bayesNetFragment = *updatedGraph.eliminateSequential(ordering);
 
   /// Prune
   if (maxNrLeaves) {
