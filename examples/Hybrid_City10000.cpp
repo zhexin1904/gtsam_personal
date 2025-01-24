@@ -43,7 +43,7 @@ using symbol_shorthand::M;
 using symbol_shorthand::X;
 
 // Testing params
-const size_t max_loop_count = 1800;  // 2000;  // 200 //2000 //8000
+const size_t max_loop_count = 2000;  // 2000;  // 200 //2000 //8000
 
 noiseModel::Diagonal::shared_ptr prior_noise_model =
     noiseModel::Diagonal::Sigmas(
@@ -205,7 +205,7 @@ int main(int argc, char* argv[]) {
 
   clock_t end_time = clock();
   clock_t total_time = end_time - start_time;
-  cout << "total_time: " << total_time << endl;
+  cout << "total_time: " << total_time /  CLOCKS_PER_SEC << " seconds" << endl;
 
   /// Write results to file
   write_results(results, (key_t + 1), "HybridISAM_city10000.txt");
