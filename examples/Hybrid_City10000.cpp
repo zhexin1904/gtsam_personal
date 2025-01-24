@@ -205,7 +205,7 @@ int main(int argc, char* argv[]) {
 
   clock_t end_time = clock();
   clock_t total_time = end_time - start_time;
-  cout << "total_time: " << total_time /  CLOCKS_PER_SEC << " seconds" << endl;
+  cout << "total_time: " << total_time / CLOCKS_PER_SEC << " seconds" << endl;
 
   /// Write results to file
   write_results(results, (key_t + 1), "HybridISAM_city10000.txt");
