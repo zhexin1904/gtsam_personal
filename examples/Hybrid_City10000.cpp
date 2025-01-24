@@ -75,6 +75,17 @@ void write_results(const Values& results, size_t num_poses,
   std::cout << "output written to " << filename << std::endl;
 }
 
+void SmootherUpdate(HybridSmoother& smoother, HybridNonlinearFactorGraph& graph,
+                    const Values& initial, size_t maxNrHypotheses,
+                    Values* results) {
+  HybridGaussianFactorGraph linearized = *graph.linearize(initial);
+  // std::cout << "index: " << index << std::endl;
+  smoother.update(linearized, maxNrHypotheses);
+  graph.resize(0);
+  HybridValues delta = smoother.hybridBayesNet().optimize();
+  results->insert_or_assign(initial.retract(delta.continuous()));
+}
+
 /* ************************************************************************* */
 int main(int argc, char* argv[]) {
   ifstream in(findExampleDataFile("T1_city10000_04.txt"));
@@ -107,12 +118,7 @@ int main(int argc, char* argv[]) {
 
   graph.push_back(PriorFactor<Pose2>(X(0), prior_pose, prior_noise_model));
 
-  HybridGaussianFactorGraph linearized = *graph.linearize(init_values);
-  smoother.update(linearized, maxNrHypotheses);
-
-  graph.resize(0);
-  HybridValues delta = smoother.hybridBayesNet().optimize();
-  results.insert_or_assign(init_values.retract(delta.continuous()));
+  SmootherUpdate(smoother, graph, init_values, maxNrHypotheses, &results);
 
   size_t key_s, key_t;
 
@@ -137,11 +143,14 @@ int main(int argc, char* argv[]) {
     // Take the first one as the initial estimate
     Pose2 odom_pose = pose_array[0];
     if (key_s == key_t - 1) {  // new X(key)
-      init_values.insert(X(key_t), results.at<Pose2>(X(key_s)) * odom_pose);
+      init_values.insert(X(key_t), init_values.at<Pose2>(X(key_s)) * odom_pose);
 
     } else {  // loop
       // index++;
     }
+
+    // Flag if we should run smoother update
+    bool smoother_update = false;
 
     if (num_measurements == 2) {
       // Add hybrid factor which considers both measurements
@@ -159,23 +168,22 @@ int main(int argc, char* argv[]) {
       HybridNonlinearFactor mixtureFactor(m, {f0, f1});
       graph.push_back(mixtureFactor);
 
+      smoother_update = true;
+
     } else {
       graph.add(BetweenFactor<Pose2>(X(key_s), X(key_t), odom_pose,
                                      pose_noise_model));
     }
 
-    HybridGaussianFactorGraph linearized = *graph.linearize(init_values);
-    // std::cout << "index: " << index << std::endl;
-    smoother.update(linearized, maxNrHypotheses);
-    graph.resize(0);
-    delta = smoother.hybridBayesNet().optimize();
-    results.insert_or_assign(init_values.retract(delta.continuous()));
+    if (smoother_update) {
+      SmootherUpdate(smoother, graph, init_values, maxNrHypotheses, &results);
+    }
 
     // Print loop index and time taken in processor clock ticks
     if (index % 50 == 0 && key_s != key_t - 1) {
       std::cout << "index: " << index << std::endl;
       std::cout << "acc_time:  " << time_list.back() << std::endl;
-      delta.discrete().print("The Discrete Assignment");
+      // delta.discrete().print("The Discrete Assignment");
       tictoc_finishedIteration_();
       tictoc_print_();
     }
@@ -185,23 +193,10 @@ int main(int argc, char* argv[]) {
       time_list.push_back(cur_time - start_time);
     }
 
-    if (time_list.size() % 100 == 0 && (key_s == key_t - 1)) {
-      string step_file_idx = std::to_string(100000 + time_list.size());
-
-      ofstream step_outfile;
-      string step_file_name =
-          "step_files/HybridISAM_city10000_S" + step_file_idx;
-      step_outfile.open(step_file_name + ".txt");
-      for (size_t i = 0; i < (key_t + 1); ++i) {
-        Pose2 out_pose = results.at<Pose2>(X(i));
-        step_outfile << out_pose.x() << " " << out_pose.y() << " "
-                     << out_pose.theta() << endl;
-      }
-      step_outfile.close();
-    }
-
     index += 1;
   }
+
+  SmootherUpdate(smoother, graph, init_values, maxNrHypotheses, &results);
 
   clock_t end_time = clock();
   clock_t total_time = end_time - start_time;
