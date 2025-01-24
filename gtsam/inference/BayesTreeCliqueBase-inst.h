@@ -107,7 +107,7 @@ namespace gtsam {
   // The shortcut density is a conditional P(S|B) of the separator of this
   // clique on the root or common ancestor B. We can compute it recursively from
   // the parent shortcut P(Sp|B) as \int P(Fp|Sp) P(Sp|B), where Fp are the
-  // frontal nodes in pthe parent p, and Sp the separator of the parent.
+  // frontal nodes in the parent p, and Sp the separator of the parent.
   /* *************************************************************************
    */
   template <class DERIVED, class FACTORGRAPH>
