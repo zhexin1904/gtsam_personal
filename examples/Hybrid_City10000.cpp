@@ -20,7 +20,7 @@
 #include <gtsam/geometry/Pose2.h>
 #include <gtsam/hybrid/HybridNonlinearFactor.h>
 #include <gtsam/hybrid/HybridNonlinearFactorGraph.h>
-#include <gtsam/hybrid/HybridNonlinearISAM.h>
+#include <gtsam/hybrid/HybridSmoother.h>
 #include <gtsam/hybrid/HybridValues.h>
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/nonlinear/Values.h>
@@ -43,7 +43,7 @@ using symbol_shorthand::M;
 using symbol_shorthand::X;
 
 // Testing params
-const size_t max_loop_count = 2000;  // 2000;  // 200 //2000 //8000
+const size_t max_loop_count = 1800;  // 2000;  // 200 //2000 //8000
 
 noiseModel::Diagonal::shared_ptr prior_noise_model =
     noiseModel::Diagonal::Sigmas(
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
 
   std::list<double> time_list;
 
-  HybridNonlinearISAM isam(100);
+  HybridSmoother smoother;
 
   HybridNonlinearFactorGraph graph;
 
@@ -107,11 +107,12 @@ int main(int argc, char* argv[]) {
 
   graph.push_back(PriorFactor<Pose2>(X(0), prior_pose, prior_noise_model));
 
-  isam.update(graph, init_values, maxNrHypotheses);
+  HybridGaussianFactorGraph linearized = *graph.linearize(init_values);
+  smoother.update(linearized, maxNrHypotheses);
 
   graph.resize(0);
-  init_values.clear();
-  results = isam.estimate();
+  HybridValues delta = smoother.hybridBayesNet().optimize();
+  results.insert_or_assign(init_values.retract(delta.continuous()));
 
   size_t key_s, key_t;
 
@@ -163,15 +164,20 @@ int main(int argc, char* argv[]) {
                                      pose_noise_model));
     }
 
-    isam.update(graph, init_values, maxNrHypotheses);
+    HybridGaussianFactorGraph linearized = *graph.linearize(init_values);
+    // std::cout << "index: " << index << std::endl;
+    smoother.update(linearized, maxNrHypotheses);
     graph.resize(0);
-    init_values.clear();
-    results = isam.estimate();
+    delta = smoother.hybridBayesNet().optimize();
+    results.insert_or_assign(init_values.retract(delta.continuous()));
 
     // Print loop index and time taken in processor clock ticks
     if (index % 50 == 0 && key_s != key_t - 1) {
       std::cout << "index: " << index << std::endl;
       std::cout << "acc_time:  " << time_list.back() << std::endl;
+      delta.discrete().print("The Discrete Assignment");
+      tictoc_finishedIteration_();
+      tictoc_print_();
     }
 
     if (key_s == key_t - 1) {
