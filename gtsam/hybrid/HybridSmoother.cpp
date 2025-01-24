@@ -116,6 +116,14 @@ HybridSmoother::addConditionals(const HybridGaussianFactorGraph &originalGraph,
             factorKeys.end()) {
           newConditionals.push_back(conditional);
 
+          // Add the conditional parents to factorKeys
+          // so we add those conditionals too.
+          // NOTE: This assumes we have a structure where
+          // variables depend on those in the future.
+          for (auto &&parentKey : conditional->parents()) {
+            factorKeys.insert(parentKey);
+          }
+
           // Remove the conditional from the updated Bayes net
           auto it = find(updatedHybridBayesNet.begin(),
                          updatedHybridBayesNet.end(), conditional);
