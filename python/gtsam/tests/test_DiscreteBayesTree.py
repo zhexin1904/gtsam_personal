@@ -160,15 +160,15 @@ class TestDiscreteBayesNet(GtsamTestCase):
         """Test creating a Bayes tree directly from cliques."""
         # Create a BayesNet
         bayesNet = DiscreteBayesNet()
-        key0, key1, key2 = (0, 2), (1, 2), (2, 2)
-        bayesNet.add(key0, "1/3")
-        bayesNet.add(key1, [key0], "1/3 3/1")
-        bayesNet.add(key2, [key1], "3/1 3/1")
+        A, B, C = (0, 2), (1, 2), (2, 2)
+        bayesNet.add(A, "1/3")
+        bayesNet.add(B, [A], "1/3 3/1")
+        bayesNet.add(C, [B], "3/1 3/1")
 
         # Create cliques directly
-        clique2 = DiscreteBayesTreeClique(DiscreteConditional(key2, [key1], "3/1 3/1"))
-        clique1 = DiscreteBayesTreeClique(DiscreteConditional(key1, [key0], "1/3 3/1"))
-        clique0 = DiscreteBayesTreeClique(DiscreteConditional(key0, "1/3"))
+        clique2 = DiscreteBayesTreeClique(DiscreteConditional(C, [B], "3/1 3/1"))
+        clique1 = DiscreteBayesTreeClique(DiscreteConditional(B, [A], "1/3 3/1"))
+        clique0 = DiscreteBayesTreeClique(DiscreteConditional(A, "1/3"))
 
         # Create a BayesTree
         bayesTree = gtsam.DiscreteBayesTree()
@@ -182,9 +182,9 @@ class TestDiscreteBayesNet(GtsamTestCase):
         values[1] = 1
         values[2] = 1
 
-        expected = bayesNet.evaluate(values)
-        actual = bayesTree.evaluate(values)
-        self.assertAlmostEqual(expected, actual, places=9)
+        # regression
+        expected = .046875
+        self.assertAlmostEqual(expected, bayesNet.evaluate(values))
 
 
 if __name__ == "__main__":
