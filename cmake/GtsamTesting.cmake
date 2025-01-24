@@ -242,6 +242,9 @@ macro(gtsamAddTestsGlob_impl groupName globPatterns excludedFiles linkLibraries)
 			set_property(SOURCE ${script_srcs} APPEND PROPERTY COMPILE_DEFINITIONS "TOPSRCDIR=\"${GTSAM_SOURCE_DIR}\"")
 
 			# Exclude from 'make all' and 'make install'
+			# QNX is cross-compiled for, and does not support make, cmake, or ctest natively.
+			# Therefore, running tests must be done by manually copying test executables and required data files over.
+			# for more info, check PR#1968 https://github.com/borglab/gtsam/pull/1968
 			if(NOT QNX)
 				set_target_properties(${target_name} PROPERTIES EXCLUDE_FROM_ALL ON)
 			endif()
