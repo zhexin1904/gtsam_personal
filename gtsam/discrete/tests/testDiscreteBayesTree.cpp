@@ -28,7 +28,7 @@
 #include <vector>
 
 using namespace gtsam;
-static constexpr bool debug = true;
+static constexpr bool debug = false;
 
 /* ************************************************************************* */
 struct TestFixture {
@@ -399,8 +399,8 @@ TEST(DiscreteBayesTree, DirectFromCliques) {
   // Check that the BayesTree is correct
   DiscreteValues values;
   values[A.first] = 1;
-  values[A.first] = 1;
-  values[A.first] = 1;
+  values[B.first] = 1;
+  values[C.first] = 1;
 
   // Regression
   double expected = .046875;
