@@ -186,6 +186,7 @@ DiscreteValues HybridBayesNet::mpe() const {
       }
     }
   }
+
   return discrete_fg.optimize();
 }
 
