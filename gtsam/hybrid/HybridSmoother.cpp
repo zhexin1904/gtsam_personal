@@ -81,7 +81,7 @@ void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
   if (maxNrLeaves) {
     // `pruneBayesNet` sets the leaves with 0 in discreteFactor to nullptr in
     // all the conditionals with the same keys in bayesNetFragment.
-    bayesNetFragment = bayesNetFragment.prune(*maxNrLeaves);
+    bayesNetFragment = bayesNetFragment.prune(*maxNrLeaves, deadModeThreshold_);
   }
 
   // Add the partial bayes net to the posterior bayes net.
@@ -115,6 +115,14 @@ HybridSmoother::addConditionals(const HybridGaussianFactorGraph &originalGraph,
         if (std::find(factorKeys.begin(), factorKeys.end(), key) !=
             factorKeys.end()) {
           newConditionals.push_back(conditional);
+
+          // Add the conditional parents to factorKeys
+          // so we add those conditionals too.
+          // NOTE: This assumes we have a structure where
+          // variables depend on those in the future.
+          for (auto &&parentKey : conditional->parents()) {
+            factorKeys.insert(parentKey);
+          }
 
           // Remove the conditional from the updated Bayes net
           auto it = find(updatedHybridBayesNet.begin(),
