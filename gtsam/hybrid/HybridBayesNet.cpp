@@ -72,7 +72,7 @@ HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves, bool removeDeadModes,
       Vector probabilities = marginals.marginalProbabilities(dkey);
 
       int index = -1;
-      auto threshold = (probabilities.array() > 0.99);
+      auto threshold = (probabilities.array() > deadModeThreshold);
       // If atleast 1 value is non-zero, then we can find the index
       // Else if all are zero, index would be set to 0 which is incorrect
       if (!threshold.isZero()) {
