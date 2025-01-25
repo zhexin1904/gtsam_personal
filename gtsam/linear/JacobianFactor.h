@@ -403,10 +403,10 @@ namespace gtsam {
     void fillTerms(const TERMS& terms, const Vector& b, const SharedDiagonal& noiseModel);
 
     /// Common code between VerticalBlockMatrix constructors
-    void checkAndAssignModel(const SharedDiagonal& model,
-                             const VerticalBlockMatrix& augmentedMatrix);
+    void checkAb(const SharedDiagonal& model,
+                 const VerticalBlockMatrix& augmentedMatrix) const;
 
-  private:
+   private:
 
     /**
      * Helper function for public constructors:
