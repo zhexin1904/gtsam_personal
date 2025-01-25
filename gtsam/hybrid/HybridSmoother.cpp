@@ -74,11 +74,6 @@ void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
     ordering = *given_ordering;
   }
 
-  // graph.print("Original GRAPH");
-  // GTSAM_PRINT(updatedGraph);
-  // GTSAM_PRINT(hybridBayesNet_);
-  // GTSAM_PRINT(ordering);
-
   // Eliminate.
   HybridBayesNet bayesNetFragment = *updatedGraph.eliminateSequential(ordering);
 
