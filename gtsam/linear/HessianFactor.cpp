@@ -470,7 +470,7 @@ std::shared_ptr<GaussianConditional> HessianFactor::eliminateCholesky(const Orde
 
     // TODO(frank): pre-allocate GaussianConditional and write into it
     const VerticalBlockMatrix Ab = info_.split(nFrontals);
-    conditional = std::make_shared<GaussianConditional>(keys_, nFrontals, Ab);
+    conditional = std::make_shared<GaussianConditional>(keys_, nFrontals, std::move(Ab));
 
     // Erase the eliminated keys in this factor
     keys_.erase(begin(), begin() + nFrontals);
