@@ -70,17 +70,6 @@ class GTSAM_EXPORT HybridSmoother {
               const std::optional<Ordering> given_ordering = {});
 
   /**
-   * @brief Get an elimination ordering which eliminates continuous and then
-   * discrete.
-   *
-   * Expects `newFactors` to already have the necessary conditionals connected
-   * to the
-   *
-   * @param factors
-   * @return Ordering
-   */
-
-  /**
    * @brief Get an elimination ordering which eliminates continuous
    * and then discrete.
    *
