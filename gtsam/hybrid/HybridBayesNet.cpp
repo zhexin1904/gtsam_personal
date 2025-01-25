@@ -47,8 +47,8 @@ bool HybridBayesNet::equals(const This &bn, double tol) const {
 // TODO(Frank): This can be quite expensive *unless* the factors have already
 // been pruned before. Another, possibly faster approach is branch and bound
 // search to find the K-best leaves and then create a single pruned conditional.
-HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves,
-                                     bool removeDeadModes) const {
+HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves, bool removeDeadModes,
+                                     double deadModeThreshold) const {
   // Collect all the discrete conditionals. Could be small if already pruned.
   const DiscreteBayesNet marginal = discreteMarginal();
 
