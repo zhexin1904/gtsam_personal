@@ -224,8 +224,9 @@ class GTSAM_EXPORT HybridBayesNet : public BayesNet<HybridConditional> {
    * assignment.
    * @return A pruned HybridBayesNet
    */
-  HybridBayesNet prune(size_t maxNrLeaves,
-                       const std::optional<double> &deadModeThreshold) const;
+  HybridBayesNet prune(
+      size_t maxNrLeaves,
+      const std::optional<double> &deadModeThreshold = {}) const;
 
   /**
    * @brief Error method using HybridValues which returns specific error for
