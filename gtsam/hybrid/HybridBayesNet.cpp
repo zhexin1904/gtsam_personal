@@ -47,8 +47,8 @@ bool HybridBayesNet::equals(const This &bn, double tol) const {
 // TODO(Frank): This can be quite expensive *unless* the factors have already
 // been pruned before. Another, possibly faster approach is branch and bound
 // search to find the K-best leaves and then create a single pruned conditional.
-HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves, bool removeDeadModes,
-                                     double deadModeThreshold) const {
+HybridBayesNet HybridBayesNet::prune(
+    size_t maxNrLeaves, const std::optional<double> &deadModeThreshold) const {
   // Collect all the discrete conditionals. Could be small if already pruned.
   const DiscreteBayesNet marginal = discreteMarginal();
 
@@ -66,13 +66,13 @@ HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves, bool removeDeadModes,
   pruned.prune(maxNrLeaves);
 
   DiscreteValues deadModesValues;
-  if (removeDeadModes) {
+  if (deadModeThreshold.has_value()) {
     DiscreteMarginals marginals(DiscreteFactorGraph{pruned});
     for (auto dkey : pruned.discreteKeys()) {
       Vector probabilities = marginals.marginalProbabilities(dkey);
 
       int index = -1;
-      auto threshold = (probabilities.array() > deadModeThreshold);
+      auto threshold = (probabilities.array() > *deadModeThreshold);
       // If atleast 1 value is non-zero, then we can find the index
       // Else if all are zero, index would be set to 0 which is incorrect
       if (!threshold.isZero()) {
@@ -121,7 +121,7 @@ HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves, bool removeDeadModes,
       // Prune the hybrid Gaussian conditional!
       auto prunedHybridGaussianConditional = hgc->prune(pruned);
 
-      if (removeDeadModes) {
+      if (deadModeThreshold.has_value()) {
         KeyVector deadKeys, conditionalDiscreteKeys;
         for (const auto &kv : deadModesValues) {
           deadKeys.push_back(kv.first);
