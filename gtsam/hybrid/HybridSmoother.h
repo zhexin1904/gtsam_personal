@@ -40,7 +40,7 @@ class GTSAM_EXPORT HybridSmoother {
    * @param deadModeThreshold The threshold above which a mode gets assigned a
    * value and is considered "dead". 0.99 is a good starting value.
    */
-  HybridSmoother(const std::optional<double> deadModeThreshold)
+  HybridSmoother(const std::optional<double> deadModeThreshold = {})
       : deadModeThreshold_(deadModeThreshold) {}
 
   /**

@@ -194,8 +194,6 @@ TEST(HybridSmoother, DeadModeRemoval) {
 
     HybridGaussianFactorGraph linearized = *graph.linearize(initial);
 
-    // std::cout << "\n\n\nk" << std::endl;
-    // GTSAM_PRINT(linearized);
     smoother.update(linearized, maxNrLeaves);
 
     // Clear all the factors from the graph
