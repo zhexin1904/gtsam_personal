@@ -29,10 +29,8 @@ class GTSAM_EXPORT HybridSmoother {
   HybridBayesNet hybridBayesNet_;
   HybridGaussianFactorGraph remainingFactorGraph_;
 
-  /// Flag indicating that we should remove dead discrete modes.
-  bool removeDeadModes_;
   /// The threshold above which we make a decision about a mode.
-  double deadModeThreshold_;
+  std::optional<double> deadModeThreshold_;
 
  public:
   /**
@@ -40,11 +38,10 @@ class GTSAM_EXPORT HybridSmoother {
    *
    * @param removeDeadModes Flag indicating whether to remove dead modes.
    * @param deadModeThreshold The threshold above which a mode gets assigned a
-   * value and is considered "dead".
+   * value and is considered "dead". 0.99 is a good starting value.
    */
-  HybridSmoother(bool removeDeadModes = false, double deadModeThreshold = 0.99)
-      : removeDeadModes_(removeDeadModes),
-        deadModeThreshold_(deadModeThreshold) {}
+  HybridSmoother(const std::optional<double> deadModeThreshold)
+      : deadModeThreshold_(deadModeThreshold) {}
 
   /**
    * Given new factors, perform an incremental update.
