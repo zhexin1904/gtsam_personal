@@ -30,26 +30,43 @@ namespace gtsam {
   }
 
   /* ************************************************************************* */
-  template<typename KEYS>
-  JacobianFactor::JacobianFactor(
-    const KEYS& keys, const VerticalBlockMatrix& augmentedMatrix, const SharedDiagonal& model) :
-  Base(keys), Ab_(augmentedMatrix)
-  {
+  template <typename KEYS>
+  JacobianFactor::JacobianFactor(const KEYS& keys,
+                                 const VerticalBlockMatrix& augmentedMatrix,
+                                 const SharedDiagonal& model)
+      : Base(keys), Ab_(augmentedMatrix) {
+    checkAndAssignModel(model, augmentedMatrix);
+  }
+
+  /* ************************************************************************* */
+  template <typename KEYS>
+  JacobianFactor::JacobianFactor(const KEYS& keys,
+                                 VerticalBlockMatrix&& augmentedMatrix,
+                                 const SharedDiagonal& model)
+      : Base(keys), Ab_(std::move(augmentedMatrix)) {
+    checkAndAssignModel(model, Ab_);
+  }
+
+  /* ************************************************************************* */
+  void JacobianFactor::checkAndAssignModel(
+      const SharedDiagonal& model, const VerticalBlockMatrix& augmentedMatrix) {
     // Check noise model dimension
-    if(model && (DenseIndex)model->dim() != augmentedMatrix.rows())
+    if (model && (DenseIndex)model->dim() != augmentedMatrix.rows())
       throw InvalidNoiseModel(augmentedMatrix.rows(), model->dim());
 
     // Check number of variables
-    if((DenseIndex)Base::keys_.size() != augmentedMatrix.nBlocks() - 1)
+    if ((DenseIndex)Base::keys_.size() != augmentedMatrix.nBlocks() - 1)
       throw std::invalid_argument(
-      "Error in JacobianFactor constructor input.  Number of provided keys plus\n"
-      "one for the RHS vector must equal the number of provided matrix blocks.");
+          "Error in JacobianFactor constructor input. Number of provided keys "
+          "plus one for the RHS vector must equal the number of provided "
+          "matrix blocks.");
 
     // Check RHS dimension
-    if(augmentedMatrix(augmentedMatrix.nBlocks() - 1).cols() != 1)
+    if (augmentedMatrix(augmentedMatrix.nBlocks() - 1).cols() != 1)
       throw std::invalid_argument(
-      "Error in JacobianFactor constructor input.  The last provided matrix block\n"
-      "must be the RHS vector, but the last provided block had more than one column.");
+          "Error in JacobianFactor constructor input. The last provided "
+          "matrix block must be the RHS vector, but the last provided block "
+          "had more than one column.");
 
     // Take noise model
     model_ = model;
