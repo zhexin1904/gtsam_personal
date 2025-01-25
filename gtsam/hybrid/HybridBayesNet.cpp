@@ -63,7 +63,7 @@ HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves, bool removeDeadModes,
 
   // Prune the joint. NOTE: imperative and, again, possibly quite expensive.
   DiscreteConditional pruned = joint;
-  joint.prune(maxNrLeaves);
+  pruned.prune(maxNrLeaves);
 
   DiscreteValues deadModesValues;
   if (removeDeadModes) {
@@ -115,7 +115,7 @@ HybridBayesNet HybridBayesNet::prune(size_t maxNrLeaves, bool removeDeadModes,
    */
 
   // Go through all the Gaussian conditionals in the Bayes Net and prune them as
-  // per pruned Discrete joint.
+  // per pruned discrete joint.
   for (auto &&conditional : *this) {
     if (auto hgc = conditional->asHybrid()) {
       // Prune the hybrid Gaussian conditional!
