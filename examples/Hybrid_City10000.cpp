@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
 
   std::list<double> time_list;
 
-  HybridSmoother smoother;
+  HybridSmoother smoother(0.99);
 
   HybridNonlinearFactorGraph graph;
 
@@ -180,9 +180,10 @@ int main(int argc, char* argv[]) {
     }
 
     // Print loop index and time taken in processor clock ticks
-    if (index % 50 == 0 && key_s != key_t - 1) {
+    // if (index % 50 == 0 && key_s != key_t - 1) {
+    if (index % 100 == 0) {
       std::cout << "index: " << index << std::endl;
-      std::cout << "acc_time:  " << time_list.back() << std::endl;
+      std::cout << "acc_time:  " << time_list.back() / CLOCKS_PER_SEC << std::endl;
       // delta.discrete().print("The Discrete Assignment");
       tictoc_finishedIteration_();
       tictoc_print_();
