@@ -453,7 +453,7 @@ namespace gtsam {
   /* ************************************************************************ */
   double DecisionTreeFactor::computeThreshold(const size_t N) const {
     // Set of all keys
-    KeySet allKeys = this->labels();
+    std::set<Key> allKeys = this->labels();
     MinHeap min_heap;
 
     auto op = [&](const Assignment<Key>& a, double p) {
