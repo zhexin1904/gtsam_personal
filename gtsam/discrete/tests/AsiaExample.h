@@ -30,7 +30,7 @@ static const DiscreteKey Dyspnea(D, 2), XRay(X, 2), Either(E, 2),
     Bronchitis(B, 2), LungCancer(L, 2), Tuberculosis(T, 2), Smoking(S, 2),
     Asia(A, 2);
 
-// Function to construct the incomplete Asia example
+// Function to construct the Asia priors
 DiscreteBayesNet createPriors() {
   DiscreteBayesNet priors;
   priors.add(Smoking % "50/50");
