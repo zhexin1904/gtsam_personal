@@ -31,8 +31,8 @@ SearchNode SearchNode::expand(const DiscreteConditional& conditional,
                               const DiscreteValues& fa) const {
   // Combine the new frontal assignment with the current partial assignment
   DiscreteValues newAssignment = assignment;
-  for (auto& kv : fa) {
-    newAssignment[kv.first] = kv.second;
+  for (auto& [key, value] : fa) {
+    newAssignment[key] = value;
   }
 
   return {.assignment = newAssignment,
@@ -50,11 +50,10 @@ bool Solutions::maybeAdd(double error, const DiscreteValues& assignment) {
 }
 
 std::ostream& operator<<(std::ostream& os, const Solutions& sn) {
+  os << "Solutions (top " << sn.pq_.size() << "):\n";
   auto pq = sn.pq_;
   while (!pq.empty()) {
-    const Solution& best = pq.top();
-    os << "Error: " << best.error << ", Values: " << best.assignment
-       << std::endl;
+    os << pq.top() << "\n";
     pq.pop();
   }
   return os;
@@ -62,8 +61,7 @@ std::ostream& operator<<(std::ostream& os, const Solutions& sn) {
 
 bool Solutions::prune(double bound) const {
   if (pq_.size() < maxSize_) return false;
-  double worstError = pq_.top().error;
-  return (bound >= worstError);
+  return bound >= pq_.top().error;
 }
 
 std::vector<Solution> Solutions::extractSolutions() {
@@ -80,45 +78,23 @@ std::vector<Solution> Solutions::extractSolutions() {
 
 DiscreteSearch::DiscreteSearch(const DiscreteBayesNet& bayesNet, size_t K)
     : solutions_(K) {
-  // Copy out the conditionals
-  for (auto& factor : bayesNet) {
-    conditionals_.push_back(factor);
-  }
-
-  // Calculate the cost-to-go for each conditional
-  costToGo_ = computeCostToGo(conditionals_);
-
-  // Create the root node and push it to the expansions queue
-  expansions_.push(SearchNode::Root(
-      conditionals_.size(), costToGo_.empty() ? 0.0 : costToGo_.back()));
+  std::vector<DiscreteConditional::shared_ptr> conditionals;
+  for (auto& factor : bayesNet) conditionals.push_back(factor);
+  initialize(conditionals);
 }
 
 DiscreteSearch::DiscreteSearch(const DiscreteBayesTree& bayesTree, size_t K)
     : solutions_(K) {
-  using CliquePtr = DiscreteBayesTree::sharedClique;
-  std::function<void(const CliquePtr&)> collectConditionals =
-      [&](const CliquePtr& clique) -> void {
-    if (!clique) return;
-
-    // Recursive post-order traversal: process children first
-    for (const auto& child : clique->children) {
-      collectConditionals(child);
-    }
-
-    // Then add the current clique's conditional
-    conditionals_.push_back(clique->conditional());
-  };
-
-  // Start traversal from each root in the tree
+  std::vector<DiscreteConditional::shared_ptr> conditionals;
+  std::function<void(const DiscreteBayesTree::sharedClique&)>
+      collectConditionals = [&](const auto& clique) {
+        if (!clique) return;
+        for (const auto& child : clique->children) collectConditionals(child);
+        conditionals.push_back(clique->conditional());
+      };
   for (const auto& root : bayesTree.roots()) collectConditionals(root);
-
-  // Calculate the cost-to-go for each conditional
-  costToGo_ = computeCostToGo(conditionals_);
-
-  // Create the root node and push it to the expansions queue
-  expansions_.push(SearchNode::Root(
-      conditionals_.size(), costToGo_.empty() ? 0.0 : costToGo_.back()));
-}
+  initialize(conditionals);
+};
 
 std::vector<Solution> DiscreteSearch::run() {
   while (!expansions_.empty()) {
@@ -170,7 +146,7 @@ void DiscreteSearch::expandNextNode() {
 
     // Again, prune if we cannot beat the worst solution
     if (!solutions_.prune(childNode.bound)) {
-      expansions_.push(childNode);
+      expansions_.emplace(childNode);
     }
   }
 }

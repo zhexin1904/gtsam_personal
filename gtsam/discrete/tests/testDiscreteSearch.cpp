@@ -46,20 +46,32 @@ TEST(DiscreteBayesNet, EmptyKBest) {
 TEST(DiscreteBayesNet, AsiaKBest) {
   using namespace asia_example;
   DiscreteBayesNet asia = createAsiaExample();
+
+  // Ask for the MPE
+  DiscreteSearch search1(asia);
+  auto mpe = search1.run();
+
+  // print numExpansions
+  std::cout << "Number of expansions: " << search1.numExpansions << std::endl;
+
+  EXPECT_LONGS_EQUAL(1, mpe.size());
+  // Regression test: check the MPE solution
+  EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(mpe[0].error), 1e-5);
+
   DiscreteSearch search(asia, 4);
   auto solutions = search.run();
 
   // print numExpansions
   std::cout << "Number of expansions: " << search.numExpansions << std::endl;
 
-  EXPECT(!solutions.empty());
+  EXPECT_LONGS_EQUAL(4, solutions.size());
   // Regression test: check the first and last solution
   EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(solutions[0].error), 1e-5);
   EXPECT_DOUBLES_EQUAL(2.201708, std::fabs(solutions[3].error), 1e-5);
 }
 
 /* ************************************************************************* */
-TEST(DiscreteBayesTree, testEmptyTree) {
+TEST(DiscreteBayesTree, EmptyTree) {
   DiscreteBayesTree bt;
 
   DiscreteSearch search(bt, 3);
@@ -72,11 +84,22 @@ TEST(DiscreteBayesTree, testEmptyTree) {
 }
 
 /* ************************************************************************* */
-TEST(DiscreteBayesTree, testTrivialOneClique) {
+TEST(DiscreteBayesTree, AsiaTreeKBest) {
   using namespace asia_example;
   DiscreteFactorGraph asia(createAsiaExample());
   const Ordering ordering{D, X, B, E, L, T, S, A};
   DiscreteBayesTree::shared_ptr bt = asia.eliminateMultifrontal(ordering);
+
+  // Ask for top 4 solutions
+  DiscreteSearch search1(*bt);
+  auto mpe = search1.run();
+
+  // print numExpansions
+  std::cout << "Number of expansions: " << search1.numExpansions << std::endl;
+
+  EXPECT_LONGS_EQUAL(1, mpe.size());
+  // Regression test: check the MPE solution
+  EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(mpe[0].error), 1e-5);
 
   // Ask for top 4 solutions
   DiscreteSearch search(*bt, 4);
@@ -85,7 +108,7 @@ TEST(DiscreteBayesTree, testTrivialOneClique) {
   // print numExpansions
   std::cout << "Number of expansions: " << search.numExpansions << std::endl;
 
-  EXPECT(!solutions.empty());
+  EXPECT_LONGS_EQUAL(4, solutions.size());
   // Regression test: check the first and last solution
   EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(solutions[0].error), 1e-5);
   EXPECT_DOUBLES_EQUAL(2.201708, std::fabs(solutions[3].error), 1e-5);

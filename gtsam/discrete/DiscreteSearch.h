@@ -19,6 +19,8 @@
 #include <gtsam/discrete/DiscreteBayesNet.h>
 #include <gtsam/discrete/DiscreteBayesTree.h>
 
+#include <queue>
+
 namespace gtsam {
 
 using Value = size_t;
@@ -52,7 +54,7 @@ struct SearchNode {
    *
    * @return True if all variables have been assigned, false otherwise.
    */
-  bool isComplete() const { return nextConditional < 0; }
+  inline bool isComplete() const { return nextConditional < 0; }
 
   /**
    * @brief Expands the node by assigning the next variable.
@@ -133,12 +135,12 @@ class DiscreteSearch {
   /**
    * Construct from a DiscreteBayesNet and K.
    */
-  DiscreteSearch(const DiscreteBayesNet& bayesNet, size_t K);
+  DiscreteSearch(const DiscreteBayesNet& bayesNet, size_t K = 1);
 
   /**
    * Construct from a DiscreteBayesTree and K.
    */
-  DiscreteSearch(const DiscreteBayesTree& bayesTree, size_t K);
+  DiscreteSearch(const DiscreteBayesTree& bayesTree, size_t K = 1);
 
   /**
    * @brief Search for the K best solutions.
@@ -153,18 +155,20 @@ class DiscreteSearch {
   std::vector<Solution> run();
 
  private:
-  /**
-   * @brief Compute the cost-to-go for each conditional.
-   *
-   * @param conditionals The conditionals of the DiscreteBayesNet.
-   * @return A vector of cost-to-go values.
-   */
+  /// Initialize the search with the given conditionals.
+  void initialize(
+      const std::vector<DiscreteConditional::shared_ptr>& conditionals) {
+    conditionals_ = conditionals;
+    costToGo_ = computeCostToGo(conditionals_);
+    expansions_.push(SearchNode::Root(
+        conditionals_.size(), costToGo_.empty() ? 0.0 : costToGo_.back()));
+  }
+
+  /// Compute the cumulative cost-to-go for each conditional slot.
   static std::vector<double> computeCostToGo(
       const std::vector<DiscreteConditional::shared_ptr>& conditionals);
 
-  /**
-   * @brief Expand the next node in the search tree.
-   */
+  /// Expand the next node in the search tree.
   void expandNextNode();
 
   std::vector<DiscreteConditional::shared_ptr> conditionals_;
