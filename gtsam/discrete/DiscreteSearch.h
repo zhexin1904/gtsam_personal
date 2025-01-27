@@ -17,6 +17,7 @@
  */
 
 #include <gtsam/discrete/DiscreteBayesNet.h>
+#include <gtsam/discrete/DiscreteBayesTree.h>
 
 namespace gtsam {
 
@@ -213,6 +214,12 @@ class DiscreteSearch {
     if (!costToGo_.empty()) root.bound = costToGo_.back();
     expansions_.push(root);
   }
+
+  /**
+   * Construct from a DiscreteBayesNet and K.
+   */
+  DiscreteSearch(const DiscreteBayesTree& bayesTree, size_t K)
+      : solutions_(K) {}
 
   /**
    * @brief Search for the K best solutions.

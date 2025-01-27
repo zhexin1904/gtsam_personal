@@ -32,6 +32,7 @@
 
 using namespace gtsam;
 
+/* ************************************************************************* */
 TEST(DiscreteBayesNet, EmptyKBest) {
   DiscreteBayesNet net;  // no factors
   DiscreteSearch search(net, 3);
@@ -41,11 +42,41 @@ TEST(DiscreteBayesNet, EmptyKBest) {
   EXPECT_DOUBLES_EQUAL(0, std::fabs(solutions[0].error), 1e-9);
 }
 
+/* ************************************************************************* */
 TEST(DiscreteBayesNet, AsiaKBest) {
   using namespace asia_example;
   DiscreteBayesNet asia = createAsiaExample();
   DiscreteSearch search(asia, 4);
   auto solutions = search.run();
+  EXPECT(!solutions.empty());
+  // Regression test: check the first solution
+  EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(solutions[0].error), 1e-5);
+}
+
+/* ************************************************************************* */
+TEST(DiscreteBayesTree, testEmptyTree) {
+  DiscreteBayesTree bt;
+
+  DiscreteSearch search(bt, 3);
+  auto solutions = search.run();
+
+  // We expect exactly 1 solution with error = 0.0 (the empty assignment).
+  assert(solutions.size() == 1 && "There should be exactly one empty solution");
+  EXPECT_LONGS_EQUAL(1, solutions.size());
+  EXPECT_DOUBLES_EQUAL(0, std::fabs(solutions[0].error), 1e-9);
+}
+
+/* ************************************************************************* */
+TEST(DiscreteBayesTree, testTrivialOneClique) {
+  using namespace asia_example;
+  DiscreteFactorGraph asia(createAsiaExample());
+  DiscreteBayesTree::shared_ptr bt = asia.eliminateMultifrontal();
+  GTSAM_PRINT(*bt);
+
+  // Ask for top 4 solutions
+  DiscreteSearch search(*bt, 4);
+  auto solutions = search.run();
+
   EXPECT(!solutions.empty());
   // Regression test: check the first solution
   EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(solutions[0].error), 1e-5);
