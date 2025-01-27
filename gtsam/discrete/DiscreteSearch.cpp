@@ -76,34 +76,84 @@ std::vector<Solution> Solutions::extractSolutions() {
   return result;
 }
 
-DiscreteSearch::DiscreteSearch(const DiscreteBayesNet& bayesNet, size_t K)
-    : solutions_(K) {
+DiscreteSearch::DiscreteSearch(const DiscreteBayesNet& bayesNet) {
   std::vector<DiscreteConditional::shared_ptr> conditionals;
-  for (auto& factor : bayesNet) conditionals.push_back(factor);
-  initialize(conditionals);
+  for (auto& factor : bayesNet) conditionals_.push_back(factor);
+  costToGo_ = computeCostToGo(conditionals_);
 }
 
-DiscreteSearch::DiscreteSearch(const DiscreteBayesTree& bayesTree, size_t K)
-    : solutions_(K) {
-  std::vector<DiscreteConditional::shared_ptr> conditionals;
+DiscreteSearch::DiscreteSearch(const DiscreteBayesTree& bayesTree) {
   std::function<void(const DiscreteBayesTree::sharedClique&)>
       collectConditionals = [&](const auto& clique) {
         if (!clique) return;
         for (const auto& child : clique->children) collectConditionals(child);
-        conditionals.push_back(clique->conditional());
+        conditionals_.push_back(clique->conditional());
       };
   for (const auto& root : bayesTree.roots()) collectConditionals(root);
-  initialize(conditionals);
+  costToGo_ = computeCostToGo(conditionals_);
 };
 
-std::vector<Solution> DiscreteSearch::run() {
-  while (!expansions_.empty()) {
-    numExpansions++;
+using SearchNodeQueue = std::priority_queue<SearchNode, std::vector<SearchNode>,
+                                            SearchNode::Compare>;
+
+std::vector<Solution> DiscreteSearch::run(size_t K) const {
+  SearchNodeQueue expansions;
+  expansions.push(SearchNode::Root(conditionals_.size(),
+                                   costToGo_.empty() ? 0.0 : costToGo_.back()));
+
+  Solutions solutions(K);
+
+  auto expandNextNode = [&] {
+    // Pop the partial assignment with the smallest bound
+    SearchNode current = expansions.top();
+    expansions.pop();
+
+    // If we already have K solutions, prune if we cannot beat the worst
+    // one.
+    if (solutions.prune(current.bound)) {
+      return;
+    }
+
+    // Check if we have a complete assignment
+    if (current.isComplete()) {
+      solutions.maybeAdd(current.error, current.assignment);
+      return;
+    }
+
+    // Expand on the next factor
+    const auto& conditional = conditionals_[current.nextConditional];
+
+    for (auto& fa : conditional->frontalAssignments()) {
+      auto childNode = current.expand(*conditional, fa);
+      if (childNode.nextConditional >= 0)
+        childNode.bound =
+            childNode.error + costToGo_[childNode.nextConditional];
+
+      // Again, prune if we cannot beat the worst solution
+      if (!solutions.prune(childNode.bound)) {
+        expansions.emplace(childNode);
+      }
+    }
+  };
+
+#ifdef DISCRETE_SEARCH_DEBUG
+  size_t numExpansions = 0;
+#endif
+
+  // Perform the search
+  while (!expansions.empty()) {
     expandNextNode();
+#ifdef DISCRETE_SEARCH_DEBUG
+    ++numExpansions;
+#endif
   }
 
+#ifdef DISCRETE_SEARCH_DEBUG
+  std::cout << "Number of expansions: " << numExpansions << std::endl;
+#endif
+
   // Extract solutions from bestSolutions in ascending order of error
-  return solutions_.extractSolutions();
+  return solutions.extractSolutions();
 }
 
 std::vector<double> DiscreteSearch::computeCostToGo(
@@ -118,37 +168,6 @@ std::vector<double> DiscreteSearch::computeCostToGo(
     costToGo.push_back(error);
   }
   return costToGo;
-}
-
-void DiscreteSearch::expandNextNode() {
-  // Pop the partial assignment with the smallest bound
-  SearchNode current = expansions_.top();
-  expansions_.pop();
-
-  // If we already have K solutions, prune if we cannot beat the worst one.
-  if (solutions_.prune(current.bound)) {
-    return;
-  }
-
-  // Check if we have a complete assignment
-  if (current.isComplete()) {
-    solutions_.maybeAdd(current.error, current.assignment);
-    return;
-  }
-
-  // Expand on the next factor
-  const auto& conditional = conditionals_[current.nextConditional];
-
-  for (auto& fa : conditional->frontalAssignments()) {
-    auto childNode = current.expand(*conditional, fa);
-    if (childNode.nextConditional >= 0)
-      childNode.bound = childNode.error + costToGo_[childNode.nextConditional];
-
-    // Again, prune if we cannot beat the worst solution
-    if (!solutions_.prune(childNode.bound)) {
-      expansions_.emplace(childNode);
-    }
-  }
 }
 
 }  // namespace gtsam

@@ -130,17 +130,15 @@ class Solutions {
  */
 class DiscreteSearch {
  public:
-  size_t numExpansions = 0;
-
   /**
    * Construct from a DiscreteBayesNet and K.
    */
-  DiscreteSearch(const DiscreteBayesNet& bayesNet, size_t K = 1);
+  DiscreteSearch(const DiscreteBayesNet& bayesNet);
 
   /**
    * Construct from a DiscreteBayesTree and K.
    */
-  DiscreteSearch(const DiscreteBayesTree& bayesTree, size_t K = 1);
+  DiscreteSearch(const DiscreteBayesTree& bayesTree);
 
   /**
    * @brief Search for the K best solutions.
@@ -152,29 +150,17 @@ class DiscreteSearch {
    *
    * @return A vector of the K best solutions found during the search.
    */
-  std::vector<Solution> run();
+  std::vector<Solution> run(size_t K = 1) const;
 
  private:
-  /// Initialize the search with the given conditionals.
-  void initialize(
-      const std::vector<DiscreteConditional::shared_ptr>& conditionals) {
-    conditionals_ = conditionals;
-    costToGo_ = computeCostToGo(conditionals_);
-    expansions_.push(SearchNode::Root(
-        conditionals_.size(), costToGo_.empty() ? 0.0 : costToGo_.back()));
-  }
-
   /// Compute the cumulative cost-to-go for each conditional slot.
   static std::vector<double> computeCostToGo(
       const std::vector<DiscreteConditional::shared_ptr>& conditionals);
 
   /// Expand the next node in the search tree.
-  void expandNextNode();
+  void expandNextNode() const;
 
   std::vector<DiscreteConditional::shared_ptr> conditionals_;
   std::vector<double> costToGo_;
-  std::priority_queue<SearchNode, std::vector<SearchNode>, SearchNode::Compare>
-      expansions_;
-  Solutions solutions_;
 };
 }  // namespace gtsam
