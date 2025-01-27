@@ -241,7 +241,6 @@ std::vector<double> DiscreteSearch::computeCostToGo(
   for (const auto& conditional : conditionals) {
     Ordering ordering(conditional->begin(), conditional->end());
     auto maxx = conditional->max(ordering);
-    assert(maxx->size() == 1);
     error -= std::log(maxx->evaluate({}));
     costToGo.push_back(error);
   }
