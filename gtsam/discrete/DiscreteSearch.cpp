@@ -39,10 +39,8 @@ struct SearchNode {
    * @brief Construct the root node for the search.
    */
   static SearchNode Root(size_t numConditionals, double bound) {
-    return {.assignment = DiscreteValues(),
-            .error = 0.0,
-            .bound = bound,
-            .nextConditional = static_cast<int>(numConditionals) - 1};
+    return {DiscreteValues(), 0.0, bound,
+            static_cast<int>(numConditionals) - 1};
   }
 
   struct Compare {
@@ -74,10 +72,8 @@ struct SearchNode {
       newAssignment[key] = value;
     }
 
-    return {.assignment = newAssignment,
-            .error = error + conditional.error(newAssignment),
-            .bound = 0.0,
-            .nextConditional = nextConditional - 1};
+    return {newAssignment, error + conditional.error(newAssignment), 0.0,
+            nextConditional - 1};
   }
 
   /**
