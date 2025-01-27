@@ -20,8 +20,6 @@
 
 namespace gtsam {
 
-using Value = size_t;
-
 /**
  * @brief Represents a node in the search tree for discrete search algorithms.
  *
