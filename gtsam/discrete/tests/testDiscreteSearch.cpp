@@ -45,8 +45,8 @@ TEST(DiscreteBayesNet, EmptyKBest) {
 /* ************************************************************************* */
 TEST(DiscreteBayesNet, AsiaKBest) {
   using namespace asia_example;
-  DiscreteBayesNet asia = createAsiaExample();
-  DiscreteSearch search(asia);
+  const DiscreteBayesNet asia = createAsiaExample();
+  const DiscreteSearch search(asia);
 
   // Ask for the MPE
   auto mpe = search.run();
@@ -54,6 +54,10 @@ TEST(DiscreteBayesNet, AsiaKBest) {
   EXPECT_LONGS_EQUAL(1, mpe.size());
   // Regression test: check the MPE solution
   EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(mpe[0].error), 1e-5);
+
+  // Check it is equal to MPE via inference
+  const DiscreteFactorGraph asiaFG(asia);
+  EXPECT(assert_equal(mpe[0].assignment, asiaFG.optimize()));
 
   // Ask for top 4 solutions
   auto solutions = search.run(4);
@@ -72,7 +76,6 @@ TEST(DiscreteBayesTree, EmptyTree) {
   auto solutions = search.run(3);
 
   // We expect exactly 1 solution with error = 0.0 (the empty assignment).
-  assert(solutions.size() == 1 && "There should be exactly one empty solution");
   EXPECT_LONGS_EQUAL(1, solutions.size());
   EXPECT_DOUBLES_EQUAL(0, std::fabs(solutions[0].error), 1e-9);
 }
@@ -80,9 +83,9 @@ TEST(DiscreteBayesTree, EmptyTree) {
 /* ************************************************************************* */
 TEST(DiscreteBayesTree, AsiaTreeKBest) {
   using namespace asia_example;
-  DiscreteFactorGraph asia(createAsiaExample());
+  DiscreteFactorGraph asiaFG(createAsiaExample());
   const Ordering ordering{D, X, B, E, L, T, S, A};
-  DiscreteBayesTree::shared_ptr bt = asia.eliminateMultifrontal(ordering);
+  DiscreteBayesTree::shared_ptr bt = asiaFG.eliminateMultifrontal(ordering);
   DiscreteSearch search(*bt);
 
   // Ask for MPE
@@ -91,6 +94,9 @@ TEST(DiscreteBayesTree, AsiaTreeKBest) {
   EXPECT_LONGS_EQUAL(1, mpe.size());
   // Regression test: check the MPE solution
   EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(mpe[0].error), 1e-5);
+
+  // Check it is equal to MPE via inference
+  EXPECT(assert_equal(mpe[0].assignment, asiaFG.optimize()));
 
   // Ask for top 4 solutions
   auto solutions = search.run(4);
