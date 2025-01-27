@@ -165,7 +165,7 @@ DiscreteSearch::DiscreteSearch(const DiscreteBayesTree& bayesTree) {
       };
   for (const auto& root : bayesTree.roots()) collectConditionals(root);
   costToGo_ = computeCostToGo(conditionals_);
-};
+}
 
 struct SearchNodeQueue
     : public std::priority_queue<SearchNode, std::vector<SearchNode>,
