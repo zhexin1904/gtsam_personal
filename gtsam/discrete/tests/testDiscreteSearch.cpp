@@ -48,6 +48,10 @@ TEST(DiscreteBayesNet, AsiaKBest) {
   DiscreteBayesNet asia = createAsiaExample();
   DiscreteSearch search(asia, 4);
   auto solutions = search.run();
+
+  // print numExpansions
+  std::cout << "Number of expansions: " << search.numExpansions << std::endl;
+
   EXPECT(!solutions.empty());
   // Regression test: check the first and last solution
   EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(solutions[0].error), 1e-5);
@@ -73,7 +77,6 @@ TEST(DiscreteBayesTree, testTrivialOneClique) {
   DiscreteFactorGraph asia(createAsiaExample());
   const Ordering ordering{D, X, B, E, L, T, S, A};
   DiscreteBayesTree::shared_ptr bt = asia.eliminateMultifrontal(ordering);
-  GTSAM_PRINT(*bt);
 
   // Ask for top 4 solutions
   DiscreteSearch search(*bt, 4);
