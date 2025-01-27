@@ -18,8 +18,6 @@
 
 #include <CppUnitLite/TestHarness.h>
 #include <gtsam/base/Testable.h>
-#include <gtsam/discrete/DiscreteEliminationTree.h>
-#include <gtsam/discrete/DiscreteJunctionTree.h>
 #include <gtsam/discrete/DiscreteSearch.h>
 
 #include "AsiaExample.h"
@@ -35,11 +33,8 @@ static const DiscreteBayesNet bayesNet = createAsiaExample();
 static const DiscreteFactorGraph factorGraph(bayesNet);
 static const DiscreteValues mpe = factorGraph.optimize();
 
-// Create junction tree
+// Create ordering
 static const Ordering ordering{D, X, B, E, L, T, S, A};
-
-static const DiscreteEliminationTree etree(factorGraph, ordering);
-static const DiscreteJunctionTree junctionTree(etree);
 
 // Create Bayes tree
 static const DiscreteBayesTree bayesTree =
@@ -48,9 +43,7 @@ static const DiscreteBayesTree bayesTree =
 
 /* ************************************************************************* */
 TEST(DiscreteBayesNet, AsiaFactorGraphKBest) {
-  GTSAM_PRINT(asia::etree);
-  GTSAM_PRINT(asia::junctionTree);
-  DiscreteSearch search(asia::factorGraph);
+  DiscreteSearch search(asia::factorGraph, asia::ordering);
 }
 
 /* ************************************************************************* */

@@ -61,8 +61,19 @@ class GTSAM_EXPORT DiscreteSearch {
  public:
   /**
    * Construct from a DiscreteFactorGraph.
+   *
+   * Internally creates either an elimination tree or a junction tree. The
+   * latter incurs more up-front computation but the search itself might be
+   * faster. Then again, for the elimination tree, the heuristic will be more
+   * fine-grained (more slots).
+   *
+   * @param factorGraph The factor graph to search over.
+   * @param ordering The ordering of the variables to search over.
+   * @param buildJunctionTree Whether to build a junction tree for the factor
+   * graph.
    */
-  DiscreteSearch(const DiscreteFactorGraph& bayesNet);
+  DiscreteSearch(const DiscreteFactorGraph& factorGraph,
+                 const Ordering& ordering, bool buildJunctionTree = false);
 
   /**
    * Construct from a DiscreteBayesNet.
@@ -87,9 +98,11 @@ class GTSAM_EXPORT DiscreteSearch {
   std::vector<Solution> run(size_t K = 1) const;
 
  private:
-  /// Compute the cumulative lower-bound cost-to-go for each slot.
-  void computeHeuristic();
+  /// Compute the cumulative lower-bound cost-to-go after each slot is filled.
+  /// @return the estimated lower bound of the cost for *all* slots.
+  double computeHeuristic();
 
-  std::vector<Slot> slots_;
+  double lowerBound_;  ///< Lower bound on the cost-to-go for the entire search.
+  std::vector<Slot> slots_;  ///< The slots to fill in the search.
 };
 }  // namespace gtsam
