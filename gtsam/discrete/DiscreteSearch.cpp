@@ -20,6 +20,8 @@
 
 namespace gtsam {
 
+using Solution = DiscreteSearch::Solution;
+
 /**
  * @brief Represents a node in the search tree for discrete search algorithms.
  *

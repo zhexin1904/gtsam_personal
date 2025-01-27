@@ -24,24 +24,24 @@
 namespace gtsam {
 
 /**
- * @brief A solution to a discrete search problem.
- */
-struct Solution {
-  double error;
-  DiscreteValues assignment;
-  Solution(double err, const DiscreteValues& assign)
-      : error(err), assignment(assign) {}
-  friend std::ostream& operator<<(std::ostream& os, const Solution& sn) {
-    os << "[ error=" << sn.error << " assignment={" << sn.assignment << "}]";
-    return os;
-  }
-};
-
-/**
  * DiscreteSearch: Search for the K best solutions.
  */
-class DiscreteSearch {
+class GTSAM_EXPORT DiscreteSearch {
  public:
+  /**
+   * @brief A solution to a discrete search problem.
+   */
+  struct Solution {
+    double error;
+    DiscreteValues assignment;
+    Solution(double err, const DiscreteValues& assign)
+        : error(err), assignment(assign) {}
+    friend std::ostream& operator<<(std::ostream& os, const Solution& sn) {
+      os << "[ error=" << sn.error << " assignment={" << sn.assignment << "}]";
+      return os;
+    }
+  };
+
   /**
    * Construct from a DiscreteBayesNet and K.
    */
