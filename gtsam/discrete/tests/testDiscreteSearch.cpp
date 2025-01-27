@@ -20,17 +20,20 @@
 #include <gtsam/base/Testable.h>
 #include <gtsam/discrete/DiscreteSearch.h>
 
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <map>
-#include <queue>
-#include <string>
-#include <vector>
-
 #include "AsiaExample.h"
 
 using namespace gtsam;
+
+// Create Asia Bayes net, FG, and Bayes tree once
+namespace asia {
+using namespace asia_example;
+static const DiscreteBayesNet bayesNet = createAsiaExample();
+static const DiscreteFactorGraph factorGraph(bayesNet);
+static const DiscreteValues mpe = factorGraph.optimize();
+static const Ordering ordering{D, X, B, E, L, T, S, A};
+static const DiscreteBayesTree bayesTree =
+    *factorGraph.eliminateMultifrontal(ordering);
+}  // namespace asia
 
 /* ************************************************************************* */
 TEST(DiscreteBayesNet, EmptyKBest) {
@@ -44,9 +47,7 @@ TEST(DiscreteBayesNet, EmptyKBest) {
 
 /* ************************************************************************* */
 TEST(DiscreteBayesNet, AsiaKBest) {
-  using namespace asia_example;
-  const DiscreteBayesNet asia = createAsiaExample();
-  const DiscreteSearch search(asia);
+  const DiscreteSearch search(asia::bayesNet);
 
   // Ask for the MPE
   auto mpe = search.run();
@@ -56,8 +57,7 @@ TEST(DiscreteBayesNet, AsiaKBest) {
   EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(mpe[0].error), 1e-5);
 
   // Check it is equal to MPE via inference
-  const DiscreteFactorGraph asiaFG(asia);
-  EXPECT(assert_equal(mpe[0].assignment, asiaFG.optimize()));
+  EXPECT(assert_equal(asia::mpe, mpe[0].assignment));
 
   // Ask for top 4 solutions
   auto solutions = search.run(4);
@@ -82,11 +82,7 @@ TEST(DiscreteBayesTree, EmptyTree) {
 
 /* ************************************************************************* */
 TEST(DiscreteBayesTree, AsiaTreeKBest) {
-  using namespace asia_example;
-  DiscreteFactorGraph asiaFG(createAsiaExample());
-  const Ordering ordering{D, X, B, E, L, T, S, A};
-  DiscreteBayesTree::shared_ptr bt = asiaFG.eliminateMultifrontal(ordering);
-  DiscreteSearch search(*bt);
+  DiscreteSearch search(asia::bayesTree);
 
   // Ask for MPE
   auto mpe = search.run();
@@ -96,7 +92,7 @@ TEST(DiscreteBayesTree, AsiaTreeKBest) {
   EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(mpe[0].error), 1e-5);
 
   // Check it is equal to MPE via inference
-  EXPECT(assert_equal(mpe[0].assignment, asiaFG.optimize()));
+  EXPECT(assert_equal(asia::mpe, mpe[0].assignment));
 
   // Ask for top 4 solutions
   auto solutions = search.run(4);
