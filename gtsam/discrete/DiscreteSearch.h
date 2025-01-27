@@ -28,9 +28,25 @@ namespace gtsam {
  */
 class GTSAM_EXPORT DiscreteSearch {
  public:
-  /**
-   * @brief A solution to a discrete search problem.
-   */
+  /// We structure the search as a set of slots, each with a factor and
+  /// a set of variable assignments that need to be chosen. In addition, each
+  /// slot has a heuristic associated with it.
+  struct Slot {
+    /// The factors in the search problem,
+    ///  e.g., [P(B|A),P(A)]
+    DiscreteFactor::shared_ptr factor;
+
+    /// The assignments for each factor,
+    /// e.g., [[B0,B1] [A0,A1]]
+    std::vector<DiscreteValues> assignments;
+
+    /// A lower bound on the cost-to-go for each slot, e.g.,
+    /// [-log(max_B P(B|A)), -log(max_A P(A))]
+    double heuristic;
+  };
+
+  /// A solution is then a set of assignments, covering all the slots.
+  /// as well as an associated error = -log(probability)
   struct Solution {
     double error;
     DiscreteValues assignment;
@@ -42,13 +58,19 @@ class GTSAM_EXPORT DiscreteSearch {
     }
   };
 
+ public:
   /**
-   * Construct from a DiscreteBayesNet and K.
+   * Construct from a DiscreteFactorGraph.
+   */
+  DiscreteSearch(const DiscreteFactorGraph& bayesNet);
+
+  /**
+   * Construct from a DiscreteBayesNet.
    */
   DiscreteSearch(const DiscreteBayesNet& bayesNet);
 
   /**
-   * Construct from a DiscreteBayesTree and K.
+   * Construct from a DiscreteBayesTree.
    */
   DiscreteSearch(const DiscreteBayesTree& bayesTree);
 
@@ -65,14 +87,9 @@ class GTSAM_EXPORT DiscreteSearch {
   std::vector<Solution> run(size_t K = 1) const;
 
  private:
-  /// Compute the cumulative cost-to-go for each conditional slot.
-  static std::vector<double> computeCostToGo(
-      const std::vector<DiscreteConditional::shared_ptr>& conditionals);
+  /// Compute the cumulative lower-bound cost-to-go for each slot.
+  void computeHeuristic();
 
-  /// Expand the next node in the search tree.
-  void expandNextNode() const;
-
-  std::vector<DiscreteConditional::shared_ptr> conditionals_;
-  std::vector<double> costToGo_;
+  std::vector<Slot> slots_;
 };
 }  // namespace gtsam
