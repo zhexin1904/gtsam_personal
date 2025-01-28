@@ -150,19 +150,56 @@ class Solutions {
   }
 };
 
-DiscreteSearch::DiscreteSearch(const DiscreteFactorGraph& factorGraph,
-                               const Ordering& ordering,
-                               bool buildJunctionTree) {
-  const DiscreteEliminationTree etree(factorGraph, ordering);
-  const DiscreteJunctionTree junctionTree(etree);
+DiscreteSearch::DiscreteSearch(const DiscreteEliminationTree& etree) {
+  using NodePtr = std::shared_ptr<DiscreteEliminationTree::Node>;
+  auto visitor = [this](const NodePtr& node, int data) {
+    const auto& factors = node->factors;
+    const auto factor = factors.size() == 1
+                            ? factors.back()
+                            : DiscreteFactorGraph(factors).product();
+    const size_t cardinality = factor->cardinality(node->key);
+    std::vector<std::pair<Key, size_t>> pairs{{node->key, cardinality}};
+    slots_.emplace_back(factor, DiscreteValues::CartesianProduct(pairs), 0.0);
+    return data + 1;
+  };
 
-  // GTSAM_PRINT(asia::etree);
-  // GTSAM_PRINT(asia::junctionTree);
-  slots_.reserve(factorGraph.size());
-  for (auto& factor : factorGraph) {
-    slots_.emplace_back(factor, std::vector<DiscreteValues>{}, 0.0);
-  }
+  const int data = 0;  // unused
+  treeTraversal::DepthFirstForest(etree, data, visitor);
+  std::reverse(slots_.begin(), slots_.end());  // reverse slots
   lowerBound_ = computeHeuristic();
+}
+
+DiscreteSearch::DiscreteSearch(const DiscreteJunctionTree& junctionTree) {
+  using NodePtr = std::shared_ptr<DiscreteJunctionTree::Cluster>;
+  auto visitor = [this](const NodePtr& cluster, int data) {
+    const auto& factors = cluster->factors;
+    const auto factor = factors.size() == 1
+                            ? factors.back()
+                            : DiscreteFactorGraph(factors).product();
+    std::vector<std::pair<Key, size_t>> pairs;
+    for (Key key : cluster->orderedFrontalKeys) {
+      pairs.emplace_back(key, factor->cardinality(key));
+    }
+    slots_.emplace_back(factor, DiscreteValues::CartesianProduct(pairs), 0.0);
+    return data + 1;
+  };
+
+  const int data = 0;  // unused
+  treeTraversal::DepthFirstForest(junctionTree, data, visitor);
+  std::reverse(slots_.begin(), slots_.end());  // reverse slots
+  lowerBound_ = computeHeuristic();
+}
+
+DiscreteSearch DiscreteSearch::FromFactorGraph(
+    const DiscreteFactorGraph& factorGraph, const Ordering& ordering,
+    bool buildJunctionTree) {
+  const DiscreteEliminationTree etree(factorGraph, ordering);
+  if (buildJunctionTree) {
+    const DiscreteJunctionTree junctionTree(etree);
+    return DiscreteSearch(junctionTree);
+  } else {
+    return DiscreteSearch(etree);
+  }
 }
 
 DiscreteSearch::DiscreteSearch(const DiscreteBayesNet& bayesNet) {
@@ -186,6 +223,14 @@ DiscreteSearch::DiscreteSearch(const DiscreteBayesTree& bayesTree) {
   slots_.reserve(bayesTree.size());
   for (const auto& root : bayesTree.roots()) collectConditionals(root);
   lowerBound_ = computeHeuristic();
+}
+
+void DiscreteSearch::print(const std::string& name,
+                           const KeyFormatter& formatter) const {
+  std::cout << name << " with " << slots_.size() << " slots:\n";
+  for (size_t i = 0; i < slots_.size(); ++i) {
+    std::cout << i << ": " << slots_[i] << std::endl;
+  }
 }
 
 struct SearchNodeQueue
@@ -214,8 +259,6 @@ struct SearchNodeQueue
     }
   }
 };
-
-#define DISCRETE_SEARCH_DEBUG
 
 std::vector<Solution> DiscreteSearch::run(size_t K) const {
   Solutions solutions(K);
@@ -252,9 +295,9 @@ std::vector<Solution> DiscreteSearch::run(size_t K) const {
 // a lower-bound on the cost-to-go for each slot, *not* including this factor.
 // For the first slot, this is 0.0, as this is the last slot to be filled, so
 // the cost after that is zero. For the second slot, it is h0 =
-// -log(max(factor[0])), because after we assign slot[1] we still need to assign
-// slot[0], which will cost *at least* h0.
-// We return the estimated lower bound of the cost for *all* slots.
+// -log(max(factor[0])), because after we assign slot[1] we still need to
+// assign slot[0], which will cost *at least* h0. We return the estimated
+// lower bound of the cost for *all* slots.
 double DiscreteSearch::computeHeuristic() {
   double error = 0.0;
   for (size_t i = 0; i < slots_.size(); ++i) {

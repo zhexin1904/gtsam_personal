@@ -10,7 +10,11 @@
  * -------------------------------------------------------------------------- */
 
 /*
- * DiscreteSearch.cpp
+ * @file DiscreteSearch.h
+ * @brief Defines the DiscreteSearch class for discrete search algorithms.
+ *
+ * @details This file contains the definition of the DiscreteSearch class, which
+ * is used in discrete search algorithms to find the K best solutions.
  *
  * @date January, 2025
  * @author Frank Dellaert
@@ -43,6 +47,13 @@ class GTSAM_EXPORT DiscreteSearch {
     /// A lower bound on the cost-to-go for each slot, e.g.,
     /// [-log(max_B P(B|A)), -log(max_A P(A))]
     double heuristic;
+
+    friend std::ostream& operator<<(std::ostream& os, const Slot& slot) {
+      os << "Slot with " << slot.assignments.size()
+         << " assignments, heuristic=" << slot.heuristic;
+      os << ", factor:\n" << slot.factor->markdown() << std::endl;
+      return os;
+    }
   };
 
   /// A solution is then a set of assignments, covering all the slots.
@@ -59,6 +70,9 @@ class GTSAM_EXPORT DiscreteSearch {
   };
 
  public:
+  /// @name Standard Constructors
+  /// @{
+
   /**
    * Construct from a DiscreteFactorGraph.
    *
@@ -68,12 +82,26 @@ class GTSAM_EXPORT DiscreteSearch {
    * fine-grained (more slots).
    *
    * @param factorGraph The factor graph to search over.
-   * @param ordering The ordering of the variables to search over.
-   * @param buildJunctionTree Whether to build a junction tree for the factor
-   * graph.
+   * @param ordering The ordering used to create etree (and maybe jtree).
+   * @param buildJunctionTree Whether to build a junction tree or not.
    */
-  DiscreteSearch(const DiscreteFactorGraph& factorGraph,
-                 const Ordering& ordering, bool buildJunctionTree = false);
+  static DiscreteSearch FromFactorGraph(const DiscreteFactorGraph& factorGraph,
+                                        const Ordering& ordering,
+                                        bool buildJunctionTree = false);
+
+  /**
+   * @brief Constructor from a DiscreteEliminationTree.
+   *
+   * @param etree The DiscreteEliminationTree to initialize from.
+   */
+  DiscreteSearch(const DiscreteEliminationTree& etree);
+
+  /**
+   * @brief Constructor from a DiscreteJunctionTree.
+   *
+   * @param junctionTree The DiscreteJunctionTree to initialize from.
+   */
+  DiscreteSearch(const DiscreteJunctionTree& junctionTree);
 
   /**
    * Construct from a DiscreteBayesNet.
@@ -84,6 +112,18 @@ class GTSAM_EXPORT DiscreteSearch {
    * Construct from a DiscreteBayesTree.
    */
   DiscreteSearch(const DiscreteBayesTree& bayesTree);
+
+  /// @}
+  /// @name Testable
+  /// @{
+
+  /** Print the tree to cout */
+  void print(const std::string& name = "DiscreteSearch: ",
+             const KeyFormatter& formatter = DefaultKeyFormatter) const;
+
+  /// @}
+  /// @name Standard API
+  /// @{
 
   /**
    * @brief Search for the K best solutions.
@@ -96,6 +136,8 @@ class GTSAM_EXPORT DiscreteSearch {
    * @return A vector of the K best solutions found during the search.
    */
   std::vector<Solution> run(size_t K = 1) const;
+
+  /// @}
 
  private:
   /// Compute the cumulative lower-bound cost-to-go after each slot is filled.
