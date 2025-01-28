@@ -159,7 +159,7 @@ DiscreteSearch::DiscreteSearch(const DiscreteEliminationTree& etree) {
                             : DiscreteFactorGraph(factors).product();
     const size_t cardinality = factor->cardinality(node->key);
     std::vector<std::pair<Key, size_t>> pairs{{node->key, cardinality}};
-    const Slot slot(factor, DiscreteValues::CartesianProduct(pairs), 0.0);
+    const Slot slot{factor, DiscreteValues::CartesianProduct(pairs), 0.0};
     slots_.emplace_back(std::move(slot));
     return data + 1;
   };
@@ -181,7 +181,7 @@ DiscreteSearch::DiscreteSearch(const DiscreteJunctionTree& junctionTree) {
     for (Key key : cluster->orderedFrontalKeys) {
       pairs.emplace_back(key, factor->cardinality(key));
     }
-    const Slot slot(factor, DiscreteValues::CartesianProduct(pairs), 0.0);
+    const Slot slot{factor, DiscreteValues::CartesianProduct(pairs), 0.0};
     slots_.emplace_back(std::move(slot));
     return data + 1;
   };
@@ -207,7 +207,7 @@ DiscreteSearch DiscreteSearch::FromFactorGraph(
 DiscreteSearch::DiscreteSearch(const DiscreteBayesNet& bayesNet) {
   slots_.reserve(bayesNet.size());
   for (auto& conditional : bayesNet) {
-    const Slot slot(conditional, conditional->frontalAssignments(), 0.0);
+    const Slot slot{conditional, conditional->frontalAssignments(), 0.0};
     slots_.emplace_back(std::move(slot));
   }
   lowerBound_ = computeHeuristic();
@@ -219,7 +219,7 @@ DiscreteSearch::DiscreteSearch(const DiscreteBayesTree& bayesTree) {
         if (!clique) return;
         for (const auto& child : clique->children) collectConditionals(child);
         auto conditional = clique->conditional();
-        const Slot slot(conditional, conditional->frontalAssignments(), 0.0);
+        const Slot slot{conditional, conditional->frontalAssignments(), 0.0};
         slots_.emplace_back(std::move(slot));
       };
 
