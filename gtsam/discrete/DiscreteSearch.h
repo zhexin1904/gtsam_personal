@@ -125,6 +125,12 @@ class GTSAM_EXPORT DiscreteSearch {
   /// @name Standard API
   /// @{
 
+  /// Return lower bound on the cost-to-go for the entire search
+  double lowerBound() const { return lowerBound_; }
+
+  /// Read access to the slots
+  const std::vector<Slot>& slots() const { return slots_; }
+
   /**
    * @brief Search for the K best solutions.
    *

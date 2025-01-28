@@ -77,6 +77,17 @@ TEST(DiscreteBayesNet, AsiaKBest) {
     // Ask for the MPE
     auto mpe = search.run();
 
+    // Regression on error lower bound
+    EXPECT_DOUBLES_EQUAL(1.205536, search.lowerBound(), 1e-5);
+
+    // Check that the cost-to-go heuristic decreases from there
+    auto slots = search.slots();
+    double previousHeuristic = search.lowerBound();
+    for (auto&& slot : slots) {
+      EXPECT(slot.heuristic <= previousHeuristic);
+      previousHeuristic = slot.heuristic;
+    }
+
     EXPECT_LONGS_EQUAL(1, mpe.size());
     // Regression test: check the MPE solution
     EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(mpe[0].error), 1e-5);
