@@ -9,7 +9,7 @@
 
  * -------------------------------------------------------------------------- */
 
-/*
+/**
  * @file DiscreteSearch.h
  * @brief Defines the DiscreteSearch class for discrete search algorithms.
  *
@@ -28,24 +28,40 @@
 namespace gtsam {
 
 /**
- * DiscreteSearch: Search for the K best solutions.
+ * @brief DiscreteSearch: Search for the K best solutions.
+ *
+ * This class is used to search for the K best solutions in a DiscreteBayesNet.
+ * This is implemented with a modified A* search algorithm that uses a priority
+ * queue to manage the search nodes. That machinery is defined in the .cpp file.
+ * The heuristic we use is the sum of the log-probabilities of the
+ * maximum-probability assignments for each slot, for all slots to the right of
+ * the current slot.
+ *
+ * TODO: The heuristic could be refined by using the partial assignment in
+ * search node to refine the max-probability assignment for the remaining slots.
+ * This would incur more computation but will lead to fewer expansions.
  */
 class GTSAM_EXPORT DiscreteSearch {
  public:
-  /// We structure the search as a set of slots, each with a factor and
-  /// a set of variable assignments that need to be chosen. In addition, each
-  /// slot has a heuristic associated with it.
+  /**
+   * We structure the search as a set of slots, each with a factor and
+   * a set of variable assignments that need to be chosen. In addition, each
+   * slot has a heuristic associated with it.
+   *
+   * Example:
+   * The factors in the search problem (always parents before descendents!):
+   *    [P(A), P(B|A), P(C|A,B)]
+   * The assignments for each factor.
+   *    [[A0,A1], [B0,B1], [C0,C1,C2]]
+   * A lower bound on the cost-to-go after each slot, e.g.,
+   *    [-log(max_B P(B|A)) -log(max_C P(C|A,B)), -log(max_C P(C|A,B)), 0.0]
+   * Note that these decrease as we move from right to left.
+   * We keep the global lower bound as lowerBound_. In the example, it is:
+   *    -log(max_B P(B|A)) -log(max_C P(C|A,B)) -log(max_C P(C|A,B))
+   */
   struct Slot {
-    /// The factors in the search problem,
-    ///  e.g., [P(B|A),P(A)]
     DiscreteFactor::shared_ptr factor;
-
-    /// The assignments for each factor,
-    /// e.g., [[B0,B1] [A0,A1]]
     std::vector<DiscreteValues> assignments;
-
-    /// A lower bound on the cost-to-go for each slot, e.g.,
-    /// [-log(max_B P(B|A)), -log(max_A P(A))]
     double heuristic;
 
     friend std::ostream& operator<<(std::ostream& os, const Slot& slot) {
@@ -56,8 +72,10 @@ class GTSAM_EXPORT DiscreteSearch {
     }
   };
 
-  /// A solution is then a set of assignments, covering all the slots.
-  /// as well as an associated error = -log(probability)
+  /**
+   * A solution is a set of assignments, covering all the slots.
+   * as well as an associated error = -log(probability)
+   */
   struct Solution {
     double error;
     DiscreteValues assignment;
@@ -89,28 +107,16 @@ class GTSAM_EXPORT DiscreteSearch {
                                         const Ordering& ordering,
                                         bool buildJunctionTree = false);
 
-  /**
-   * @brief Constructor from a DiscreteEliminationTree.
-   *
-   * @param etree The DiscreteEliminationTree to initialize from.
-   */
+  /// Construct from a DiscreteEliminationTree.
   DiscreteSearch(const DiscreteEliminationTree& etree);
 
-  /**
-   * @brief Constructor from a DiscreteJunctionTree.
-   *
-   * @param junctionTree The DiscreteJunctionTree to initialize from.
-   */
+  /// Construct from a DiscreteJunctionTree.
   DiscreteSearch(const DiscreteJunctionTree& junctionTree);
 
-  /**
-   * Construct from a DiscreteBayesNet.
-   */
+  //// Construct from a DiscreteBayesNet.
   DiscreteSearch(const DiscreteBayesNet& bayesNet);
 
-  /**
-   * Construct from a DiscreteBayesTree.
-   */
+  /// Construct from a DiscreteBayesTree.
   DiscreteSearch(const DiscreteBayesTree& bayesTree);
 
   /// @}
@@ -146,8 +152,10 @@ class GTSAM_EXPORT DiscreteSearch {
   /// @}
 
  private:
-  /// Compute the cumulative lower-bound cost-to-go after each slot is filled.
-  /// @return the estimated lower bound of the cost for *all* slots.
+  /**
+   * Compute the cumulative lower-bound cost-to-go after each slot is filled.
+   * @return the estimated lower bound of the cost for *all* slots.
+   */
   double computeHeuristic();
 
   double lowerBound_;  ///< Lower bound on the cost-to-go for the entire search.

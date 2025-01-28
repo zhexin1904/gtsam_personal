@@ -9,7 +9,7 @@
 
  * -------------------------------------------------------------------------- */
 
-/*
+/**
  * DiscreteSearch.cpp
  *
  * @date January, 2025
@@ -25,22 +25,19 @@ namespace gtsam {
 using Slot = DiscreteSearch::Slot;
 using Solution = DiscreteSearch::Solution;
 
-/**
- * @brief Represents a node in the search tree for discrete search algorithms.
- *
- * @details Each SearchNode contains a partial assignment of discrete variables,
- * the current error, a bound on the final error, and the index of the next
- * conditional to be assigned.
+/*
+ * A SearchNode represents a node in the search tree for the search algorithm.
+ * Each SearchNode contains a partial assignment of discrete variables, the
+ * current error, a bound on the final error, and the index of the next
+ * slot to be assigned.
  */
 struct SearchNode {
-  DiscreteValues assignment;   ///< Partial assignment of discrete variables.
-  double error;                ///< Current error for the partial assignment.
-  double bound;                ///< Lower bound on the final error
-  std::optional<size_t> next;  ///< Index of the next factor to be assigned.
+  DiscreteValues assignment;   // Partial assignment of discrete variables.
+  double error;                // Current error for the partial assignment.
+  double bound;                // Lower bound on the final error
+  std::optional<size_t> next;  // Index of the next slot to be assigned.
 
-  /**
-   * @brief Construct the root node for the search.
-   */
+  // Construct the root node for the search.
   static SearchNode Root(size_t numSlots, double bound) {
     return {DiscreteValues(), 0.0, bound, 0};
   }
@@ -51,10 +48,10 @@ struct SearchNode {
     }
   };
 
-  /// Checks if the node represents a complete assignment.
+  // Checks if the node represents a complete assignment.
   inline bool isComplete() const { return !next; }
 
-  /// Expands the node by assigning the next variable(s).
+  // Expands the node by assigning the next variable(s).
   SearchNode expand(const DiscreteValues& fa, const Slot& slot,
                     std::optional<size_t> nextSlot) const {
     // Combine the new frontal assignment with the current partial assignment
@@ -66,7 +63,7 @@ struct SearchNode {
     return {newAssignment, errorSoFar, errorSoFar + slot.heuristic, nextSlot};
   }
 
-  /// Prints the SearchNode to an output stream.
+  // Prints the SearchNode to an output stream.
   friend std::ostream& operator<<(std::ostream& os, const SearchNode& node) {
     os << "SearchNode(error=" << node.error << ", bound=" << node.bound << ")";
     return os;
@@ -79,17 +76,20 @@ struct CompareSolution {
   }
 };
 
-// Define the Solutions class
+/*
+ * A Solutions object maintains a priority queue of the best solutions found
+ * during the search. The priority queue is limited to a maximum size, and
+ * solutions are only added if they are better than the worst solution.
+ */
 class Solutions {
- private:
-  size_t maxSize_;
+  size_t maxSize_;  // Maximum number of solutions to keep
   std::priority_queue<Solution, std::vector<Solution>, CompareSolution> pq_;
 
  public:
   Solutions(size_t maxSize) : maxSize_(maxSize) {}
 
-  /// Add a solution to the priority queue, possibly evicting the worst one.
-  /// Return true if we added the solution.
+  // Add a solution to the priority queue, possibly evicting the worst one.
+  // Return true if we added the solution.
   bool maybeAdd(double error, const DiscreteValues& assignment) {
     const bool full = pq_.size() == maxSize_;
     if (full && error >= pq_.top().error) return false;
@@ -98,7 +98,7 @@ class Solutions {
     return true;
   }
 
-  /// Check if we have any solutions
+  // Check if we have any solutions
   bool empty() const { return pq_.empty(); }
 
   // Method to print all solutions
@@ -112,9 +112,9 @@ class Solutions {
     return os;
   }
 
-  /// Check if (partial) solution with given bound can be pruned. If we have
-  /// room, we never prune. Otherwise, prune if lower bound on error is worse
-  /// than our current worst error.
+  // Check if (partial) solution with given bound can be pruned. If we have
+  // room, we never prune. Otherwise, prune if lower bound on error is worse
+  // than our current worst error.
   bool prune(double bound) const {
     if (pq_.size() < maxSize_) return false;
     return bound >= pq_.top().error;
@@ -134,9 +134,9 @@ class Solutions {
   }
 };
 
-/// @brief Get the factor associated with a node, possibly product of factors.
+// Get the factor associated with a node, possibly product of factors.
 template <typename NodeType>
-static auto getFactor(const NodeType& node) {
+static DiscreteFactor::shared_ptr getFactor(const NodeType& node) {
   const auto& factors = node->factors;
   return factors.size() == 1 ? factors.back()
                              : DiscreteFactorGraph(factors).product();
@@ -145,7 +145,7 @@ static auto getFactor(const NodeType& node) {
 DiscreteSearch::DiscreteSearch(const DiscreteEliminationTree& etree) {
   using NodePtr = std::shared_ptr<DiscreteEliminationTree::Node>;
   auto visitor = [this](const NodePtr& node, int data) {
-    const auto factor = getFactor(node);
+    const DiscreteFactor::shared_ptr factor = getFactor(node);
     const size_t cardinality = factor->cardinality(node->key);
     std::vector<std::pair<Key, size_t>> pairs{{node->key, cardinality}};
     const Slot slot{factor, DiscreteValues::CartesianProduct(pairs), 0.0};
@@ -266,13 +266,14 @@ std::vector<Solution> DiscreteSearch::run(size_t K) const {
   // Extract solutions from bestSolutions in ascending order of error
   return solutions.extractSolutions();
 }
-
-// We have a number of factors, each with a max value, and we want to compute
-// a lower-bound on the cost-to-go for each slot, *not* including this factor.
-// For the last slot, this is 0.0, as the cost after that is zero.
-// For the second-to-last slot, it is -log(max(factor[0])), because after we
-// assign slot[1] we still need to assign slot[0], which will cost *at least*
-// h0. We return the estimated lower bound of the cost for *all* slots.
+/*
+ * We have a number of factors, each with a max value, and we want to compute
+ * a lower-bound on the cost-to-go for each slot, *not* including this factor.
+ * For the last slot[n-1], this is 0.0, as the cost after that is zero.
+ * For the second-to-last slot, it is h = -log(max(factor[n-1])), because after
+ * we assign slot[n-2] we still need to assign slot[n-1], which will cost *at
+ * least* h. We return the estimated lower bound of the cost for *all* slots.
+ */
 double DiscreteSearch::computeHeuristic() {
   double error = 0.0;
   for (auto it = slots_.rbegin(); it != slots_.rend(); ++it) {
