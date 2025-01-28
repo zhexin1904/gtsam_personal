@@ -31,26 +31,18 @@ DiscreteJunctionTree::DiscreteJunctionTree(
     const DiscreteEliminationTree& eliminationTree)
     : Base(eliminationTree) {}
 /* ************************************************************************* */
-namespace {
-struct PrintForestVisitorPre {
-  const KeyFormatter& formatter;
-  PrintForestVisitorPre(const KeyFormatter& formatter) : formatter(formatter) {}
-  std::string operator()(
-      const std::shared_ptr<DiscreteJunctionTree::Cluster>& node,
-      const std::string& parentString) {
-    // Print the current node
-    node->print(parentString + "-", formatter);
-    node->factors.print(parentString + "-", formatter);
-    std::cout << std::endl;
-    // Increment the indentation
-    return parentString + "| ";
-  }
-};
-}  // namespace
 
 void DiscreteJunctionTree::print(const std::string& s,
                                  const KeyFormatter& keyFormatter) const {
-  PrintForestVisitorPre visitor(keyFormatter);
+  auto visitor = [&keyFormatter](
+                     const std::shared_ptr<DiscreteJunctionTree::Cluster>& node,
+                     const std::string& parentString) {
+    // Print the current node
+    node->print(parentString + "-", keyFormatter);
+    node->factors.print(parentString + "-", keyFormatter);
+    std::cout << std::endl;
+    return parentString + "| ";  // Increment the indentation
+  };
   std::string parentString = s;
   treeTraversal::DepthFirstForest(*this, parentString, visitor);
 }
