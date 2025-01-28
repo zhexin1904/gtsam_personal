@@ -42,11 +42,6 @@ static const DiscreteBayesTree bayesTree =
 }  // namespace asia
 
 /* ************************************************************************* */
-TEST(DiscreteBayesNet, AsiaFactorGraphKBest) {
-  DiscreteSearch search(asia::factorGraph, asia::ordering);
-}
-
-/* ************************************************************************* */
 TEST(DiscreteBayesNet, EmptyKBest) {
   DiscreteBayesNet net;  // no factors
   DiscreteSearch search(net);
@@ -54,29 +49,6 @@ TEST(DiscreteBayesNet, EmptyKBest) {
   // Expect one solution with empty assignment, error=0
   EXPECT_LONGS_EQUAL(1, solutions.size());
   EXPECT_DOUBLES_EQUAL(0, std::fabs(solutions[0].error), 1e-9);
-}
-
-/* ************************************************************************* */
-TEST(DiscreteBayesNet, AsiaKBest) {
-  const DiscreteSearch search(asia::bayesNet);
-
-  // Ask for the MPE
-  auto mpe = search.run();
-
-  EXPECT_LONGS_EQUAL(1, mpe.size());
-  // Regression test: check the MPE solution
-  EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(mpe[0].error), 1e-5);
-
-  // Check it is equal to MPE via inference
-  EXPECT(assert_equal(asia::mpe, mpe[0].assignment));
-
-  // Ask for top 4 solutions
-  auto solutions = search.run(4);
-
-  EXPECT_LONGS_EQUAL(4, solutions.size());
-  // Regression test: check the first and last solution
-  EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(solutions[0].error), 1e-5);
-  EXPECT_DOUBLES_EQUAL(2.201708, std::fabs(solutions[3].error), 1e-5);
 }
 
 /* ************************************************************************* */
@@ -92,26 +64,34 @@ TEST(DiscreteBayesTree, EmptyTree) {
 }
 
 /* ************************************************************************* */
-TEST(DiscreteBayesTree, AsiaTreeKBest) {
-  DiscreteSearch search(asia::bayesTree);
+TEST(DiscreteBayesNet, AsiaKBest) {
+  auto fromETree =
+      DiscreteSearch::FromFactorGraph(asia::factorGraph, asia::ordering);
+  auto fromJunctionTree =
+      DiscreteSearch::FromFactorGraph(asia::factorGraph, asia::ordering, true);
+  const DiscreteSearch fromBayesNet(asia::bayesNet);
+  const DiscreteSearch fromBayesTree(asia::bayesTree);
 
-  // Ask for MPE
-  auto mpe = search.run();
+  for (auto& search :
+       {fromETree, fromJunctionTree, fromBayesNet, fromBayesTree}) {
+    // Ask for the MPE
+    auto mpe = search.run();
 
-  EXPECT_LONGS_EQUAL(1, mpe.size());
-  // Regression test: check the MPE solution
-  EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(mpe[0].error), 1e-5);
+    EXPECT_LONGS_EQUAL(1, mpe.size());
+    // Regression test: check the MPE solution
+    EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(mpe[0].error), 1e-5);
 
-  // Check it is equal to MPE via inference
-  EXPECT(assert_equal(asia::mpe, mpe[0].assignment));
+    // Check it is equal to MPE via inference
+    EXPECT(assert_equal(asia::mpe, mpe[0].assignment));
 
-  // Ask for top 4 solutions
-  auto solutions = search.run(4);
+    // Ask for top 4 solutions
+    auto solutions = search.run(4);
 
-  EXPECT_LONGS_EQUAL(4, solutions.size());
-  // Regression test: check the first and last solution
-  EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(solutions[0].error), 1e-5);
-  EXPECT_DOUBLES_EQUAL(2.201708, std::fabs(solutions[3].error), 1e-5);
+    EXPECT_LONGS_EQUAL(4, solutions.size());
+    // Regression test: check the first and last solution
+    EXPECT_DOUBLES_EQUAL(1.236627, std::fabs(solutions[0].error), 1e-5);
+    EXPECT_DOUBLES_EQUAL(2.201708, std::fabs(solutions[3].error), 1e-5);
+  }
 }
 
 /* ************************************************************************* */
