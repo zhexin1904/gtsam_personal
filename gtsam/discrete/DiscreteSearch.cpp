@@ -159,7 +159,8 @@ DiscreteSearch::DiscreteSearch(const DiscreteEliminationTree& etree) {
                             : DiscreteFactorGraph(factors).product();
     const size_t cardinality = factor->cardinality(node->key);
     std::vector<std::pair<Key, size_t>> pairs{{node->key, cardinality}};
-    slots_.emplace_back(factor, DiscreteValues::CartesianProduct(pairs), 0.0);
+    const Slot slot(factor, DiscreteValues::CartesianProduct(pairs), 0.0);
+    slots_.emplace_back(std::move(slot));
     return data + 1;
   };
 
@@ -180,7 +181,8 @@ DiscreteSearch::DiscreteSearch(const DiscreteJunctionTree& junctionTree) {
     for (Key key : cluster->orderedFrontalKeys) {
       pairs.emplace_back(key, factor->cardinality(key));
     }
-    slots_.emplace_back(factor, DiscreteValues::CartesianProduct(pairs), 0.0);
+    const Slot slot(factor, DiscreteValues::CartesianProduct(pairs), 0.0);
+    slots_.emplace_back(std::move(slot));
     return data + 1;
   };
 
@@ -205,7 +207,8 @@ DiscreteSearch DiscreteSearch::FromFactorGraph(
 DiscreteSearch::DiscreteSearch(const DiscreteBayesNet& bayesNet) {
   slots_.reserve(bayesNet.size());
   for (auto& conditional : bayesNet) {
-    slots_.emplace_back(conditional, conditional->frontalAssignments(), 0.0);
+    const Slot slot(conditional, conditional->frontalAssignments(), 0.0);
+    slots_.emplace_back(std::move(slot));
   }
   lowerBound_ = computeHeuristic();
 }
@@ -216,8 +219,8 @@ DiscreteSearch::DiscreteSearch(const DiscreteBayesTree& bayesTree) {
         if (!clique) return;
         for (const auto& child : clique->children) collectConditionals(child);
         auto conditional = clique->conditional();
-        slots_.emplace_back(conditional, conditional->frontalAssignments(),
-                            0.0);
+        const Slot slot(conditional, conditional->frontalAssignments(), 0.0);
+        slots_.emplace_back(std::move(slot));
       };
 
   slots_.reserve(bayesTree.size());
@@ -300,11 +303,10 @@ std::vector<Solution> DiscreteSearch::run(size_t K) const {
 // lower bound of the cost for *all* slots.
 double DiscreteSearch::computeHeuristic() {
   double error = 0.0;
-  for (size_t i = 0; i < slots_.size(); ++i) {
-    slots_[i].heuristic = error;
-    const auto& factor = slots_[i].factor;
-    Ordering ordering(factor->begin(), factor->end());
-    auto maxx = factor->max(ordering);
+  for (auto& slot : slots_) {
+    slot.heuristic = error;
+    Ordering ordering(slot.factor->begin(), slot.factor->end());
+    auto maxx = slot.factor->max(ordering);
     error -= std::log(maxx->evaluate({}));
   }
   return error;
