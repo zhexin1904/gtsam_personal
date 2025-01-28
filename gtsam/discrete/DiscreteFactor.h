@@ -159,6 +159,14 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
   virtual DiscreteFactor::shared_ptr max(const Ordering& keys) const = 0;
 
   /**
+   * @brief Scale the factor values by the maximum
+   * to prevent underflow/overflow.
+   * 
+   * @return DiscreteFactor::shared_ptr 
+   */
+  DiscreteFactor::shared_ptr scale() const;
+
+  /**
    * Get the number of non-zero values contained in this factor.
    * It could be much smaller than `prod_{key}(cardinality(key))`.
    */
