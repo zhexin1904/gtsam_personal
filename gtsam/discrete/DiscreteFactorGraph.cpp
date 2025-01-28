@@ -125,11 +125,8 @@ namespace gtsam {
     DiscreteFactor::shared_ptr product = this->product();
     gttoc(product);
 
-    // Max over all the potentials by pretending all keys are frontal:
-    auto denominator = product->max(product->size());
-
     // Normalize the product factor to prevent underflow.
-    product = product->operator/(denominator);
+    product = product->scale();
 
     return product;
   }
@@ -222,6 +219,8 @@ namespace gtsam {
     // sum out frontals, this is the factor on the separator
     gttic(sum);
     DiscreteFactor::shared_ptr sum = product->sum(frontalKeys);
+    // Normalize/scale to prevent underflow.
+    sum = sum->scale();
     gttoc(sum);
 
     // Ordering keys for the conditional so that frontalKeys are really in front
