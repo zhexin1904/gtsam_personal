@@ -51,7 +51,8 @@ struct PrintForestVisitorPre {
 void DiscreteJunctionTree::print(const std::string& s,
                                  const KeyFormatter& keyFormatter) const {
   PrintForestVisitorPre visitor(keyFormatter);
-  treeTraversal::DepthFirstForest(*this, std::string(s), visitor);
+  std::string parentString = s;
+  treeTraversal::DepthFirstForest(*this, parentString, visitor);
 }
 
 }  // namespace gtsam
