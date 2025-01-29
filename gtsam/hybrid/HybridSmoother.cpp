@@ -74,14 +74,26 @@ void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
     ordering = *given_ordering;
   }
 
+#if GTSAM_HYBRID_TIMING
+  gttic_(HybridSmootherEliminate);
+#endif
   // Eliminate.
   HybridBayesNet bayesNetFragment = *updatedGraph.eliminateSequential(ordering);
+#if GTSAM_HYBRID_TIMING
+  gttoc_(HybridSmootherEliminate);
+#endif
 
   /// Prune
   if (maxNrLeaves) {
+#if GTSAM_HYBRID_TIMING
+    gttic_(HybridSmootherPrune);
+#endif
     // `pruneBayesNet` sets the leaves with 0 in discreteFactor to nullptr in
     // all the conditionals with the same keys in bayesNetFragment.
     bayesNetFragment = bayesNetFragment.prune(*maxNrLeaves, deadModeThreshold_);
+#if GTSAM_HYBRID_TIMING
+    gttoc_(HybridSmootherPrune);
+#endif
   }
 
   // Add the partial bayes net to the posterior bayes net.
