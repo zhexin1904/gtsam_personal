@@ -44,7 +44,7 @@ using symbol_shorthand::M;
 using symbol_shorthand::X;
 
 // Testing params
-const size_t max_loop_count = 3000;  // 2000;  // 200 //2000 //8000
+const size_t max_loop_count = 2000;  // 2000;  // 200 //2000 //8000
 
 noiseModel::Diagonal::shared_ptr prior_noise_model =
     noiseModel::Diagonal::Sigmas(
@@ -122,8 +122,8 @@ void SmootherUpdate(HybridSmoother& smoother, HybridNonlinearFactorGraph& graph,
   // std::cout << "index: " << index << std::endl;
   smoother.update(linearized, maxNrHypotheses);
   graph.resize(0);
-  HybridValues delta = smoother.hybridBayesNet().optimize();
-  result->insert_or_assign(initial.retract(delta.continuous()));
+  // HybridValues delta = smoother.hybridBayesNet().optimize();
+  // result->insert_or_assign(initial.retract(delta.continuous()));
 }
 
 /* ************************************************************************* */
