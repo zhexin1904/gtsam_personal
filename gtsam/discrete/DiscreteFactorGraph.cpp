@@ -224,16 +224,6 @@ namespace gtsam {
     DiscreteFactor::shared_ptr sum = product->sum(frontalKeys);
     gttoc(sum);
 
-    // Normalize/scale to prevent underflow.
-    // We divide both `product` and `sum` by `max(sum)`
-    // since it is faster to compute and when the conditional
-    // is formed by `product/sum`, the scaling term cancels out.
-    gttic(scale);
-    DiscreteFactor::shared_ptr denominator = sum->max(sum->size());
-    product = product->operator/(denominator);
-    sum = sum->operator/(denominator);
-    gttoc(scale);
-
     // Ordering keys for the conditional so that frontalKeys are really in front
     Ordering orderedKeys;
     orderedKeys.insert(orderedKeys.end(), frontalKeys.begin(),
