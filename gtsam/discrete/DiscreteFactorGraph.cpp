@@ -214,7 +214,10 @@ namespace gtsam {
   std::pair<DiscreteConditional::shared_ptr, DiscreteFactor::shared_ptr>  //
   EliminateDiscrete(const DiscreteFactorGraph& factors,
                     const Ordering& frontalKeys) {
-    DiscreteFactor::shared_ptr product = factors.scaledProduct();
+    gttic(product);
+    // `product` is scaled later to prevent underflow.
+    DiscreteFactor::shared_ptr product = factors.product();
+    gttoc(product);
 
     // sum out frontals, this is the factor on the separator
     gttic(sum);
@@ -222,6 +225,16 @@ namespace gtsam {
     // Normalize/scale to prevent underflow.
     sum = sum->scale();
     gttoc(sum);
+
+    // Normalize/scale to prevent underflow.
+    // We divide both `product` and `sum` by `max(sum)`
+    // since it is faster to compute and when the conditional
+    // is formed by `product/sum`, the scaling term cancels out.
+    gttic(scale);
+    DiscreteFactor::shared_ptr denominator = sum->max(sum->size());
+    product = product->operator/(denominator);
+    sum = sum->operator/(denominator);
+    gttoc(scale);
 
     // Ordering keys for the conditional so that frontalKeys are really in front
     Ordering orderedKeys;

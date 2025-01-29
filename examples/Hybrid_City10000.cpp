@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
   clock_t after_update = clock();
   smoother_update_times.push_back({index, after_update - before_update});
 
-  size_t key_s, key_t;
+  size_t key_s, key_t{0};
 
   clock_t start_time = clock();
   std::string str;
