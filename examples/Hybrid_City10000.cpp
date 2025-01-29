@@ -93,7 +93,7 @@ HybridNonlinearFactor HybridLoopClosureFactor(size_t loop_counter, size_t key_s,
 
   auto f0 = std::make_shared<BetweenFactor<Pose2>>(
       X(key_s), X(key_t), measurement,
-      noiseModel::Diagonal::Sigmas(Vector3::Ones() * 100));
+      noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10));
   auto f1 = std::make_shared<BetweenFactor<Pose2>>(
       X(key_s), X(key_t), measurement, pose_noise_model);
   std::vector<NonlinearFactorValuePair> factors{{f0, 0.0}, {f1, 0.0}};
@@ -269,11 +269,11 @@ int main(int argc, char* argv[]) {
   /// Write result to file
   write_result(result, (key_t + 1), "Hybrid_City10000.txt");
 
-  //TODO Write to file
-  // for (size_t i = 0; i < smoother_update_times.size(); i++) {
-  //   auto p = smoother_update_times.at(i);
-  //   std::cout << p.first << ", " << p.second / CLOCKS_PER_SEC << std::endl;
-  // }
+  // TODO Write to file
+  //  for (size_t i = 0; i < smoother_update_times.size(); i++) {
+  //    auto p = smoother_update_times.at(i);
+  //    std::cout << p.first << ", " << p.second / CLOCKS_PER_SEC << std::endl;
+  //  }
   ofstream outfile_time;
   std::string time_file_name = "Hybrid_City10000_time.txt";
   outfile_time.open(time_file_name);
