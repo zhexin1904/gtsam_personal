@@ -215,6 +215,7 @@ namespace gtsam {
   EliminateDiscrete(const DiscreteFactorGraph& factors,
                     const Ordering& frontalKeys) {
     gttic(product);
+    // `product` is scaled later to prevent underflow.
     DiscreteFactor::shared_ptr product = factors.product();
     gttoc(product);
 
@@ -222,8 +223,11 @@ namespace gtsam {
     gttic(sum);
     DiscreteFactor::shared_ptr sum = product->sum(frontalKeys);
     gttoc(sum);
-    
+
     // Normalize/scale to prevent underflow.
+    // We divide both `product` and `sum` by `max(sum)`
+    // since it is faster to compute and when the conditional
+    // is formed by `product/sum`, the scaling term cancels out.
     gttic(scale);
     DiscreteFactor::shared_ptr denominator = sum->max(sum->size());
     product = product->operator/(denominator);
