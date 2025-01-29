@@ -116,7 +116,7 @@ HybridSmoother::addConditionals(const HybridGaussianFactorGraph &originalGraph,
     // in the previous `hybridBayesNet` to the graph
 
     // New conditionals to add to the graph
-    gtsam::HybridBayesNet newConditionals;
+    HybridBayesNet newConditionals;
 
     // NOTE(Varun) Using a for-range loop doesn't work since some of the
     // conditionals are invalid pointers
