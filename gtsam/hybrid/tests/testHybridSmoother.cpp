@@ -39,6 +39,7 @@
 using namespace std;
 using namespace gtsam;
 
+using symbol_shorthand::L;
 using symbol_shorthand::X;
 using symbol_shorthand::Z;
 
@@ -68,6 +69,56 @@ Switching InitializeEstimationProblem(
 }
 
 }  // namespace estimation_fixture
+
+/****************************************************************************/
+// Test HybridSmoother::addConditionals
+TEST(HybridSmoother, AddConditionals) {
+  using namespace estimation_fixture;
+
+  size_t K = 7;
+
+  // Switching example of robot moving in 1D
+  // with given measurements and equal mode priors.
+  HybridNonlinearFactorGraph graph;
+  Values initial;
+  Switching switching = InitializeEstimationProblem(
+      K, 1.0, 0.1, measurements, "1/1 1/1", &graph, &initial);
+
+  HybridSmoother smoother(0.5);
+  constexpr size_t maxNrLeaves = 5;
+
+  // Loop over timesteps from 1...K-1
+  for (size_t k = 1; k < K; k++) {
+    if (k > 1) graph.push_back(switching.modeChain.at(k - 1));  // Mode chain
+    graph.push_back(switching.binaryFactors.at(k - 1));         // Motion Model
+    graph.push_back(switching.unaryFactors.at(k));              // Measurement
+
+    // Add a loop closure factor every 3rd step between `k-3` and `k`.
+    if (k % 3 == 0) {
+      size_t l = int(k / 3);
+      auto open = std::make_shared<MotionModel>(
+               X(k - 3), X(k), 0.0, noiseModel::Isotropic::Sigma(1, 10.0)),
+           close = std::make_shared<MotionModel>(
+               X(k - 3), X(k), 0.0, noiseModel::Isotropic::Sigma(1, 0.1));
+
+      HybridNonlinearFactor loopFactor(
+          DiscreteKey(L(l), 2),
+          std::vector<NoiseModelFactor::shared_ptr>{open, close});
+      graph.push_back(loopFactor);
+    }
+
+    initial.insert(X(k), switching.linearizationPoint.at<double>(X(k)));
+
+    HybridGaussianFactorGraph linearized = *graph.linearize(initial);
+
+    smoother.update(linearized, maxNrLeaves);
+
+    // Clear all the factors from the graph
+    graph.resize(0);
+  }
+
+  //TODO(Varun) recreate scenario which would fail before commit b627fc422.
+}
 
 /****************************************************************************/
 // Test approximate inference with an additional pruning step.
