@@ -222,8 +222,6 @@ namespace gtsam {
     // sum out frontals, this is the factor on the separator
     gttic(sum);
     DiscreteFactor::shared_ptr sum = product->sum(frontalKeys);
-    // Normalize/scale to prevent underflow.
-    sum = sum->scale();
     gttoc(sum);
 
     // Normalize/scale to prevent underflow.
