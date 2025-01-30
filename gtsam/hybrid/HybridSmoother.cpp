@@ -90,7 +90,7 @@ void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
 #endif
     // `pruneBayesNet` sets the leaves with 0 in discreteFactor to nullptr in
     // all the conditionals with the same keys in bayesNetFragment.
-    bayesNetFragment = bayesNetFragment.prune(*maxNrLeaves, deadModeThreshold_);
+    bayesNetFragment = bayesNetFragment.prune(*maxNrLeaves, marginalThreshold_);
 #if GTSAM_HYBRID_TIMING
     gttoc_(HybridSmootherPrune);
 #endif
