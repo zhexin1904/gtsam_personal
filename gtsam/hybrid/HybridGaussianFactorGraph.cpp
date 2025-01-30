@@ -50,7 +50,7 @@
 #include <utility>
 #include <vector>
 
-#define GTSAM_HYBRID_WITH_TABLEFACTOR 0
+#define GTSAM_HYBRID_WITH_TABLEFACTOR 1
 
 namespace gtsam {
 
