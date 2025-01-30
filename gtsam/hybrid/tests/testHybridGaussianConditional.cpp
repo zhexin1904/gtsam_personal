@@ -316,57 +316,34 @@ auto choose(auto tree, const DiscreteValues &discreteValues) {
   return tree;
 }
 
-/**
- * Return a HybridConditional by choosing branches based on the given discrete
- * values. If all discrete parents are specified, return a HybridConditional
- * which is just a GaussianConditional.
+/* *************************************************************************
+ * This test verifies the behavior of the restrict method in different
+ * scenarios:
+ * - When no restrictions are applied.
+ * - When one parent is restricted.
+ * - When two parents are restricted.
+ * - When the restriction results in a Gaussian conditional.
  */
-HybridConditional::shared_ptr choose(
-    const HybridGaussianConditional::shared_ptr &self,
-    const DiscreteValues &discreteValues) {
-  auto parentValues = discreteValues.filter(self->discreteKeys());
-  auto unspecifiedParentKeys = discreteValues.missingKeys(self->discreteKeys());
+TEST(HybridGaussianConditional, Restrict) {
+  // Create a HybridConditional with two discrete parents P(z0|m0,m1)
+  const auto hc =
+      std::make_shared<HybridConditional>(two_mode_measurement::hgc);
 
-  // Case 1: Fully determined, return corresponding Gaussian conditional
-  if (parentValues.size() == self->discreteKeys().size()) {
-    return std::make_shared<HybridConditional>(self->choose(parentValues));
-  }
-
-  // Case 2: Some live parents remain, build a new tree
-  if (!unspecifiedParentKeys.empty()) {
-    auto newTree = self->factors();
-    for (const auto &[key, value] : parentValues) {
-      newTree = newTree.choose(key, value);
-    }
-    return std::make_shared<HybridConditional>(
-        std::make_shared<HybridGaussianConditional>(unspecifiedParentKeys,
-                                                    newTree));
-  }
-
-  // Case 3: No changes needed, return original
-  return std::make_shared<HybridConditional>(self);
-}
-
-/* ************************************************************************* */
-// Test the pruning and dead-mode removal.
-TEST(HybridGaussianConditional, PrunePlus) {
-  using two_mode_measurement::hgc;  // two discrete parents
-
-  const HybridConditional::shared_ptr same = choose(hgc, {});
+  const HybridConditional::shared_ptr same = hc->restrict({});
   EXPECT(same->isHybrid());
   EXPECT(same->asHybrid()->nrComponents() == 4);
 
-  const HybridConditional::shared_ptr oneParent = choose(hgc, {{M(1), 0}});
+  const HybridConditional::shared_ptr oneParent = hc->restrict({{M(1), 0}});
   EXPECT(oneParent->isHybrid());
   EXPECT(oneParent->asHybrid()->nrComponents() == 2);
 
   const HybridConditional::shared_ptr oneParent2 =
-      choose(hgc, {{M(7), 0}, {M(1), 0}});
+      hc->restrict({{M(7), 0}, {M(1), 0}});
   EXPECT(oneParent2->isHybrid());
   EXPECT(oneParent2->asHybrid()->nrComponents() == 2);
 
   const HybridConditional::shared_ptr gaussian =
-      choose(hgc, {{M(1), 0}, {M(2), 1}});
+      hc->restrict({{M(1), 0}, {M(2), 1}});
   EXPECT(gaussian->asGaussian());
 }
 
