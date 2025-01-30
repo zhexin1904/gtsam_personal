@@ -106,6 +106,18 @@ class GTSAM_EXPORT HybridSmoother {
 
   /// Return the Bayes Net posterior.
   const HybridBayesNet& hybridBayesNet() const;
+
+  /// Optimize the hybrid Bayes Net, taking into accound fixed values.
+  HybridValues optimize() const {
+    // Solve for the MPE
+    DiscreteValues mpe = hybridBayesNet_.mpe();
+
+    // Add fixed values to the MPE.
+    mpe.insert(fixedValues_);
+
+    // Given the MPE, compute the optimal continuous values.
+    return HybridValues(hybridBayesNet_.optimize(mpe), mpe);
+  }
 };
 
 }  // namespace gtsam

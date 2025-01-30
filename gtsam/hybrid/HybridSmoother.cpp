@@ -57,7 +57,8 @@ Ordering HybridSmoother::getOrdering(const HybridGaussianFactorGraph &factors,
 void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
                             std::optional<size_t> maxNrLeaves,
                             const std::optional<Ordering> given_ordering) {
-  std::cout << "hybridBayesNet_ size before: " << hybridBayesNet_.size() << std::endl;
+  std::cout << "hybridBayesNet_ size before: " << hybridBayesNet_.size()
+            << std::endl;
   std::cout << "newFactors size: " << graph.size() << std::endl;
   HybridGaussianFactorGraph updatedGraph;
   // Add the necessary conditionals from the previous timestep(s).
@@ -65,8 +66,10 @@ void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
       addConditionals(graph, hybridBayesNet_);
   // print size of graph, updatedGraph, hybridBayesNet_
   std::cout << "updatedGraph size: " << updatedGraph.size() << std::endl;
-  std::cout << "hybridBayesNet_ size after: " << hybridBayesNet_.size() << std::endl;
-  std::cout << "total size: " << updatedGraph.size() + hybridBayesNet_.size() << std::endl;
+  std::cout << "hybridBayesNet_ size after: " << hybridBayesNet_.size()
+            << std::endl;
+  std::cout << "total size: " << updatedGraph.size() + hybridBayesNet_.size()
+            << std::endl;
 
   Ordering ordering;
   // If no ordering provided, then we compute one
@@ -85,8 +88,9 @@ void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
   HybridBayesNet bayesNetFragment = *updatedGraph.eliminateSequential(ordering);
 
 #ifdef DEBUG_SMOOTHER
-  for (auto conditional: bayesNetFragment) {
-    auto e =std::dynamic_pointer_cast<HybridConditional::BaseConditional>(conditional);
+  for (auto conditional : bayesNetFragment) {
+    auto e = std::dynamic_pointer_cast<HybridConditional::BaseConditional>(
+        conditional);
     GTSAM_PRINT(*e);
   }
 #endif
@@ -101,7 +105,10 @@ void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
   if (maxNrLeaves) {
     // `pruneBayesNet` sets the leaves with 0 in discreteFactor to nullptr in
     // all the conditionals with the same keys in bayesNetFragment.
-    bayesNetFragment = bayesNetFragment.prune(*maxNrLeaves, marginalThreshold_);
+    DiscreteValues newlyFixedValues;
+    bayesNetFragment = bayesNetFragment.prune(*maxNrLeaves, marginalThreshold_,
+                                              &newlyFixedValues);
+    fixedValues_.insert(newlyFixedValues);
   }
 
   // Print discrete keys in the bayesNetFragment:
@@ -112,8 +119,9 @@ void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
   std::cout << std::endl << std::endl;
 
 #ifdef DEBUG_SMOOTHER
-  for (auto conditional: bayesNetFragment) {
-    auto c =std::dynamic_pointer_cast<HybridConditional::BaseConditional>(conditional);
+  for (auto conditional : bayesNetFragment) {
+    auto c = std::dynamic_pointer_cast<HybridConditional::BaseConditional>(
+        conditional);
     GTSAM_PRINT(*c);
   }
 #endif
