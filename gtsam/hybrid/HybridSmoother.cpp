@@ -57,19 +57,23 @@ Ordering HybridSmoother::getOrdering(const HybridGaussianFactorGraph &factors,
 void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
                             std::optional<size_t> maxNrLeaves,
                             const std::optional<Ordering> given_ordering) {
+#ifdef DEBUG_SMOOTHER
   std::cout << "hybridBayesNet_ size before: " << hybridBayesNet_.size()
             << std::endl;
   std::cout << "newFactors size: " << graph.size() << std::endl;
+#endif
   HybridGaussianFactorGraph updatedGraph;
   // Add the necessary conditionals from the previous timestep(s).
   std::tie(updatedGraph, hybridBayesNet_) =
       addConditionals(graph, hybridBayesNet_);
+#ifdef DEBUG_SMOOTHER
   // print size of graph, updatedGraph, hybridBayesNet_
   std::cout << "updatedGraph size: " << updatedGraph.size() << std::endl;
   std::cout << "hybridBayesNet_ size after: " << hybridBayesNet_.size()
             << std::endl;
   std::cout << "total size: " << updatedGraph.size() + hybridBayesNet_.size()
             << std::endl;
+#endif
 
   Ordering ordering;
   // If no ordering provided, then we compute one
@@ -87,7 +91,7 @@ void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
   // Eliminate.
   HybridBayesNet bayesNetFragment = *updatedGraph.eliminateSequential(ordering);
 
-#ifdef DEBUG_SMOOTHER
+#ifdef DEBUG_SMOOTHER_DETAIL
   for (auto conditional : bayesNetFragment) {
     auto e = std::dynamic_pointer_cast<HybridConditional::BaseConditional>(
         conditional);
@@ -95,11 +99,13 @@ void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
   }
 #endif
 
+#ifdef DEBUG_SMOOTHER
   // Print discrete keys in the bayesNetFragment:
   std::cout << "Discrete keys in bayesNetFragment: ";
   for (auto &key : HybridFactorGraph(bayesNetFragment).discreteKeySet()) {
     std::cout << DefaultKeyFormatter(key) << " ";
   }
+#endif
 
   /// Prune
   if (maxNrLeaves) {
@@ -111,14 +117,16 @@ void HybridSmoother::update(const HybridGaussianFactorGraph &graph,
     fixedValues_.insert(newlyFixedValues);
   }
 
+#ifdef DEBUG_SMOOTHER
   // Print discrete keys in the bayesNetFragment:
   std::cout << "\nAfter pruning: ";
   for (auto &key : HybridFactorGraph(bayesNetFragment).discreteKeySet()) {
     std::cout << DefaultKeyFormatter(key) << " ";
   }
   std::cout << std::endl << std::endl;
+#endif
 
-#ifdef DEBUG_SMOOTHER
+#ifdef DEBUG_SMOOTHER_DETAIL
   for (auto conditional : bayesNetFragment) {
     auto c = std::dynamic_pointer_cast<HybridConditional::BaseConditional>(
         conditional);
@@ -159,8 +167,6 @@ HybridSmoother::addConditionals(const HybridGaussianFactorGraph &originalGraph,
       auto conditional = hybridBayesNet.at(i);
 
       for (auto &key : conditional->frontals()) {
-        // GTSAM_PRINT(*std::dynamic_pointer_cast<HybridConditional::BaseConditional>(conditional));
-        // GTSAM_PRINT(*conditional);
         if (std::find(factorKeys.begin(), factorKeys.end(), key) !=
             factorKeys.end()) {
           // Add the conditional parents to factorKeys
@@ -173,7 +179,9 @@ HybridSmoother::addConditionals(const HybridGaussianFactorGraph &originalGraph,
         }
       }
     }
+#ifdef DEBUG_SMOOTHER
     PrintKeySet(factorKeys);
+#endif
 
     for (size_t i = 0; i < hybridBayesNet.size(); i++) {
       auto conditional = hybridBayesNet.at(i);
