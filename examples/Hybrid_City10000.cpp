@@ -44,6 +44,7 @@ using symbol_shorthand::M;
 using symbol_shorthand::X;
 
 const size_t kMaxLoopCount = 2000;  // Example default value
+const size_t kMaxNrHypotheses = 10;
 
 auto kOpenLoopModel = noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10);
 
@@ -122,9 +123,14 @@ class Experiment {
   /// @brief Perform smoother update and optimize the graph.
   void smootherUpdate(HybridSmoother& smoother,
                       HybridNonlinearFactorGraph& graph, const Values& initial,
-                      size_t maxNrHypotheses, Values* result) {
+                      size_t kMaxNrHypotheses, Values* result) {
     HybridGaussianFactorGraph linearized = *graph.linearize(initial);
-    smoother.update(linearized, maxNrHypotheses);
+    smoother.update(linearized, kMaxNrHypotheses);
+    // throw if x0 not in hybridBayesNet_:
+    const KeySet& keys = smoother.hybridBayesNet().keys();
+    if (keys.find(X(0)) == keys.end()) {
+      throw std::runtime_error("x0 not in hybridBayesNet_");
+    }
     graph.resize(0);
     // HybridValues delta = smoother.hybridBayesNet().optimize();
     // result->insert_or_assign(initial.retract(delta.continuous()));
@@ -147,12 +153,8 @@ class Experiment {
     // Initialize local variables
     size_t discreteCount = 0, index = 0;
     size_t loopCount = 0;
-    size_t nrHybridFactors = 0;  // for demonstration; never incremented below
 
     std::list<double> timeList;
-
-    // We'll reuse the smoother_, graph_, initial_, result_ from the class
-    size_t maxNrHypotheses = 3;
 
     // Set up initial prior
     double x = 0.0;
@@ -165,7 +167,7 @@ class Experiment {
 
     // Initial update
     clock_t beforeUpdate = clock();
-    smootherUpdate(smoother_, graph_, initial_, maxNrHypotheses, &result_);
+    smootherUpdate(smoother_, graph_, initial_, kMaxNrHypotheses, &result_);
     clock_t afterUpdate = clock();
     std::vector<std::pair<size_t, double>> smootherUpdateTimes;
     smootherUpdateTimes.push_back({index, afterUpdate - beforeUpdate});
@@ -226,7 +228,7 @@ class Experiment {
       if (doSmootherUpdate) {
         gttic_(SmootherUpdate);
         beforeUpdate = clock();
-        smootherUpdate(smoother_, graph_, initial_, maxNrHypotheses, &result_);
+        smootherUpdate(smoother_, graph_, initial_, kMaxNrHypotheses, &result_);
         afterUpdate = clock();
         smootherUpdateTimes.push_back({index, afterUpdate - beforeUpdate});
         gttoc_(SmootherUpdate);
@@ -256,14 +258,15 @@ class Experiment {
 
     // Final update
     beforeUpdate = clock();
-    smootherUpdate(smoother_, graph_, initial_, maxNrHypotheses, &result_);
+    smootherUpdate(smoother_, graph_, initial_, kMaxNrHypotheses, &result_);
     afterUpdate = clock();
     smootherUpdateTimes.push_back({index, afterUpdate - beforeUpdate});
 
     // Final optimize
     gttic_(HybridSmootherOptimize);
-    HybridValues delta = smoother_.hybridBayesNet().optimize();
+    HybridValues delta = smoother_.optimize();
     gttoc_(HybridSmootherOptimize);
+
     result_.insert_or_assign(initial_.retract(delta.continuous()));
 
     std::cout << "Final error: " << smoother_.hybridBayesNet().error(delta)
@@ -293,9 +296,6 @@ class Experiment {
     }
     outfileTime.close();
     std::cout << "Output " << timeFileName << " file." << std::endl;
-
-    // Just to show usage of nrHybridFactors
-    std::cout << nrHybridFactors << std::endl;
   }
 };
 
