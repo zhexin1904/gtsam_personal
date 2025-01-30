@@ -150,12 +150,21 @@ int main(int argc, char* argv[]) {
 
     if (key_s == key_t - 1) {  // new X(key)
       init_values.insert(X(key_t), results.at<Pose2>(X(key_s)) * odom_pose);
+      graph->add(BetweenFactor<Pose2>(X(key_s), X(key_t), odom_pose,
+                                      pose_noise_model));
       pose_count++;
     } else {  // loop
+      int id = index % num_measurements;
+      if (is_with_ambiguity && id % 2 == 0) {
+        graph->add(BetweenFactor<Pose2>(X(key_s), X(key_t), odom_pose,
+                                        pose_noise_model));
+      } else {
+        graph->add(BetweenFactor<Pose2>(
+            X(key_s), X(key_t), odom_pose,
+            noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10.0)));
+      }
       index++;
     }
-    graph->add(
-        BetweenFactor<Pose2>(X(key_s), X(key_t), odom_pose, pose_noise_model));
 
     isam2->update(*graph, init_values);
     graph->resize(0);
