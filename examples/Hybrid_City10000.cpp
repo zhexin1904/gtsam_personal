@@ -45,6 +45,8 @@ using symbol_shorthand::X;
 
 const size_t kMaxLoopCount = 2000;  // Example default value
 
+auto kOpenLoopModel = noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10);
+
 auto kPriorNoiseModel = noiseModel::Diagonal::Sigmas(
     (Vector(3) << 0.0001, 0.0001, 0.0001).finished());
 
@@ -91,12 +93,13 @@ class Experiment {
     DiscreteKey l(L(loopCounter), 2);
 
     auto f0 = std::make_shared<BetweenFactor<Pose2>>(
-        X(keyS), X(keyT), measurement,
-        noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10));
+        X(keyS), X(keyT), measurement, kOpenLoopModel);
     auto f1 = std::make_shared<BetweenFactor<Pose2>>(
         X(keyS), X(keyT), measurement, kPoseNoiseModel);
 
-    std::vector<NonlinearFactorValuePair> factors{{f0, 0.0}, {f1, 0.0}};
+    std::vector<NonlinearFactorValuePair> factors{
+        {f0, kOpenLoopModel->negLogConstant()},
+        {f1, kPoseNoiseModel->negLogConstant()}};
     HybridNonlinearFactor mixtureFactor(l, factors);
     return mixtureFactor;
   }
