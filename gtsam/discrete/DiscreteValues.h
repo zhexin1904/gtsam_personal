@@ -102,6 +102,14 @@ class GTSAM_EXPORT DiscreteValues : public Assignment<Key> {
   DiscreteValues& update(const DiscreteValues& values);
 
   /**
+   * @brief Check if the DiscreteValues contains the given key.
+   *
+   * @param key The key to check for.
+   * @return True if the key is present, false otherwise.
+   */
+  bool contains(Key key) const { return this->find(key) != this->end(); }
+
+  /**
    * @brief Filter values by keys.
    *
    * @param keys The keys to filter by.
