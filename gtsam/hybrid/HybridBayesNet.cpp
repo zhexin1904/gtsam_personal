@@ -43,7 +43,8 @@ bool HybridBayesNet::equals(const This &bn, double tol) const {
 
 /* ************************************************************************* */
 HybridBayesNet HybridBayesNet::prune(
-    size_t maxNrLeaves, const std::optional<double> &deadModeThreshold) const {
+    size_t maxNrLeaves, const std::optional<double> &marginalThreshold,
+    DiscreteValues *fixedValues) const {
 #if GTSAM_HYBRID_TIMING
   gttic_(HybridPruning);
 #endif
@@ -52,14 +53,14 @@ HybridBayesNet HybridBayesNet::prune(
 
   // Prune discrete Bayes net
   DiscreteValues fixed;
-  auto prunedBN = marginal.prune(maxNrLeaves, deadModeThreshold, &fixed);
+  auto prunedBN = marginal.prune(maxNrLeaves, marginalThreshold, &fixed);
 
   // Multiply into one big conditional. NOTE: possibly quite expensive.
   DiscreteConditional pruned;
   for (auto &&conditional : prunedBN) pruned = pruned * (*conditional);
 
   // Set the fixed values if requested.
-  if (deadModeThreshold && fixedValues) {
+  if (marginalThreshold && fixedValues) {
     *fixedValues = fixed;
   }
 
@@ -71,7 +72,7 @@ HybridBayesNet HybridBayesNet::prune(
     if (conditional->isDiscrete()) continue;
 
     // No-op if not a HybridGaussianConditional.
-    if (deadModeThreshold) conditional = conditional->restrict(fixed);
+    if (marginalThreshold) conditional = conditional->restrict(fixed);
 
     // Now decide on type what to do:
     if (auto hgc = conditional->asHybrid()) {

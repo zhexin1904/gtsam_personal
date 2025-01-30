@@ -75,7 +75,7 @@ DiscreteValues DiscreteBayesNet::sample(DiscreteValues result) const {
 // been pruned before. Another, possibly faster approach is branch and bound
 // search to find the K-best leaves and then create a single pruned conditional.
 DiscreteBayesNet DiscreteBayesNet::prune(
-    size_t maxNrLeaves, const std::optional<double>& deadModeThreshold,
+    size_t maxNrLeaves, const std::optional<double>& marginalThreshold,
     DiscreteValues* fixedValues) const {
   // Multiply into one big conditional. NOTE: possibly quite expensive.
   DiscreteConditional joint;
@@ -89,13 +89,13 @@ DiscreteBayesNet DiscreteBayesNet::prune(
   DiscreteValues deadModesValues;
   // If we have a dead mode threshold and discrete variables left after pruning,
   // then we run dead mode removal.
-  if (deadModeThreshold.has_value() && pruned.keys().size() > 0) {
+  if (marginalThreshold.has_value() && pruned.keys().size() > 0) {
     DiscreteMarginals marginals(DiscreteFactorGraph{pruned});
     for (auto dkey : pruned.discreteKeys()) {
       const Vector probabilities = marginals.marginalProbabilities(dkey);
 
       int index = -1;
-      auto threshold = (probabilities.array() > *deadModeThreshold);
+      auto threshold = (probabilities.array() > *marginalThreshold);
       // If atleast 1 value is non-zero, then we can find the index
       // Else if all are zero, index would be set to 0 which is incorrect
       if (!threshold.isZero()) {

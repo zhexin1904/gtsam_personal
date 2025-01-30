@@ -128,12 +128,12 @@ class GTSAM_EXPORT DiscreteBayesNet: public BayesNet<DiscreteConditional> {
      * @brief Prune the Bayes net
      *
      * @param maxNrLeaves The maximum number of leaves to keep.
-     * @param deadModeThreshold If given, threshold on marginals to prune variables.
+     * @param marginalThreshold If given, threshold on marginals to prune variables.
      * @param fixedValues If given, return the fixed values removed.
      * @return A new DiscreteBayesNet with pruned conditionals.
      */
     DiscreteBayesNet prune(size_t maxNrLeaves,
-                           const std::optional<double>& deadModeThreshold = {},
+                           const std::optional<double>& marginalThreshold = {},
                            DiscreteValues* fixedValues = nullptr) const;
 
     ///@}
