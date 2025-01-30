@@ -91,12 +91,14 @@ HybridNonlinearFactor HybridLoopClosureFactor(size_t loop_counter, size_t key_s,
                                               const Pose2& measurement) {
   DiscreteKey l(L(loop_counter), 2);
 
+  auto open_loop_model = noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10);
   auto f0 = std::make_shared<BetweenFactor<Pose2>>(
-      X(key_s), X(key_t), measurement,
-      noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10));
+      X(key_s), X(key_t), measurement, open_loop_model);
   auto f1 = std::make_shared<BetweenFactor<Pose2>>(
       X(key_s), X(key_t), measurement, pose_noise_model);
-  std::vector<NonlinearFactorValuePair> factors{{f0, 0.0}, {f1, 0.0}};
+  std::vector<NonlinearFactorValuePair> factors{
+      {f0, open_loop_model->negLogConstant()},
+      {f1, pose_noise_model->negLogConstant()}};
   HybridNonlinearFactor mixtureFactor(l, {f0, f1});
   return mixtureFactor;
 }
