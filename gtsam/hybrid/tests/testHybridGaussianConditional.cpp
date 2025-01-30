@@ -21,6 +21,7 @@
 #include <gtsam/discrete/DecisionTree.h>
 #include <gtsam/discrete/DiscreteKey.h>
 #include <gtsam/discrete/DiscreteValues.h>
+#include <gtsam/hybrid/HybridConditional.h>
 #include <gtsam/hybrid/HybridGaussianConditional.h>
 #include <gtsam/hybrid/HybridGaussianFactor.h>
 #include <gtsam/hybrid/HybridValues.h>
@@ -302,18 +303,6 @@ TEST(HybridGaussianConditional, Prune) {
     // Check that the minimum negLogConstant is correct
     EXPECT_DOUBLES_EQUAL(hgc->negLogConstant(), pruned->negLogConstant(), 1e-9);
   }
-}
-
-/* ************************************************************************* */
-
-#include <gtsam/hybrid/HybridConditional.h>
-
-// Helper function to apply discrete values to the tree
-auto choose(auto tree, const DiscreteValues &discreteValues) {
-  for (const auto &[key, value] : discreteValues) {
-    tree = tree.choose(key, value);
-  }
-  return tree;
 }
 
 /* *************************************************************************
