@@ -119,7 +119,6 @@ void SmootherUpdate(HybridSmoother& smoother, HybridNonlinearFactorGraph& graph,
                     const Values& initial, size_t maxNrHypotheses,
                     Values* result) {
   HybridGaussianFactorGraph linearized = *graph.linearize(initial);
-  // std::cout << "index: " << index << std::endl;
   smoother.update(linearized, maxNrHypotheses);
   graph.resize(0);
   // HybridValues delta = smoother.hybridBayesNet().optimize();
