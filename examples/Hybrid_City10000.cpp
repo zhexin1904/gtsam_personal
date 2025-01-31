@@ -31,11 +31,12 @@
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <cstdlib>
 #include <fstream>
+#include <iostream>
 #include <string>
 #include <vector>
 
-using namespace std;
 using namespace gtsam;
 using namespace boost::algorithm;
 
@@ -43,25 +44,30 @@ using symbol_shorthand::L;
 using symbol_shorthand::M;
 using symbol_shorthand::X;
 
-const size_t kMaxLoopCount = 3000;  // Example default value
-
-// 3000: {1: 62s, 2: 21s, 3: 20s, 4: 31s, 5: 39s} No DT optimizations
-// 3000: {1: 65s, 2: 20s, 3: 16s, 4: 21s, 5: 28s} With DT optimizations
-// 3000: {1: 59s, 2: 19s, 3: 18s, 4: 26s, 5: 33s} With DT optimizations + merge
-const size_t kUpdateFrequency = 3;
-
-const size_t kMaxNrHypotheses = 10;
-
 auto kOpenLoopModel = noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10);
+const double kOpenLoopConstant = kOpenLoopModel->negLogConstant();
 
 auto kPriorNoiseModel = noiseModel::Diagonal::Sigmas(
     (Vector(3) << 0.0001, 0.0001, 0.0001).finished());
 
 auto kPoseNoiseModel = noiseModel::Diagonal::Sigmas(
     (Vector(3) << 1.0 / 30.0, 1.0 / 30.0, 1.0 / 100.0).finished());
+const double kPoseNoiseConstant = kPoseNoiseModel->negLogConstant();
 
 // Experiment Class
 class Experiment {
+ public:
+  // Parameters with default values
+  size_t maxLoopCount = 3000;
+
+  // 3000: {1: 62s, 2: 21s, 3: 20s, 4: 31s, 5: 39s} No DT optimizations
+  // 3000: {1: 65s, 2: 20s, 3: 16s, 4: 21s, 5: 28s} With DT optimizations
+  // 3000: {1: 59s, 2: 19s, 3: 18s, 4: 26s, 5: 33s} With DT optimizations +
+  // merge
+  size_t updateFrequency = 3;
+
+  size_t maxNrHypotheses = 10;
+
  private:
   std::string filename_;
   HybridSmoother smoother_;
@@ -78,7 +84,7 @@ class Experiment {
    */
   void writeResult(const Values& result, size_t numPoses,
                    const std::string& filename = "Hybrid_city10000.txt") {
-    ofstream outfile;
+    std::ofstream outfile;
     outfile.open(filename);
 
     for (size_t i = 0; i < numPoses; ++i) {
@@ -104,9 +110,8 @@ class Experiment {
     auto f1 = std::make_shared<BetweenFactor<Pose2>>(
         X(keyS), X(keyT), measurement, kPoseNoiseModel);
 
-    std::vector<NonlinearFactorValuePair> factors{
-        {f0, kOpenLoopModel->negLogConstant()},
-        {f1, kPoseNoiseModel->negLogConstant()}};
+    std::vector<NonlinearFactorValuePair> factors{{f0, kOpenLoopConstant},
+                                                  {f1, kPoseNoiseConstant}};
     HybridNonlinearFactor mixtureFactor(l, factors);
     return mixtureFactor;
   }
@@ -114,14 +119,14 @@ class Experiment {
   /// @brief Create hybrid odometry factor with discrete measurement choices.
   HybridNonlinearFactor hybridOdometryFactor(
       size_t numMeasurements, size_t keyS, size_t keyT, const DiscreteKey& m,
-      const std::vector<Pose2>& poseArray,
-      const SharedNoiseModel& poseNoiseModel) {
+      const std::vector<Pose2>& poseArray) {
     auto f0 = std::make_shared<BetweenFactor<Pose2>>(
-        X(keyS), X(keyT), poseArray[0], poseNoiseModel);
+        X(keyS), X(keyT), poseArray[0], kPoseNoiseModel);
     auto f1 = std::make_shared<BetweenFactor<Pose2>>(
-        X(keyS), X(keyT), poseArray[1], poseNoiseModel);
+        X(keyS), X(keyT), poseArray[1], kPoseNoiseModel);
 
-    std::vector<NonlinearFactorValuePair> factors{{f0, 0.0}, {f1, 0.0}};
+    std::vector<NonlinearFactorValuePair> factors{{f0, kPoseNoiseConstant},
+                                                  {f1, kPoseNoiseConstant}};
     HybridNonlinearFactor mixtureFactor(m, factors);
     return mixtureFactor;
   }
@@ -129,9 +134,9 @@ class Experiment {
   /// @brief Perform smoother update and optimize the graph.
   void smootherUpdate(HybridSmoother& smoother,
                       HybridNonlinearFactorGraph& graph, const Values& initial,
-                      size_t kMaxNrHypotheses, Values* result) {
+                      size_t maxNrHypotheses, Values* result) {
     HybridGaussianFactorGraph linearized = *graph.linearize(initial);
-    smoother.update(linearized, kMaxNrHypotheses);
+    smoother.update(linearized, maxNrHypotheses);
     // throw if x0 not in hybridBayesNet_:
     const KeySet& keys = smoother.hybridBayesNet().keys();
     if (keys.find(X(0)) == keys.end()) {
@@ -148,11 +153,11 @@ class Experiment {
       : filename_(filename), smoother_(0.99) {}
 
   /// @brief Run the main experiment with a given maxLoopCount.
-  void run(size_t maxLoopCount) {
+  void run() {
     // Prepare reading
-    ifstream in(filename_);
+    std::ifstream in(filename_);
     if (!in.is_open()) {
-      cerr << "Failed to open file: " << filename_ << endl;
+      std::cerr << "Failed to open file: " << filename_ << std::endl;
       return;
     }
 
@@ -173,7 +178,7 @@ class Experiment {
 
     // Initial update
     clock_t beforeUpdate = clock();
-    smootherUpdate(smoother_, graph_, initial_, kMaxNrHypotheses, &result_);
+    smootherUpdate(smoother_, graph_, initial_, maxNrHypotheses, &result_);
     clock_t afterUpdate = clock();
     std::vector<std::pair<size_t, double>> smootherUpdateTimes;
     smootherUpdateTimes.push_back({index, afterUpdate - beforeUpdate});
@@ -208,8 +213,8 @@ class Experiment {
         if (numMeasurements > 1) {
           // Add hybrid factor
           DiscreteKey m(M(discreteCount), numMeasurements);
-          HybridNonlinearFactor mixtureFactor = hybridOdometryFactor(
-              numMeasurements, keyS, keyT, m, poseArray, kPoseNoiseModel);
+          HybridNonlinearFactor mixtureFactor =
+              hybridOdometryFactor(numMeasurements, keyS, keyT, m, poseArray);
           graph_.push_back(mixtureFactor);
           discreteCount++;
           numberOfHybridFactors += 1;
@@ -231,12 +236,12 @@ class Experiment {
         loopCount++;
       }
 
-      if (numberOfHybridFactors>=kUpdateFrequency) {
+      if (numberOfHybridFactors >= updateFrequency) {
         // print the keys involved in the smoother update
         std::cout << "Smoother update: " << graph_.size() << std::endl;
         gttic_(SmootherUpdate);
         beforeUpdate = clock();
-        smootherUpdate(smoother_, graph_, initial_, kMaxNrHypotheses, &result_);
+        smootherUpdate(smoother_, graph_, initial_, maxNrHypotheses, &result_);
         afterUpdate = clock();
         smootherUpdateTimes.push_back({index, afterUpdate - beforeUpdate});
         gttoc_(SmootherUpdate);
@@ -266,7 +271,7 @@ class Experiment {
 
     // Final update
     beforeUpdate = clock();
-    smootherUpdate(smoother_, graph_, initial_, kMaxNrHypotheses, &result_);
+    smootherUpdate(smoother_, graph_, initial_, maxNrHypotheses, &result_);
     afterUpdate = clock();
     smootherUpdateTimes.push_back({index, afterUpdate - beforeUpdate});
 
@@ -296,7 +301,7 @@ class Experiment {
     //  }
 
     // Write timing info to file
-    ofstream outfileTime;
+    std::ofstream outfileTime;
     std::string timeFileName = "Hybrid_City10000_time.txt";
     outfileTime.open(timeFileName);
     for (auto accTime : timeList) {
@@ -308,15 +313,47 @@ class Experiment {
 };
 
 /* ************************************************************************* */
-int main() {
+// Function to parse command-line arguments
+void parseArguments(int argc, char* argv[], size_t& maxLoopCount,
+                    size_t& updateFrequency, size_t& maxNrHypotheses) {
+  for (int i = 1; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg == "--max-loop-count" && i + 1 < argc) {
+      maxLoopCount = std::stoul(argv[++i]);
+    } else if (arg == "--update-frequency" && i + 1 < argc) {
+      updateFrequency = std::stoul(argv[++i]);
+    } else if (arg == "--max-nr-hypotheses" && i + 1 < argc) {
+      maxNrHypotheses = std::stoul(argv[++i]);
+    } else if (arg == "--help") {
+      std::cout << "Usage: " << argv[0] << " [options]\n"
+                << "Options:\n"
+                << "  --max-loop-count <value>       Set the maximum loop "
+                   "count (default: 3000)\n"
+                << "  --update-frequency <value>     Set the update frequency "
+                   "(default: 3)\n"
+                << "  --max-nr-hypotheses <value>    Set the maximum number of "
+                   "hypotheses (default: 10)\n"
+                << "  --help                         Show this help message\n";
+      std::exit(0);
+    }
+  }
+}
+
+/* ************************************************************************* */
+// Main function
+int main(int argc, char* argv[]) {
   Experiment experiment(findExampleDataFile("T1_city10000_04.txt"));
   // Experiment experiment("../data/mh_T1_city10000_04.txt"); //Type #1 only
   // Experiment experiment("../data/mh_T3b_city10000_10.txt"); //Type #3 only
   // Experiment experiment("../data/mh_T1_T3_city10000_04.txt"); //Type #1 +
   // Type #3
 
+  // Parse command-line arguments
+  parseArguments(argc, argv, experiment.maxLoopCount,
+                 experiment.updateFrequency, experiment.maxNrHypotheses);
+
   // Run the experiment
-  experiment.run(kMaxLoopCount);
+  experiment.run();
 
   return 0;
 }
