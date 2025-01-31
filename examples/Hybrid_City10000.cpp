@@ -43,8 +43,10 @@ using symbol_shorthand::L;
 using symbol_shorthand::M;
 using symbol_shorthand::X;
 
-const size_t kMaxLoopCount = 2000;  // Example default value
+const size_t kMaxLoopCount = 3000;  // Example default value
+const size_t kUpdateFrequency = 3; // 3000: {1: 62s, 2: 21s, 3: 20s, 4: 31s, 5:39s}
 const size_t kMaxNrHypotheses = 10;
+
 
 auto kOpenLoopModel = noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10);
 
@@ -172,6 +174,9 @@ class Experiment {
     std::vector<std::pair<size_t, double>> smootherUpdateTimes;
     smootherUpdateTimes.push_back({index, afterUpdate - beforeUpdate});
 
+    // Flag to decide whether to run smoother update
+    size_t numberOfHybridFactors = 0;
+
     // Start main loop
     size_t keyS = 0, keyT = 0;
     clock_t startTime = clock();
@@ -192,9 +197,6 @@ class Experiment {
         poseArray[i] = Pose2(x, y, rad);
       }
 
-      // Flag to decide whether to run smoother update
-      bool doSmootherUpdate = false;
-
       // Take the first one as the initial estimate
       Pose2 odomPose = poseArray[0];
       if (keyS == keyT - 1) {
@@ -206,7 +208,7 @@ class Experiment {
               numMeasurements, keyS, keyT, m, poseArray, kPoseNoiseModel);
           graph_.push_back(mixtureFactor);
           discreteCount++;
-          doSmootherUpdate = true;
+          numberOfHybridFactors += 1;
           std::cout << "mixtureFactor: " << keyS << " " << keyT << std::endl;
         } else {
           graph_.add(BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose,
@@ -221,18 +223,20 @@ class Experiment {
         // print loop closure event keys:
         std::cout << "Loop closure: " << keyS << " " << keyT << std::endl;
         graph_.add(loopFactor);
-        doSmootherUpdate = true;
+        numberOfHybridFactors += 1;
         loopCount++;
       }
 
-      if (doSmootherUpdate) {
+      if (numberOfHybridFactors>=kUpdateFrequency) {
+        // print the keys involved in the smoother update
+        std::cout << "Smoother update: " << graph_.size() << std::endl;
         gttic_(SmootherUpdate);
         beforeUpdate = clock();
         smootherUpdate(smoother_, graph_, initial_, kMaxNrHypotheses, &result_);
         afterUpdate = clock();
         smootherUpdateTimes.push_back({index, afterUpdate - beforeUpdate});
         gttoc_(SmootherUpdate);
-        doSmootherUpdate = false;
+        numberOfHybridFactors = 0;
       }
 
       // Record timing for odometry edges only
