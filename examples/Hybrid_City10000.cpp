@@ -44,9 +44,13 @@ using symbol_shorthand::M;
 using symbol_shorthand::X;
 
 const size_t kMaxLoopCount = 3000;  // Example default value
-const size_t kUpdateFrequency = 3; // 3000: {1: 62s, 2: 21s, 3: 20s, 4: 31s, 5:39s}
-const size_t kMaxNrHypotheses = 10;
 
+// 3000: {1: 62s, 2: 21s, 3: 20s, 4: 31s, 5: 39s} No DT optimizations
+// 3000: {1: 65s, 2: 20s, 3: 16s, 4: 21s, 5: 28s} With DT optimizations
+// 3000: {1: 59s, 2: 19s, 3: 18s, 4: 26s, 5: 33s} With DT optimizations + merge
+const size_t kUpdateFrequency = 3;
+
+const size_t kMaxNrHypotheses = 10;
 
 auto kOpenLoopModel = noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10);
 
