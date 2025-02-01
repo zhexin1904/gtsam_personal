@@ -68,12 +68,12 @@ class Experiment {
 
   size_t maxNrHypotheses = 10;
 
-  size_t reLinearizationFrequency = 1;
+  size_t reLinearizationFrequency = 10;
 
  private:
   std::string filename_;
   HybridSmoother smoother_;
-  HybridNonlinearFactorGraph newFactors_;
+  HybridNonlinearFactorGraph newFactors_, allFactors_;
   Values initial_;
 
   /**
@@ -134,12 +134,31 @@ class Experiment {
 
   /// @brief Perform smoother update and optimize the graph.
   auto smootherUpdate(size_t maxNrHypotheses) {
+    std::cout << "Smoother update: " << newFactors_.size() << std::endl;
     gttic_(SmootherUpdate);
     clock_t beforeUpdate = clock();
     auto linearized = newFactors_.linearize(initial_);
     smoother_.update(*linearized, maxNrHypotheses);
+    allFactors_.push_back(newFactors_);
     newFactors_.resize(0);
     clock_t afterUpdate = clock();
+    return afterUpdate - beforeUpdate;
+  }
+
+  /// @brief Re-linearize, solve ALL, and re-initialize smoother.
+  auto reInitialize() {
+    std::cout << "================= Re-Initialize: " << allFactors_.size()
+              << std::endl;
+    clock_t beforeUpdate = clock();
+    allFactors_ = allFactors_.restrict(smoother_.fixedValues());
+    auto linearized = allFactors_.linearize(initial_);
+    auto bayesNet = linearized->eliminateSequential();
+    HybridValues delta = bayesNet->optimize();
+    initial_ = initial_.retract(delta.continuous());
+    smoother_.reInitialize(std::move(*bayesNet));
+    clock_t afterUpdate = clock();
+    std::cout << "Took " << (afterUpdate - beforeUpdate) / CLOCKS_PER_SEC
+              << " seconds." << std::endl;
     return afterUpdate - beforeUpdate;
   }
 
@@ -238,17 +257,13 @@ class Experiment {
       }
 
       if (numberOfHybridFactors >= updateFrequency) {
-        // print the keys involved in the smoother update
-        std::cout << "Smoother update: " << newFactors_.size() << std::endl;
         auto time = smootherUpdate(maxNrHypotheses);
         smootherUpdateTimes.push_back({index, time});
         numberOfHybridFactors = 0;
         updateCount++;
 
         if (updateCount % reLinearizationFrequency == 0) {
-          std::cout << "Re-linearizing: " << newFactors_.size() << std::endl;
-          HybridValues delta = smoother_.optimize();
-          result.insert_or_assign(initial_.retract(delta.continuous()));
+          reInitialize();
         }
       }
 
