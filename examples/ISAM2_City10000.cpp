@@ -10,8 +10,8 @@
  * -------------------------------------------------------------------------- */
 
 /**
- * @file   Hybrid_City10000.cpp
- * @brief  Example of using hybrid estimation
+ * @file   ISAM2_City10000.cpp
+ * @brief  Example of using ISAM2 estimation
  *         with multiple odometry measurements.
  * @author Varun Agrawal
  * @date   January 22, 2025
