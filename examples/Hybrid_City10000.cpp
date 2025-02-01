@@ -70,6 +70,8 @@ class Experiment {
 
   size_t reLinearizationFrequency = 10;
 
+  double marginalThreshold = 0.8; // 0.99;
+
  private:
   std::string filename_;
   HybridSmoother smoother_;
@@ -185,7 +187,7 @@ class Experiment {
  public:
   /// Construct with filename of experiment to run
   explicit Experiment(const std::string& filename)
-      : filename_(filename), smoother_(0.99) {}
+      : filename_(filename), smoother_(marginalThreshold) {}
 
   /// @brief Run the main experiment with a given maxLoopCount.
   void run() {
