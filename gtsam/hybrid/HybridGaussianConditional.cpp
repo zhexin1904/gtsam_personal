@@ -191,11 +191,19 @@ size_t HybridGaussianConditional::nrComponents() const {
 /* *******************************************************************************/
 GaussianConditional::shared_ptr HybridGaussianConditional::choose(
     const DiscreteValues &discreteValues) const {
-  auto &[factor, _] = factors()(discreteValues);
-  if (!factor) return nullptr;
+  try {
+    auto &[factor, _] = factors()(discreteValues);
+    if (!factor) return nullptr;
 
-  auto conditional = checkConditional(factor);
-  return conditional;
+    auto conditional = checkConditional(factor);
+    return conditional;
+  } catch (const std::out_of_range &e) {
+    GTSAM_PRINT(*this);
+    GTSAM_PRINT(discreteValues);
+    throw std::runtime_error(
+        "HybridGaussianConditional::choose: discreteValues does not contain "
+        "all discrete parents.");
+  }
 }
 
 /* *******************************************************************************/
