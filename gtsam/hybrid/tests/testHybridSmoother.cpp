@@ -39,7 +39,6 @@
 using namespace std;
 using namespace gtsam;
 
-using symbol_shorthand::L;
 using symbol_shorthand::X;
 using symbol_shorthand::Z;
 
