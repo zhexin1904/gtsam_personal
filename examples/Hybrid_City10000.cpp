@@ -70,7 +70,7 @@ class Experiment {
 
   size_t reLinearizationFrequency = 10;
 
-  double marginalThreshold = 0.8; // 0.99;
+  double marginalThreshold = 0.9999;
 
  private:
   std::string filename_;
