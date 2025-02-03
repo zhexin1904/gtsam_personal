@@ -212,7 +212,7 @@ int main(int argc, char* argv[]) {
     outfile_time << acc_time << std::endl;
   }
   outfile_time.close();
-  cout << "output " << time_file_name << " file." << endl;
+  cout << "Written cumulative time to: " << time_file_name << " file." << endl;
 
   return 0;
 }
