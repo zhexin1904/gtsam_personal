@@ -25,6 +25,16 @@
 using namespace gtsam;
 using namespace boost::algorithm;
 
+auto kOpenLoopModel = noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10);
+const double kOpenLoopConstant = kOpenLoopModel->negLogConstant();
+
+auto kPriorNoiseModel = noiseModel::Diagonal::Sigmas(
+    (Vector(3) << 0.0001, 0.0001, 0.0001).finished());
+
+auto kPoseNoiseModel = noiseModel::Diagonal::Sigmas(
+    (Vector(3) << 1.0 / 30.0, 1.0 / 30.0, 1.0 / 100.0).finished());
+const double kPoseNoiseConstant = kPoseNoiseModel->negLogConstant();
+
 class City10000Dataset {
   std::ifstream in_;
 
@@ -65,3 +75,24 @@ class City10000Dataset {
       return false;
   }
 };
+
+/**
+ * @brief Write the result of optimization to file.
+ *
+ * @param result The Values object with the final result.
+ * @param num_poses The number of poses to write to the file.
+ * @param filename The file name to save the result to.
+ */
+void writeResult(const Values& result, size_t numPoses,
+                 const std::string& filename = "Hybrid_city10000.txt") const {
+  std::ofstream outfile;
+  outfile.open(filename);
+
+  for (size_t i = 0; i < numPoses; ++i) {
+    Pose2 outPose = result.at<Pose2>(X(i));
+    outfile << outPose.x() << " " << outPose.y() << " " << outPose.theta()
+            << std::endl;
+  }
+  outfile.close();
+  std::cout << "Output written to " << filename << std::endl;
+}
