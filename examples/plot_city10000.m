@@ -3,13 +3,12 @@ clear;
 gt = dlmread('Data/ISAM2_GT_city10000.txt');
 
 % Generate by running `make ISAM2_City10000.run`
-eh_poses = dlmread('../build/examples/ISAM2_city10000.txt');
+eh_poses = dlmread('../build/examples/ISAM2_City10000.txt');
 
 % Generate by running `make Hybrid_City10000.run`
 h_poses = dlmread('../build/examples/Hybrid_City10000.txt');
 
 % Plot the same number of GT poses as estimated ones
-% gt = gt(1:size(eh_poses, 1), :);
 gt = gt(1:size(h_poses, 1), :);
 eh_poses = eh_poses(1:size(h_poses, 1), :);
 
