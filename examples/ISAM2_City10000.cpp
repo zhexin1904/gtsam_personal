@@ -58,8 +58,8 @@ class Experiment {
   parameters.relinearizeThreshold = 0.01;
   parameters.relinearizeSkip = 1;
 
-  ISAM2 isam2(parameters);
-  NonlinearFactorGraph graph;
+  ISAM2 isam2_(parameters);
+  NonlinearFactorGraph graph_;
   Values initial_;
   Values results;
 
@@ -77,14 +77,14 @@ class Experiment {
     // Set up initial prior
     Pose2 priorPose(0, 0, 0);
     initial_.insert(X(0), priorPose);
-    graph.addPrior<Pose2>(X(0), priorPose, kPriorNoiseModel);
+    graph_.addPrior<Pose2>(X(0), priorPose, kPriorNoiseModel);
     poseCount++;
 
     // Initial update
-    isam2.update(graph, initial_);
-    graph.resize(0);
+    isam2_.update(graph_, initial_);
+    graph_.resize(0);
     initial_.clear();
-    results = isam2.calculateBestEstimate();
+    results = isam2_.calculateBestEstimate();
 
     // Start main loop
     size_t keyS = 0;
@@ -110,27 +110,27 @@ class Experiment {
 
       if (keyS == keyT - 1) {  // new X(key)
         initial_.insert(X(keyT), results.at<Pose2>(X(keyS)) * odomPose);
-        graph.add(
+        graph_.add(
             BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose, kPoseNoiseModel));
         poseCount++;
 
       } else {  // loop
         int id = index % numMeasurements;
         if (isWithAmbiguity && id % 2 == 0) {
-          graph.add(BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose,
+          graph_.add(BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose,
                                          kPoseNoiseModel));
         } else {
-          graph.add(BetweenFactor<Pose2>(
+          graph_.add(BetweenFactor<Pose2>(
               X(keyS), X(keyT), odomPose,
               noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10.0)));
         }
         index++;
       }
 
-      isam2.update(graph, initial_);
-      graph.resize(0);
+      isam2_.update(graph_, initial_);
+      graph_.resize(0);
       initial_.clear();
-      results = isam2.calculateBestEstimate();
+      results = isam2_.calculateBestEstimate();
 
       // Print loop index and time taken in processor clock ticks
       if (index % 50 == 0 && keyS != keyT - 1) {
