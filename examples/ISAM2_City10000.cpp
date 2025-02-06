@@ -50,7 +50,7 @@ class Experiment {
 
   // false: run original iSAM2 without ambiguities
   // true: run original iSAM2 with ambiguities
-  const bool isWithAmbiguity;
+  bool isWithAmbiguity;
 
  private:
   ISAM2 isam2_;
