@@ -80,7 +80,7 @@ class Experiment {
     pose_count++;
 
     // Initial update
-    isam2.update(*graph, initial_);
+    isam2.update(graph, initial_);
     graph.resize(0);
     initial_.clear();
     results = isam2.calculateBestEstimate();
@@ -90,22 +90,13 @@ class Experiment {
     size_t keyT = 0;
     clock_t start_time = clock();
 
-    string str;
-    while (getline(in, str) && index < max_loop_count) {
-      vector<string> parts;
-      split(parts, str, is_any_of(" "));
+    std::vector<Pose2> poseArray;
+    std::pair<size_t, size_t> keys;
 
-      keyS = stoi(parts[1]);
-      keyT = stoi(parts[3]);
-
-      int num_measurements = stoi(parts[5]);
-      vector<Pose2> pose_array(num_measurements);
-      for (int i = 0; i < num_measurements; ++i) {
-        x = stod(parts[6 + 3 * i]);
-        y = stod(parts[7 + 3 * i]);
-        rad = stod(parts[8 + 3 * i]);
-        pose_array[i] = Pose2(x, y, rad);
-      }
+    while (dataset_.next(&poseArray, &keys) && index < maxLoopCount) {
+      keyS = keys.first;
+      keyT = keys.second;
+      size_t numMeasurements = poseArray.size();
 
       Pose2 odom_pose;
       if (is_with_ambiguity) {
