@@ -25,6 +25,8 @@
 using namespace gtsam;
 using namespace boost::algorithm;
 
+using symbol_shorthand::X;
+
 auto kOpenLoopModel = noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10);
 const double kOpenLoopConstant = kOpenLoopModel->negLogConstant();
 
@@ -84,7 +86,7 @@ class City10000Dataset {
  * @param filename The file name to save the result to.
  */
 void writeResult(const Values& result, size_t numPoses,
-                 const std::string& filename = "Hybrid_city10000.txt") const {
+                 const std::string& filename = "Hybrid_city10000.txt") {
   std::ofstream outfile;
   outfile.open(filename);
 
