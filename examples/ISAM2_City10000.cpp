@@ -20,6 +20,7 @@
 #include <gtsam/geometry/Pose2.h>
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/nonlinear/ISAM2.h>
+#include <gtsam/nonlinear/ISAM2Params.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -32,9 +33,9 @@
 #include <string>
 #include <vector>
 
-using namespace std;
+#include "City10000.h"
+
 using namespace gtsam;
-using namespace boost::algorithm;
 
 using symbol_shorthand::X;
 
@@ -144,15 +145,15 @@ class Experiment {
       }
 
       if (timeList.size() % 100 == 0 && (keyS == keyT - 1)) {
-        string stepFileIdx = std::to_string(100000 + timeList.size());
+        std::string stepFileIdx = std::to_string(100000 + timeList.size());
 
-        ofstream stepOutfile;
-        string stepFileName = "step_files/ISAM2_City10000_S" + stepFileIdx;
+        std::ofstream stepOutfile;
+        std::string stepFileName = "step_files/ISAM2_City10000_S" + stepFileIdx;
         stepOutfile.open(stepFileName + ".txt");
         for (size_t i = 0; i < (keyT + 1); ++i) {
           Pose2 outPose = results.at<Pose2>(X(i));
           stepOutfile << outPose.x() << " " << outPose.y() << " "
-                      << outPose.theta() << endl;
+                      << outPose.theta() << std::endl;
         }
         stepOutfile.close();
       }
@@ -160,20 +161,20 @@ class Experiment {
 
     clock_t endTime = clock();
     clock_t totalTime = endTime - startTime;
-    cout << "totalTime: " << totalTime / CLOCKS_PER_SEC << endl;
+    std::cout << "totalTime: " << totalTime / CLOCKS_PER_SEC << std::endl;
 
     /// Write results to file
     writeResult(results, (keyT + 1), "ISAM2_City10000.txt");
 
-    ofstream outfileTime;
+    std::ofstream outfileTime;
     std::string timeFileName = "ISAM2_City10000_time.txt";
     outfileTime.open(timeFileName);
     for (auto accTime : timeList) {
       outfileTime << accTime << std::endl;
     }
     outfileTime.close();
-    cout << "Written cumulative time to: " << timeFileName << " file."
-         << endl;
+    std::cout << "Written cumulative time to: " << timeFileName << " file."
+              << std::endl;
   }
 };
 
