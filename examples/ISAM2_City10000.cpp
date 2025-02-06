@@ -50,7 +50,7 @@ class Experiment {
 
   // false: run original iSAM2 without ambiguities
   // true: run original iSAM2 with ambiguities
-  const bool isWithAmbiguity_;
+  const bool isWithAmbiguity;
 
  private:
   ISAM2 isam2_;
@@ -61,7 +61,7 @@ class Experiment {
  public:
   /// Construct with filename of experiment to run
   explicit Experiment(const std::string& filename, bool isWithAmbiguity = false)
-      : dataset_(filename), isWithAmbiguity_(isWithAmbiguity) {
+      : dataset_(filename), isWithAmbiguity(isWithAmbiguity) {
     ISAM2Params parameters;
     parameters.optimizationParams = gtsam::ISAM2GaussNewtonParams(0.0);
     parameters.relinearizeThreshold = 0.01;
@@ -101,7 +101,7 @@ class Experiment {
       size_t numMeasurements = poseArray.size();
 
       Pose2 odomPose;
-      if (isWithAmbiguity_) {
+      if (isWithAmbiguity) {
         // Get wrong intentionally
         int id = index % numMeasurements;
         odomPose = Pose2(poseArray[id]);
@@ -116,7 +116,7 @@ class Experiment {
 
       } else {  // loop
         int id = index % numMeasurements;
-        if (isWithAmbiguity_ && id % 2 == 0) {
+        if (isWithAmbiguity && id % 2 == 0) {
           graph_.add(BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose,
                                           kPoseNoiseModel));
         } else {
@@ -179,12 +179,40 @@ class Experiment {
 };
 
 /* ************************************************************************* */
+// Function to parse command-line arguments
+void parseArguments(int argc, char* argv[], size_t& maxLoopCount,
+                    bool& isWithAmbiguity) {
+  for (int i = 1; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg == "--max-loop-count" && i + 1 < argc) {
+      maxLoopCount = std::stoul(argv[++i]);
+    } else if (arg == "--is-with-ambiguity" && i + 1 < argc) {
+      isWithAmbiguity = bool(std::stoul(argv[++i]));
+    } else if (arg == "--help") {
+      std::cout << "Usage: " << argv[0] << " [options]\n"
+                << "Options:\n"
+                << "  --max-loop-count <value>       Set the maximum loop "
+                   "count (default: 2000)\n"
+                << "  --is-with-ambiguity <value=0/1>     Set whether to use "
+                   "ambiguous measurements "
+                   "(default: false)\n"
+                << "  --help                         Show this help message\n";
+      std::exit(0);
+    }
+  }
+}
+
+/* ************************************************************************* */
 int main(int argc, char* argv[]) {
   Experiment experiment(findExampleDataFile("T1_City10000_04.txt"));
   // Experiment experiment("../data/mh_T1_City10000_04.txt"); //Type #1 only
   // Experiment experiment("../data/mh_T3b_City10000_10.txt"); //Type #3 only
   // Experiment experiment("../data/mh_T1_T3_City10000_04.txt"); //Type #1 +
   // Type #3
+
+  // Parse command-line arguments
+  parseArguments(argc, argv, experiment.maxLoopCount,
+                 experiment.isWithAmbiguity);
 
   // Run the experiment
   experiment.run();
