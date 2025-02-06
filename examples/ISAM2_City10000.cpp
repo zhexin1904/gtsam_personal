@@ -49,7 +49,7 @@ class Experiment {
 
   // false: run original iSAM2 without ambiguities
   // true: run original iSAM2 with ambiguities
-  const bool is_with_ambiguity = false;
+  const bool isWithAmbiguity = false;
 
  private:
   ISAM2Params parameters;
@@ -69,7 +69,7 @@ class Experiment {
   /// @brief Run the main experiment with a given maxLoopCount.
   void run() {
     // Initialize local variables
-    size_t pose_count = 0, index = 0;
+    size_t poseCount = 0, index = 0;
 
     std::list<double> timeList;
 
@@ -77,7 +77,7 @@ class Experiment {
     Pose2 priorPose(0, 0, 0);
     initial_.insert(X(0), priorPose);
     graph.addPrior<Pose2>(X(0), priorPose, kPriorNoiseModel);
-    pose_count++;
+    poseCount++;
 
     // Initial update
     isam2.update(graph, initial_);
@@ -88,7 +88,7 @@ class Experiment {
     // Start main loop
     size_t keyS = 0;
     size_t keyT = 0;
-    clock_t start_time = clock();
+    clock_t startTime = clock();
 
     std::vector<Pose2> poseArray;
     std::pair<size_t, size_t> keys;
@@ -98,34 +98,35 @@ class Experiment {
       keyT = keys.second;
       size_t numMeasurements = poseArray.size();
 
-      Pose2 odom_pose;
-      if (is_with_ambiguity) {
+      Pose2 odomPose;
+      if (isWithAmbiguity) {
         // Get wrong intentionally
-        int id = index % num_measurements;
-        odom_pose = Pose2(pose_array[id]);
+        int id = index % numMeasurements;
+        odomPose = Pose2(poseArray[id]);
       } else {
-        odom_pose = pose_array[0];
+        odomPose = poseArray[0];
       }
 
       if (keyS == keyT - 1) {  // new X(key)
-        initial_.insert(X(keyT), results.at<Pose2>(X(keyS)) * odom_pose);
+        initial_.insert(X(keyT), results.at<Pose2>(X(keyS)) * odomPose);
         graph.add(
-            BetweenFactor<Pose2>(X(keyS), X(keyT), odom_pose, kPoseNoiseModel));
-        pose_count++;
+            BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose, kPoseNoiseModel));
+        poseCount++;
+
       } else {  // loop
-        int id = index % num_measurements;
-        if (is_with_ambiguity && id % 2 == 0) {
-          graph.add(BetweenFactor<Pose2>(X(keyS), X(keyT), odom_pose,
-                                          kPoseNoiseModel));
+        int id = index % numMeasurements;
+        if (isWithAmbiguity && id % 2 == 0) {
+          graph.add(BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose,
+                                         kPoseNoiseModel));
         } else {
           graph.add(BetweenFactor<Pose2>(
-              X(keyS), X(keyT), odom_pose,
+              X(keyS), X(keyT), odomPose,
               noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10.0)));
         }
         index++;
       }
 
-      isam2.update(*graph, initial_);
+      isam2.update(graph, initial_);
       graph.resize(0);
       initial_.clear();
       results = isam2.calculateBestEstimate();
@@ -133,45 +134,45 @@ class Experiment {
       // Print loop index and time taken in processor clock ticks
       if (index % 50 == 0 && keyS != keyT - 1) {
         std::cout << "index: " << index << std::endl;
-        std::cout << "acc_time:  " << timeList.back() / CLOCKS_PER_SEC
+        std::cout << "accTime:  " << timeList.back() / CLOCKS_PER_SEC
                   << std::endl;
       }
 
       if (keyS == keyT - 1) {
-        clock_t cur_time = clock();
-        timeList.push_back(cur_time - start_time);
+        clock_t curTime = clock();
+        timeList.push_back(curTime - startTime);
       }
 
       if (timeList.size() % 100 == 0 && (keyS == keyT - 1)) {
-        string step_file_idx = std::to_string(100000 + timeList.size());
+        string stepFileIdx = std::to_string(100000 + timeList.size());
 
-        ofstream step_outfile;
-        string step_file_name = "step_files/ISAM2_city10000_S" + step_file_idx;
-        step_outfile.open(step_file_name + ".txt");
+        ofstream stepOutfile;
+        string stepFileName = "step_files/ISAM2_city10000_S" + stepFileIdx;
+        stepOutfile.open(stepFileName + ".txt");
         for (size_t i = 0; i < (keyT + 1); ++i) {
-          Pose2 out_pose = results.at<Pose2>(X(i));
-          step_outfile << out_pose.x() << " " << out_pose.y() << " "
-                       << out_pose.theta() << endl;
+          Pose2 outPose = results.at<Pose2>(X(i));
+          stepOutfile << outPose.x() << " " << outPose.y() << " "
+                      << outPose.theta() << endl;
         }
-        step_outfile.close();
+        stepOutfile.close();
       }
     }
 
-    clock_t end_time = clock();
-    clock_t total_time = end_time - start_time;
-    cout << "total_time: " << total_time / CLOCKS_PER_SEC << endl;
+    clock_t endTime = clock();
+    clock_t totalTime = endTime - startTime;
+    cout << "totalTime: " << totalTime / CLOCKS_PER_SEC << endl;
 
     /// Write results to file
     writeResult(results, (keyT + 1), "ISAM2_city10000.txt");
 
-    ofstream outfile_time;
-    std::string time_file_name = "ISAM2_city10000_time.txt";
-    outfile_time.open(time_file_name);
-    for (auto acc_time : timeList) {
-      outfile_time << acc_time << std::endl;
+    ofstream outfileTime;
+    std::string timeFileName = "ISAM2_city10000_time.txt";
+    outfileTime.open(timeFileName);
+    for (auto accTime : timeList) {
+      outfileTime << accTime << std::endl;
     }
-    outfile_time.close();
-    cout << "Written cumulative time to: " << time_file_name << " file."
+    outfileTime.close();
+    cout << "Written cumulative time to: " << timeFileName << " file."
          << endl;
   }
 };
