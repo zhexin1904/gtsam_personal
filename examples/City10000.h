@@ -18,12 +18,9 @@
 
 #include <gtsam/geometry/Pose2.h>
 
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/split.hpp>
 #include <fstream>
 
 using namespace gtsam;
-using namespace boost::algorithm;
 
 using symbol_shorthand::X;
 
@@ -40,6 +37,20 @@ const double kPoseNoiseConstant = kPoseNoiseModel->negLogConstant();
 class City10000Dataset {
   std::ifstream in_;
 
+  /// Read a `line` from the dataset, separated by the `delimiter`.
+  std::vector<std::string> readLine(const std::string& line,
+                                    const std::string& delimiter = " ") const {
+    std::vector<std::string> parts;
+    auto start = 0U;
+    auto end = line.find(delimiter);
+    while (end != std::string::npos) {
+      parts.push_back(line.substr(start, end - start));
+      start = end + delimiter.length();
+      end = line.find(delimiter, start);
+    }
+    return parts;
+  }
+
  public:
   City10000Dataset(const std::string& filename) : in_(filename) {
     if (!in_.is_open()) {
@@ -50,8 +61,7 @@ class City10000Dataset {
   /// Parse line from file
   std::pair<std::vector<Pose2>, std::pair<size_t, size_t>> parseLine(
       const std::string& line) const {
-    std::vector<std::string> parts;
-    split(parts, line, is_any_of(" "));
+    std::vector<std::string> parts = readLine(line);
 
     size_t keyS = stoi(parts[1]);
     size_t keyT = stoi(parts[3]);
