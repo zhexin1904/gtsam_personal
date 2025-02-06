@@ -50,7 +50,7 @@ class Experiment {
 
   // false: run original iSAM2 without ambiguities
   // true: run original iSAM2 with ambiguities
-  const bool isWithAmbiguity = false;
+  const bool isWithAmbiguity_;
 
  private:
   ISAM2 isam2_;
@@ -60,7 +60,8 @@ class Experiment {
 
  public:
   /// Construct with filename of experiment to run
-  explicit Experiment(const std::string& filename) : dataset_(filename) {
+  explicit Experiment(const std::string& filename, bool isWithAmbiguity = false)
+      : dataset_(filename), isWithAmbiguity_(isWithAmbiguity) {
     ISAM2Params parameters;
     parameters.optimizationParams = gtsam::ISAM2GaussNewtonParams(0.0);
     parameters.relinearizeThreshold = 0.01;
@@ -71,7 +72,7 @@ class Experiment {
   /// @brief Run the main experiment with a given maxLoopCount.
   void run() {
     // Initialize local variables
-    size_t poseCount = 0, index = 0;
+    size_t index = 0;
 
     std::list<double> timeList;
 
@@ -79,7 +80,6 @@ class Experiment {
     Pose2 priorPose(0, 0, 0);
     initial_.insert(X(0), priorPose);
     graph_.addPrior<Pose2>(X(0), priorPose, kPriorNoiseModel);
-    poseCount++;
 
     // Initial update
     isam2_.update(graph_, initial_);
@@ -101,7 +101,7 @@ class Experiment {
       size_t numMeasurements = poseArray.size();
 
       Pose2 odomPose;
-      if (isWithAmbiguity) {
+      if (isWithAmbiguity_) {
         // Get wrong intentionally
         int id = index % numMeasurements;
         odomPose = Pose2(poseArray[id]);
@@ -113,11 +113,10 @@ class Experiment {
         initial_.insert(X(keyT), results.at<Pose2>(X(keyS)) * odomPose);
         graph_.add(
             BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose, kPoseNoiseModel));
-        poseCount++;
 
       } else {  // loop
         int id = index % numMeasurements;
-        if (isWithAmbiguity && id % 2 == 0) {
+        if (isWithAmbiguity_ && id % 2 == 0) {
           graph_.add(BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose,
                                           kPoseNoiseModel));
         } else {
