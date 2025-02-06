@@ -147,7 +147,7 @@ class Experiment {
         string stepFileIdx = std::to_string(100000 + timeList.size());
 
         ofstream stepOutfile;
-        string stepFileName = "step_files/ISAM2_city10000_S" + stepFileIdx;
+        string stepFileName = "step_files/ISAM2_City10000_S" + stepFileIdx;
         stepOutfile.open(stepFileName + ".txt");
         for (size_t i = 0; i < (keyT + 1); ++i) {
           Pose2 outPose = results.at<Pose2>(X(i));
@@ -163,10 +163,10 @@ class Experiment {
     cout << "totalTime: " << totalTime / CLOCKS_PER_SEC << endl;
 
     /// Write results to file
-    writeResult(results, (keyT + 1), "ISAM2_city10000.txt");
+    writeResult(results, (keyT + 1), "ISAM2_City10000.txt");
 
     ofstream outfileTime;
-    std::string timeFileName = "ISAM2_city10000_time.txt";
+    std::string timeFileName = "ISAM2_City10000_time.txt";
     outfileTime.open(timeFileName);
     for (auto accTime : timeList) {
       outfileTime << accTime << std::endl;
@@ -179,10 +179,10 @@ class Experiment {
 
 /* ************************************************************************* */
 int main(int argc, char* argv[]) {
-  Experiment experiment(findExampleDataFile("T1_city10000_04.txt"));
-  // Experiment experiment("../data/mh_T1_city10000_04.txt"); //Type #1 only
-  // Experiment experiment("../data/mh_T3b_city10000_10.txt"); //Type #3 only
-  // Experiment experiment("../data/mh_T1_T3_city10000_04.txt"); //Type #1 +
+  Experiment experiment(findExampleDataFile("T1_City10000_04.txt"));
+  // Experiment experiment("../data/mh_T1_City10000_04.txt"); //Type #1 only
+  // Experiment experiment("../data/mh_T3b_City10000_10.txt"); //Type #3 only
+  // Experiment experiment("../data/mh_T1_T3_City10000_04.txt"); //Type #1 +
   // Type #3
 
   // Run the experiment
