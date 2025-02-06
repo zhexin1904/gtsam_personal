@@ -109,26 +109,26 @@ class Experiment {
 
       if (keyS == keyT - 1) {  // new X(key)
         initial_.insert(X(keyT), results.at<Pose2>(X(keyS)) * odom_pose);
-        graph->add(
+        graph.add(
             BetweenFactor<Pose2>(X(keyS), X(keyT), odom_pose, kPoseNoiseModel));
         pose_count++;
       } else {  // loop
         int id = index % num_measurements;
         if (is_with_ambiguity && id % 2 == 0) {
-          graph->add(BetweenFactor<Pose2>(X(keyS), X(keyT), odom_pose,
+          graph.add(BetweenFactor<Pose2>(X(keyS), X(keyT), odom_pose,
                                           kPoseNoiseModel));
         } else {
-          graph->add(BetweenFactor<Pose2>(
+          graph.add(BetweenFactor<Pose2>(
               X(keyS), X(keyT), odom_pose,
               noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10.0)));
         }
         index++;
       }
 
-      isam2->update(*graph, initial_);
-      graph->resize(0);
+      isam2.update(*graph, initial_);
+      graph.resize(0);
       initial_.clear();
-      results = isam2->calculateBestEstimate();
+      results = isam2.calculateBestEstimate();
 
       // Print loop index and time taken in processor clock ticks
       if (index % 50 == 0 && keyS != keyT - 1) {
