@@ -53,19 +53,20 @@ class Experiment {
   const bool isWithAmbiguity = false;
 
  private:
-  ISAM2Params parameters;
-  parameters.optimizationParams = gtsam::ISAM2GaussNewtonParams(0.0);
-  parameters.relinearizeThreshold = 0.01;
-  parameters.relinearizeSkip = 1;
-
-  ISAM2 isam2_(parameters);
+  ISAM2 isam2_;
   NonlinearFactorGraph graph_;
   Values initial_;
   Values results;
 
  public:
   /// Construct with filename of experiment to run
-  explicit Experiment(const std::string& filename) : dataset_(filename) {}
+  explicit Experiment(const std::string& filename) : dataset_(filename) {
+    ISAM2Params parameters;
+    parameters.optimizationParams = gtsam::ISAM2GaussNewtonParams(0.0);
+    parameters.relinearizeThreshold = 0.01;
+    parameters.relinearizeSkip = 1;
+    isam2_ = ISAM2(parameters);
+  }
 
   /// @brief Run the main experiment with a given maxLoopCount.
   void run() {
@@ -118,7 +119,7 @@ class Experiment {
         int id = index % numMeasurements;
         if (isWithAmbiguity && id % 2 == 0) {
           graph_.add(BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose,
-                                         kPoseNoiseModel));
+                                          kPoseNoiseModel));
         } else {
           graph_.add(BetweenFactor<Pose2>(
               X(keyS), X(keyT), odomPose,
