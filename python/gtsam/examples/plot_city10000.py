@@ -10,8 +10,9 @@ Can be used to plot results from both C++ and python scripts.
 
 Usage:
 ```
-python plot_city10000.py Data/ISAM2_GT_city10000.txt \
-    --estimates ../build/examples/ISAM2_city10000.txt ../build/examples/Hybrid_City10000.txt
+python plot_city10000.py ../../../examples/Data/ISAM2_GT_city10000.txt \
+    --estimates ../../../build/examples/ISAM2_city10000.txt \
+        ../../../build/examples/Hybrid_City10000.txt
 ```
 
 NOTE: We can pass in as many estimates as we need,
