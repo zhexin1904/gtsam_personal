@@ -1,4 +1,17 @@
-"""Script to plot City10000 results"""
+"""
+GTSAM Copyright 2010-2019, Georgia Tech Research Corporation,
+Atlanta, Georgia 30332-0415
+All Rights Reserved
+
+See LICENSE for the license information
+
+Script to plot City10000 results.
+Can be used to plot results from both C++ and python scripts.
+
+python plot_city10000.py
+
+Author: Varun Agrawal
+"""
 
 import numpy as np
 from matplotlib import pyplot as plt
