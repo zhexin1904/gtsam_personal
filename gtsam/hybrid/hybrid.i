@@ -227,14 +227,20 @@ class HybridNonlinearFactorGraph {
   void push_back(gtsam::HybridFactor* factor);
   void push_back(gtsam::NonlinearFactor* factor);
   void push_back(gtsam::DiscreteFactor* factor);
+  void push_back(const gtsam::HybridNonlinearFactorGraph& graph);
+  //TODO(Varun) Wrap add() methods
+
   gtsam::HybridGaussianFactorGraph linearize(
       const gtsam::Values& continuousValues) const;
 
   bool empty() const;
   void remove(size_t i);
   size_t size() const;
+  void resize(size_t size);
   gtsam::KeySet keys() const;
   const gtsam::HybridFactor* at(size_t i) const;
+  gtsam::HybridNonlinearFactorGraph restrict(
+      const gtsam::DiscreteValues& assignment) const;
 
   void print(string s = "HybridNonlinearFactorGraph\n",
              const gtsam::KeyFormatter& keyFormatter =
