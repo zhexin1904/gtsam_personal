@@ -127,7 +127,7 @@ class Experiment {
     auto bayesNet = linearized->eliminateSequential();
     HybridValues delta = bayesNet->optimize();
     initial_ = initial_.retract(delta.continuous());
-    smoother_.reInitialize(std::move(*bayesNet));
+    smoother_.reInitialize(*bayesNet);
     clock_t afterUpdate = clock();
     std::cout << "Took " << (afterUpdate - beforeUpdate) / CLOCKS_PER_SEC
               << " seconds." << std::endl;
