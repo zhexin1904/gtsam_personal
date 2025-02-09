@@ -25,7 +25,7 @@ from gtsam import (BetweenFactorPose2, HybridNonlinearFactor,
 def parse_arguments():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_file",
+    parser.add_argument("--data_file",
                         help="The path to the City10000 data file",
                         default="T1_city10000_04.txt")
     return parser.parse_args()
@@ -49,10 +49,12 @@ class City10000Dataset:
     def __init__(self, filename):
         self.filename_ = filename
         try:
-            f = open(self.filename_, 'r')
-            f.close()
+            self.f_ = open(self.filename_, 'r')
         except OSError:
             print(f"Failed to open file: {self.filename_}")
+
+    def __del__(self):
+        self.f_.close()
 
     def read_line(self, line: str, delimiter: str = " "):
         """Read a `line` from the dataset, separated by the `delimiter`."""
@@ -78,12 +80,11 @@ class City10000Dataset:
 
     def next(self):
         """Read and parse the next line."""
-        with open(self.filename_, 'w') as f:
-            line = f.readline()
-            if line:
-                yield self.parse_line(line)
-            else:
-                yield None, None
+        line = self.f_.readline()
+        if line:
+            return self.parse_line(line)
+        else:
+            return None, None
 
 
 class Experiment:
@@ -173,7 +174,7 @@ class Experiment:
 
         # Set up initial prior
         priorPose = Pose2(0, 0, 0)
-        self.self.initial_.insert(X(0), priorPose)
+        self.initial_.insert(X(0), priorPose)
         self.new_factors_.push_back(
             PriorFactorPose2(X(0), priorPose, prior_noise_model))
 
@@ -207,13 +208,13 @@ class Experiment:
                     m = (M(discrete_count), num_measurements)
                     mixture_factor = self.hybrid_odometry_factor(
                         key_s, key_t, m, pose_array)
-                    self.new_factors_.append(mixture_factor)
+                    self.new_factors_.push_back(mixture_factor)
 
                     discrete_count += 1
                     number_of_hybrid_factors += 1
                     print(f"mixture_factor: {key_s} {key_t}")
                 else:
-                    self.new_factors_.add(
+                    self.new_factors_.push_back(
                         BetweenFactorPose2(X(key_s), X(key_t), odom_pose,
                                            pose_noise_model))
 
@@ -228,7 +229,7 @@ class Experiment:
 
                 # print loop closure event keys:
                 print(f"Loop closure: {key_s} {key_t}")
-                self.new_factors_.add(loop_factor)
+                self.new_factors_.push_back(loop_factor)
                 number_of_hybrid_factors += 1
                 loop_count += 1
 
