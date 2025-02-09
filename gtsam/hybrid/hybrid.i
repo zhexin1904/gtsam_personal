@@ -243,9 +243,8 @@ class HybridNonlinearFactorGraph {
 
 #include <gtsam/hybrid/HybridNonlinearFactor.h>
 class HybridNonlinearFactor : gtsam::HybridFactor {
-  HybridNonlinearFactor(
-      const gtsam::DiscreteKey& discreteKey,
-      const std::vector<gtsam::NoiseModelFactor*>& factors);
+  HybridNonlinearFactor(const gtsam::DiscreteKey& discreteKey,
+                        const std::vector<gtsam::NoiseModelFactor*>& factors);
 
   HybridNonlinearFactor(
       const gtsam::DiscreteKey& discreteKey,
@@ -264,6 +263,21 @@ class HybridNonlinearFactor : gtsam::HybridFactor {
   void print(string s = "HybridNonlinearFactor\n",
              const gtsam::KeyFormatter& keyFormatter =
                  gtsam::DefaultKeyFormatter) const;
+};
+
+#include <gtsam/hybrid/HybridSmoother.h>
+class HybridSmoother {
+  HybridSmoother(const std::optional<double> marginalThreshold = std::nullopt);
+
+  const gtsam::DiscreteValues& fixedValues() const;
+  void reInitialize(gtsam::HybridBayesNet& hybridBayesNet);
+
+  void update(
+      const gtsam::HybridGaussianFactorGraph& graph,
+      std::optional<size_t> maxNrLeaves = std::nullopt,
+      const std::optional<gtsam::Ordering> given_ordering = std::nullopt);
+
+  HybridValues optimize() const;
 };
 
 }  // namespace gtsam
