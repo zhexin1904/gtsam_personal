@@ -8,13 +8,26 @@ See LICENSE for the license information
 Script to plot City10000 results.
 Can be used to plot results from both C++ and python scripts.
 
-python plot_city10000.py
+python plot_city10000.py Data/ISAM2_GT_city10000.txt ../build/examples/ISAM2_city10000.txt ../build/examples/Hybrid_City10000.txt
 
 Author: Varun Agrawal
 """
 
+import argparse
+
 import numpy as np
 from matplotlib import pyplot as plt
+
+
+def parse_args():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("ground_truth", help="The ground truth data file.")
+    parser.add_argument(
+        "estimates",
+        nargs='+',
+        help="File(s) with estimates (as .txt), can be more than one.")
+    return parser.parse_args()
 
 
 def plot_estimates(gt,
@@ -42,15 +55,13 @@ def plot_estimates(gt,
 
 
 def main():
-    gt = np.loadtxt('Data/ISAM2_GT_city10000.txt', delimiter=" ")
+    gt = np.loadtxt('', delimiter=" ")
 
     # Generate by running `make ISAM2_City10000.run`
-    eh_poses = np.loadtxt('../build/examples/ISAM2_city10000.txt',
-                          delimiter=" ")
+    eh_poses = np.loadtxt('', delimiter=" ")
 
     # Generate by running `make Hybrid_City10000.run`
-    h_poses = np.loadtxt('../build/examples/Hybrid_City10000.txt',
-                         delimiter=" ")
+    h_poses = np.loadtxt('', delimiter=" ")
 
     # Plot the same number of GT poses as estimated ones
     gt = gt[:h_poses.shape[0], :]
