@@ -13,6 +13,10 @@ Usage:
 python plot_city10000.py Data/ISAM2_GT_city10000.txt --estimates ../build/examples/ISAM2_city10000.txt ../build/examples/Hybrid_City10000.txt
 ```
 
+You can generate estimates by running
+- `make ISAM2_City10000.run` for the ISAM2 version
+- `make Hybrid_City10000.run` for the Hybrid Smoother version
+
 Author: Varun Agrawal
 """
 
@@ -38,6 +42,17 @@ def plot_estimates(gt,
                    fignum: int,
                    estimate_color=(0.1, 0.1, 0.9, 0.4),
                    estimate_label="Hybrid Factor Graphs"):
+    """Plot the City10000 estimates against the ground truth.
+
+    Args:
+        gt (np.ndarray): The ground truth trajectory as xy values.
+        estimates (np.ndarray): The estimates trajectory as xy values.
+        fignum (int): The figure number for multiple plots.
+        estimate_color (tuple, optional): The color to use for the graph of estimates.
+            Defaults to (0.1, 0.1, 0.9, 0.4).
+        estimate_label (str, optional): Label for the estimates, used in the legend.
+            Defaults to "Hybrid Factor Graphs".
+    """
     fig = plt.figure(fignum)
     ax = fig.gca()
     ax.axis('equal')
@@ -62,22 +77,19 @@ def main():
     args = parse_args()
     gt = np.loadtxt(args.ground_truth, delimiter=" ")
 
-    # Generate by running `make ISAM2_City10000.run`
-    eh_poses = np.loadtxt(args.estimates[0], delimiter=" ")
+    # Default colors and labels, assuming we have only 2 estimates
+    colors = ((0.9, 0.1, 0.1, 0.4), (0.1, 0.1, 0.9, 0.4))
+    labels = ("ISAM2", "Hybrid Factor Graphs")
 
-    # Generate by running `make Hybrid_City10000.run`
-    h_poses = np.loadtxt(args.estimates[1], delimiter=" ")
+    for i in range(len(args.estimates)):
+        h_poses = np.loadtxt(args.estimates[i], delimiter=" ")
+        gt = gt[:h_poses.shape[0]]
 
-    plot_estimates(gt,
-                   h_poses,
-                   1,
-                   estimate_color=(0.1, 0.1, 0.9, 0.4),
-                   estimate_label="Hybrid Factor Graphs")
-    plot_estimates(gt,
-                   eh_poses,
-                   2,
-                   estimate_color=(0.9, 0.1, 0.1, 0.4),
-                   estimate_label="ISAM2")
+        plot_estimates(gt,
+                       h_poses,
+                       i + 1,
+                       estimate_color=colors[i],
+                       estimate_label=labels[i])
 
     plt.show()
 
