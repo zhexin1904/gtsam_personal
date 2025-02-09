@@ -49,8 +49,8 @@ class GTSAM_EXPORT HybridSmoother {
   /**
    * Re-initialize the smoother from a new hybrid Bayes Net.
    */
-  void reInitialize(HybridBayesNet&& hybridBayesNet) {
-    hybridBayesNet_ = std::move(hybridBayesNet);
+  void reInitialize(HybridBayesNet& hybridBayesNet) {
+    hybridBayesNet_ = hybridBayesNet;
   }
 
   /**
