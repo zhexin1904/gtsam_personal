@@ -8,7 +8,10 @@ See LICENSE for the license information
 Script to plot City10000 results.
 Can be used to plot results from both C++ and python scripts.
 
-python plot_city10000.py Data/ISAM2_GT_city10000.txt ../build/examples/ISAM2_city10000.txt ../build/examples/Hybrid_City10000.txt
+Usage:
+```
+python plot_city10000.py Data/ISAM2_GT_city10000.txt --estimates ../build/examples/ISAM2_city10000.txt ../build/examples/Hybrid_City10000.txt
+```
 
 Author: Varun Agrawal
 """
@@ -24,7 +27,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("ground_truth", help="The ground truth data file.")
     parser.add_argument(
-        "estimates",
+        "--estimates",
         nargs='+',
         help="File(s) with estimates (as .txt), can be more than one.")
     return parser.parse_args()
@@ -55,17 +58,15 @@ def plot_estimates(gt,
 
 
 def main():
-    gt = np.loadtxt('', delimiter=" ")
+    """Main runner"""
+    args = parse_args()
+    gt = np.loadtxt(args.ground_truth, delimiter=" ")
 
     # Generate by running `make ISAM2_City10000.run`
-    eh_poses = np.loadtxt('', delimiter=" ")
+    eh_poses = np.loadtxt(args.estimates[0], delimiter=" ")
 
     # Generate by running `make Hybrid_City10000.run`
-    h_poses = np.loadtxt('', delimiter=" ")
-
-    # Plot the same number of GT poses as estimated ones
-    gt = gt[:h_poses.shape[0], :]
-    eh_poses = eh_poses[:h_poses.shape[0], :]
+    h_poses = np.loadtxt(args.estimates[1], delimiter=" ")
 
     plot_estimates(gt,
                    h_poses,
