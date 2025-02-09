@@ -228,7 +228,7 @@ class HybridNonlinearFactorGraph {
   void push_back(gtsam::NonlinearFactor* factor);
   void push_back(gtsam::DiscreteFactor* factor);
   void push_back(const gtsam::HybridNonlinearFactorGraph& graph);
-  //TODO(Varun) Wrap add() methods
+  // TODO(Varun) Wrap add() methods
 
   gtsam::HybridGaussianFactorGraph linearize(
       const gtsam::Values& continuousValues) const;
@@ -283,7 +283,17 @@ class HybridSmoother {
       std::optional<size_t> maxNrLeaves = std::nullopt,
       const std::optional<gtsam::Ordering> given_ordering = std::nullopt);
 
-  HybridValues optimize() const;
+  gtsam::Ordering getOrdering(const gtsam::HybridGaussianFactorGraph& factors,
+                              const gtsam::KeySet& newFactorKeys);
+
+  std::pair<gtsam::HybridGaussianFactorGraph, gtsam::HybridBayesNet>
+  addConditionals(const gtsam::HybridGaussianFactorGraph& graph,
+                  const gtsam::HybridBayesNet& hybridBayesNet) const;
+
+  gtsam::HybridGaussianConditional* gaussianMixture(size_t index) const;
+
+  const gtsam::HybridBayesNet& hybridBayesNet() const;
+  gtsam::HybridValues optimize() const;
 };
 
 }  // namespace gtsam
