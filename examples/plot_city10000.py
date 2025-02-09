@@ -10,8 +10,12 @@ Can be used to plot results from both C++ and python scripts.
 
 Usage:
 ```
-python plot_city10000.py Data/ISAM2_GT_city10000.txt --estimates ../build/examples/ISAM2_city10000.txt ../build/examples/Hybrid_City10000.txt
+python plot_city10000.py Data/ISAM2_GT_city10000.txt \
+    --estimates ../build/examples/ISAM2_city10000.txt ../build/examples/Hybrid_City10000.txt
 ```
+
+NOTE: We can pass in as many estimates as we need,
+though we also need to pass in the same number of --colors and --labels.
 
 You can generate estimates by running
 - `make ISAM2_City10000.run` for the ISAM2 version
@@ -34,6 +38,15 @@ def parse_args():
         "--estimates",
         nargs='+',
         help="File(s) with estimates (as .txt), can be more than one.")
+    parser.add_argument("--labels",
+                        nargs='+',
+                        help="Label to apply to the estimate graph.",
+                        default=("ISAM2", "Hybrid Factor Graphs"))
+    parser.add_argument(
+        "--colors",
+        nargs='+',
+        help="The color to apply to each of the estimate graphs.",
+        default=((0.9, 0.1, 0.1, 0.4), (0.1, 0.1, 0.9, 0.4)))
     return parser.parse_args()
 
 
@@ -77,19 +90,14 @@ def main():
     args = parse_args()
     gt = np.loadtxt(args.ground_truth, delimiter=" ")
 
-    # Default colors and labels, assuming we have only 2 estimates
-    colors = ((0.9, 0.1, 0.1, 0.4), (0.1, 0.1, 0.9, 0.4))
-    labels = ("ISAM2", "Hybrid Factor Graphs")
-
     for i in range(len(args.estimates)):
         h_poses = np.loadtxt(args.estimates[i], delimiter=" ")
-        gt = gt[:h_poses.shape[0]]
-
-        plot_estimates(gt,
+        # Limit ground truth to the number of estimates so the plot looks cleaner
+        plot_estimates(gt[:h_poses.shape[0]],
                        h_poses,
                        i + 1,
-                       estimate_color=colors[i],
-                       estimate_label=labels[i])
+                       estimate_color=args.colors[i],
+                       estimate_label=args.labels[i])
 
     plt.show()
 
