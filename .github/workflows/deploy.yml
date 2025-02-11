@@ -1,10 +1,15 @@
-# This file was created automatically with `myst init --gh-pages` 🪄 💚
+# This file was initialized with `myst init --gh-pages`
 
 name: MyST GitHub Pages Deploy
 on:
   push:
-    # Runs on pushes targeting the default branch
+    # Runs on pushes targeting the develop branch
     branches: [develop]
+    # Only trigger redeploy if Markdown files, notebooks, or config changes
+    paths:
+      - '**.md'
+      - '**.ipynb' 
+      - 'myst.yml'
 env:
   # `BASE_URL` determines the website is served from, including CSS & JS assets
   # You may need to change this to `BASE_URL: ''`
