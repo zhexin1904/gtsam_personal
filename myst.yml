@@ -10,7 +10,7 @@ project:
     - file: INSTALL.md
     - title: Python Reference
       children: 
-        - pattern: './doc/Python Reference/*'
+        - pattern: './doc/PythonReference/*'
 site:
   nav: 
     - title: Getting started
