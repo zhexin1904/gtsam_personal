@@ -8,9 +8,11 @@ project:
   toc:
     - file: README.md
     - file: INSTALL.md
-    - title: Python Reference
+    - title: User Guide
       children: 
-        - pattern: './doc/PythonReference/*'
+      - title: Geometry
+        children:
+        - pattern: './gtsam/geometry/doc/*'
 site:
   nav: 
     - title: Getting started
