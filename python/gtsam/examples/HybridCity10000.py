@@ -147,7 +147,7 @@ class Experiment:
         after_update = time.time()
         return after_update - before_update
 
-    def reInitialize(self) -> float:
+    def reinitialize(self) -> float:
         """Re-linearize, solve ALL, and re-initialize smoother."""
         print(f"================= Re-Initialize: {self.all_factors_.size()}")
         before_update = time.time()
@@ -157,7 +157,7 @@ class Experiment:
         bayesNet = linearized.eliminateSequential()
         delta: HybridValues = bayesNet.optimize()
         self.initial_ = self.initial_.retract(delta.continuous())
-        self.smoother_.reInitialize(bayesNet)
+        self.smoother_.reinitialize(bayesNet)
         after_update = time.time()
         print(f"Took {after_update - before_update} seconds.")
         return after_update - before_update
@@ -240,7 +240,7 @@ class Experiment:
                 update_count += 1
 
                 if update_count % self.relinearization_frequency == 0:
-                    self.reInitialize()
+                    self.reinitialize()
 
             #  Record timing for odometry edges only
             if key_s == key_t - 1:
@@ -271,8 +271,12 @@ class Experiment:
         total_time = end_time - start_time
         print(f"Total time: {total_time} seconds")
 
+        self.save_results(result, key_t + 1, time_list)
+
+    def save_results(self, result, final_key, time_list):
+        """Save results to file."""
         # Write results to file
-        self.write_result(result, key_t + 1, "Hybrid_City10000.txt")
+        self.write_result(result, final_key, "Hybrid_City10000.txt")
 
         # Write timing info to file
         self.write_timing_info(time_list=time_list)
