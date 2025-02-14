@@ -334,6 +334,17 @@ class Experiment:
 
         for idx, assignment in enumerate(all_assignments):
             result = gtsam.Values()
+            gbn = self.smoother_.hybridBayesNet().choose(assignment)
+
+            # Check to see if the GBN has any nullptrs, if it does it is null overall
+            is_invalid_gbn = False
+            for i in range(gbn.size()):
+                if gbn.at(i) is None:
+                    is_invalid_gbn = True
+                    break
+            if is_invalid_gbn:
+                continue
+
             delta = self.smoother_.hybridBayesNet().optimize(assignment)
             result.insert_or_assign(self.initial_.retract(delta))
 
