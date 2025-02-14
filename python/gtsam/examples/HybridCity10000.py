@@ -15,6 +15,7 @@ import time
 
 import numpy as np
 from gtsam.symbol_shorthand import L, M, X
+from matplotlib import pyplot as plt
 
 import gtsam
 from gtsam import (BetweenFactorPose2, HybridNonlinearFactor,
@@ -87,13 +88,52 @@ class City10000Dataset:
             return None, None
 
 
+def plot_estimates(gt,
+                   estimates,
+                   fignum: int,
+                   estimate_color=(0.1, 0.1, 0.9, 0.4),
+                   estimate_label="Hybrid Factor Graphs",
+                   text="graph"):
+    """Plot the City10000 estimates against the ground truth.
+
+    Args:
+        estimates (np.ndarray): The estimates trajectory as xy values.
+        fignum (int): The figure number for multiple plots.
+        estimate_color (tuple, optional): The color to use for the graph of estimates.
+            Defaults to (0.1, 0.1, 0.9, 0.4).
+        estimate_label (str, optional): Label for the estimates, used in the legend.
+            Defaults to "Hybrid Factor Graphs".
+    """
+    fig = plt.figure(fignum)
+    ax = fig.gca()
+    ax.axis('equal')
+    ax.axis((-65.0, 65.0, -75.0, 60.0))
+    ax.plot(gt[:, 0],
+            gt[:, 1],
+            '--',
+            linewidth=1,
+            color=(0.1, 0.7, 0.1, 0.5),
+            label="Ground Truth")
+    ax.plot(estimates[:, 0],
+            estimates[:, 1],
+            '-',
+            linewidth=1,
+            color=estimate_color,
+            label=estimate_label)
+    ax.legend()
+    fig.text(0.3, 0.03, text)
+
+    filename = f"city10000_{text.replace('_', ' ')}.svg"
+    fig.savefig(filename, format="svg")
+
+
 class Experiment:
     """Experiment Class"""
 
     def __init__(self,
                  filename: str,
-                 marginal_threshold: float = 0.9999,
-                 max_loop_count: int = 8000,
+                 marginal_threshold: float = 1.9999,
+                 max_loop_count: int = 100,
                  update_frequency: int = 3,
                  max_num_hypotheses: int = 10,
                  relinearization_frequency: int = 10):
@@ -200,7 +240,7 @@ class Experiment:
             num_measurements = len(pose_array)
 
             # Take the first one as the initial estimate
-            odom_pose = pose_array[0]
+            odom_pose = pose_array[np.random.choice(num_measurements)]
             if key_s == key_t - 1:
                 # Odometry factor
                 if num_measurements > 1:
@@ -271,7 +311,48 @@ class Experiment:
         total_time = end_time - start_time
         print(f"Total time: {total_time} seconds")
 
-        self.save_results(result, key_t + 1, time_list)
+        # self.save_results(result, key_t + 1, time_list)
+
+        # Get all the discrete values
+        discrete_keys = gtsam.DiscreteKeys()
+        for key in delta.discrete().keys():
+            # TODO Get cardinality from DiscreteFactor
+            discrete_keys.push_back((key, 2))
+        print("plotting all hypotheses")
+        self.plot_all_hypotheses(discrete_keys, key_t + 1)
+
+    def plot_all_hypotheses(self, discrete_keys, num_poses):
+        """Plot all possible hypotheses."""
+
+        # Get ground truth
+        gt = np.loadtxt(gtsam.findExampleDataFile("ISAM2_GT_city10000.txt"),
+                        delimiter=" ")
+
+        # print(discrete_keys)
+        # Get all possible assignments
+        all_assignments = gtsam.cartesianProduct(discrete_keys)
+
+        for idx, assignment in enumerate(all_assignments):
+            print(idx)
+            result = gtsam.Values()
+            delta = self.smoother_.hybridBayesNet().optimize(assignment)
+            result.insert_or_assign(self.initial_.retract(delta))
+
+            poses = []
+            for i in range(num_poses):
+                pose = result.atPose2(X(i))
+                poses.append((pose.x(), pose.y(), pose.theta()))
+            poses = np.asarray(poses)
+
+            assignment_string = "_".join([
+                f"{gtsam.DefaultKeyFormatter(k)}={v}"
+                for k, v in assignment.items()
+            ])
+
+            plot_estimates(gt,
+                           estimates=poses,
+                           fignum=idx,
+                           text=assignment_string)
 
     def save_results(self, result, final_key, time_list):
         """Save results to file."""
