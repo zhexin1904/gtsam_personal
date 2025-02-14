@@ -29,6 +29,24 @@ def parse_arguments():
     parser.add_argument("--data_file",
                         help="The path to the City10000 data file",
                         default="T1_city10000_04.txt")
+    parser.add_argument(
+        "--max_loop_count",
+        "-l",
+        type=int,
+        default=10000,
+        help="The maximum number of loops to run over the dataset")
+    parser.add_argument(
+        "--update_frequency",
+        "-u",
+        type=int,
+        default=3,
+        help="After how many steps to run the smoother update.")
+    parser.add_argument(
+        "--max_num_hypotheses",
+        "-m",
+        type=int,
+        default=10,
+        help="The maximum number of hypotheses to keep at any time.")
     return parser.parse_args()
 
 
@@ -407,7 +425,10 @@ def main():
     """Main runner"""
     args = parse_arguments()
 
-    experiment = Experiment(gtsam.findExampleDataFile(args.data_file))
+    experiment = Experiment(gtsam.findExampleDataFile(args.data_file),
+                            max_loop_count=args.max_loop_count,
+                            update_frequency=args.update_frequency,
+                            max_num_hypotheses=args.max_num_hypotheses)
     experiment.run()
 
 
