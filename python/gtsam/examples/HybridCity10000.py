@@ -121,9 +121,9 @@ def plot_estimates(gt,
             color=estimate_color,
             label=estimate_label)
     ax.legend()
-    fig.text(0.3, 0.03, text)
+    fig.text(0.1, 0.03, text)
 
-    filename = f"city10000_{text.replace('_', ' ')}.svg"
+    filename = f"city10000_{text.replace(' ', '_')}.svg"
     fig.savefig(filename, format="svg")
 
 
@@ -133,7 +133,7 @@ class Experiment:
     def __init__(self,
                  filename: str,
                  marginal_threshold: float = 1.9999,
-                 max_loop_count: int = 100,
+                 max_loop_count: int = 150,
                  update_frequency: int = 3,
                  max_num_hypotheses: int = 10,
                  relinearization_frequency: int = 10):
@@ -333,7 +333,6 @@ class Experiment:
         all_assignments = gtsam.cartesianProduct(discrete_keys)
 
         for idx, assignment in enumerate(all_assignments):
-            print(idx)
             result = gtsam.Values()
             delta = self.smoother_.hybridBayesNet().optimize(assignment)
             result.insert_or_assign(self.initial_.retract(delta))
@@ -344,7 +343,7 @@ class Experiment:
                 poses.append((pose.x(), pose.y(), pose.theta()))
             poses = np.asarray(poses)
 
-            assignment_string = "_".join([
+            assignment_string = " ".join([
                 f"{gtsam.DefaultKeyFormatter(k)}={v}"
                 for k, v in assignment.items()
             ])
