@@ -48,6 +48,7 @@ def parse_arguments():
         default=10,
         help="The maximum number of hypotheses to keep at any time.")
     parser.add_argument(
+        "--plot_hypotheses",
         "-p",
         action="store_true",
         help="Plot all hypotheses. NOTE: This is exponential, use with caution."
@@ -173,8 +174,8 @@ class Experiment:
         self.new_factors_ = HybridNonlinearFactorGraph()
         self.all_factors_ = HybridNonlinearFactorGraph()
         self.initial_ = Values()
-        
-        self.plot_hypotheses: = plot_hypotheses
+
+        self.plot_hypotheses = plot_hypotheses
 
     def hybrid_loop_closure_factor(self, loop_counter, key_s, key_t,
                                    measurement: Pose2):
@@ -358,6 +359,10 @@ class Experiment:
                         delimiter=" ")
 
         # Get all possible assignments
+        if discrete_keys.size() > 5:
+            print("Too many discrete keys to plot all hypotheses. Exiting.")
+            exit(0)
+
         all_assignments = gtsam.cartesianProduct(discrete_keys)
 
         for idx, assignment in enumerate(all_assignments):
