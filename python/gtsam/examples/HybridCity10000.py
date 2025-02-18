@@ -64,7 +64,7 @@ prior_noise_model = gtsam.noiseModel.Diagonal.Sigmas(
     np.asarray([0.0001, 0.0001, 0.0001]))
 
 pose_noise_model = gtsam.noiseModel.Diagonal.Sigmas(
-    np.asarray([1.0 / 30.0, 1.0 / 30.0, 1.0 / 100.0]))
+    np.asarray([1.0 / 20.0, 1.0 / 20.0, 1.0 / 100.0]))
 pose_noise_constant = pose_noise_model.negLogConstant()
 
 
