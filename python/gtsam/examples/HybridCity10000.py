@@ -85,12 +85,15 @@ class City10000Dataset:
         """Read a `line` from the dataset, separated by the `delimiter`."""
         return line.split(delimiter)
 
-    def parse_line(self, line: str) -> tuple[list[Pose2], tuple[int, int]]:
+    def parse_line(self,
+                   line: str) -> tuple[list[Pose2], tuple[int, int], bool]:
         """Parse line from file"""
         parts = self.read_line(line)
 
         key_s = int(parts[1])
         key_t = int(parts[3])
+
+        is_ambiguous_loop = bool(int(parts[4]))
 
         num_measurements = int(parts[5])
         pose_array = [Pose2()] * num_measurements
@@ -101,7 +104,7 @@ class City10000Dataset:
             rad = float(parts[8 + 3 * i])
             pose_array[i] = Pose2(x, y, rad)
 
-        return pose_array, (key_s, key_t)
+        return pose_array, (key_s, key_t), is_ambiguous_loop
 
     def next(self):
         """Read and parse the next line."""
@@ -126,7 +129,6 @@ def plot_all_results(ground_truth,
         estimate_label (str, optional): Label for the estimates, used in the legend.
             Defaults to "Hybrid Factor Graphs".
     """
-    print(len(all_results))
     fig, axes = plt.subplots(int(np.ceil(len(all_results) / 2)), 2)
     for i, (estimates, text) in enumerate(all_results):
         ax = axes[i]
@@ -259,7 +261,7 @@ class Experiment:
         start_time = time.time()
 
         while index < self.max_loop_count:
-            pose_array, keys = self.dataset_.next()
+            pose_array, keys, is_ambiguous_loop = self.dataset_.next()
             if pose_array is None:
                 break
             key_s = keys[0]
@@ -293,8 +295,14 @@ class Experiment:
                     self.initial_.atPose2(X(key_s)) * odom_pose)
             else:
                 # Loop closure
-                loop_factor = self.hybrid_loop_closure_factor(
-                    loop_count, key_s, key_t, odom_pose)
+                if is_ambiguous_loop:
+                    loop_factor = self.hybrid_loop_closure_factor(
+                        loop_count, key_s, key_t, odom_pose)
+
+                else:
+                    loop_factor = BetweenFactorPose2(X(key_s), X(key_t),
+                                                     odom_pose,
+                                                     pose_noise_model)
 
                 # print loop closure event keys:
                 print(f"Loop closure: {key_s} {key_t}")
