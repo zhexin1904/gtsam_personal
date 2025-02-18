@@ -118,7 +118,8 @@ class City10000Dataset:
 def plot_all_results(ground_truth,
                      all_results,
                      estimate_color=(0.1, 0.1, 0.9, 0.4),
-                     estimate_label="Hybrid Factor Graphs"):
+                     estimate_label="Hybrid Factor Graphs",
+                     text=""):
     """Plot the City10000 estimates against the ground truth.
 
     Args:
@@ -130,7 +131,7 @@ def plot_all_results(ground_truth,
             Defaults to "Hybrid Factor Graphs".
     """
     fig, axes = plt.subplots(int(np.ceil(len(all_results) / 2)), 2)
-    for i, (estimates, text) in enumerate(all_results):
+    for i, (estimates, s) in enumerate(all_results):
         ax = axes[i]
         ax.axis('equal')
         ax.axis((-75.0, 75.0, -75.0, 75.0))
@@ -149,7 +150,11 @@ def plot_all_results(ground_truth,
                 color=estimate_color,
                 label=estimate_label)
         ax.legend()
-        ax.text(0.0, 100.0, text)
+        ax.text(0.0, 100.0, s)
+
+    num_chunks = int(np.ceil(len(text) / 90))
+    text = "\n".join(text[i * 60:(i + 1) * 60] for i in range(num_chunks))
+    fig.text(0.0, 0.015, s=text)
 
     fig.savefig("city10000_results.svg", format="svg")
 
@@ -371,6 +376,9 @@ class Experiment:
             key, cardinality = discrete_keys.at(i)
             if key not in self.smoother_.fixedValues().keys():
                 dkeys.push_back((key, cardinality))
+        fixed_values_str = "_".join(
+            f"{gtsam.DefaultKeyFormatter(k)}:{v}"
+            for k, v in self.smoother_.fixedValues().items())
 
         all_assignments = gtsam.cartesianProduct(dkeys)
 
@@ -402,7 +410,7 @@ class Experiment:
             ])
             all_results.append((poses, assignment_string))
 
-        plot_all_results(gt, all_results)
+        plot_all_results(gt, all_results, text=fixed_values_str)
 
     def save_results(self, result, final_key, time_list):
         """Save results to file."""
