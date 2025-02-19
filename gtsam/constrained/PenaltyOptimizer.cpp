@@ -11,6 +11,7 @@
  * @author: Yetong Zhang
  */
 
+#include <iomanip>
 #include <gtsam/constrained/PenaltyOptimizer.h>
 
 using std::setw, std::cout, std::endl, std::setprecision;

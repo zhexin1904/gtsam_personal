@@ -16,6 +16,7 @@
  * @date    Aug 3, 2024
  */
 
+#include <iomanip>
 #include <gtsam/constrained/AugmentedLagrangianOptimizer.h>
 #include <gtsam/constrained/BiasedFactor.h>
 #include <gtsam/slam/AntiFactor.h>
