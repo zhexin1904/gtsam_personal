@@ -18,11 +18,9 @@
 
 #pragma once
 
-// #include <gtsam/constrained/ConstrainedOptProblem.h>
+#include <gtsam/constrained/ConstrainedOptProblem.h>
 #include <gtsam/nonlinear/expressions.h>
 #include <gtsam/slam/BetweenFactor.h>
-#include <gtsam/constrained/NonlinearEqualityConstraint.h>
-#include <gtsam/constrained/NonlinearInequalityConstraint.h>
 
 namespace constrained_example {
 
