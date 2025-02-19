@@ -73,10 +73,17 @@ class GTSAM_EXPORT PenaltyOptimizer : public ConstrainedOptimizer {
   mutable Progress progress_;
 
  public:
-  /// Default constructor.
-  PenaltyOptimizer(ConstrainedOptProblem::shared_ptr problem,
+  /// Constructor.
+  PenaltyOptimizer(const ConstrainedOptProblem& problem,
+                   const Values& init_values,
                    Params::shared_ptr p = std::make_shared<Params>())
-      : Base(problem), p_(p), progress_() {}
+      : Base(problem, init_values), p_(p), progress_() {}
+
+  /// Constructor that packs costs and constraints into a single factor graph.
+  PenaltyOptimizer(const NonlinearFactorGraph& graph,
+                   const Values& init_values,
+                   Params::shared_ptr p = std::make_shared<Params>())
+      : Base(graph, init_values), p_(p), progress_() {}
 
   /// Run optimization with equality constraints only.
   Values optimize() const override;

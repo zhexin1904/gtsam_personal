@@ -50,8 +50,7 @@ class GTSAM_EXPORT ConstrainedOptimizerState {
 
   ConstrainedOptimizerState(const size_t _iteration) : iteration(_iteration) {}
 
-  ConstrainedOptimizerState(const size_t _iteration,
-                            const Values& _values,
+  ConstrainedOptimizerState(const size_t _iteration, const Values& _values,
                             const ConstrainedOptProblem& problem)
       : iteration(_iteration), values(_values) {
     std::tie(cost, violation_e, violation_i) = problem.evaluate(_values);
@@ -62,7 +61,9 @@ class GTSAM_EXPORT ConstrainedOptimizerState {
     std::tie(cost, violation_e, violation_i) = problem.evaluate(_values);
   }
 
-  double violation() const { return sqrt(pow(violation_e, 2) + pow(violation_i, 2)); }
+  double violation() const {
+    return sqrt(pow(violation_e, 2) + pow(violation_i, 2));
+  }
 };
 
 /** Base class for constrained optimizer. */
@@ -73,14 +74,23 @@ class GTSAM_EXPORT ConstrainedOptimizer {
   typedef ConstrainedOptimizerState State;
 
  protected:
-  ConstrainedOptProblem::shared_ptr problem_;
+  ConstrainedOptProblem problem_;
+  Values init_values_;
 
  public:
   /** Default constructor. */
   ConstrainedOptimizer() {}
 
   /** Constructor. */
-  ConstrainedOptimizer(ConstrainedOptProblem::shared_ptr problem) : problem_(problem) {}
+  ConstrainedOptimizer(const ConstrainedOptProblem& problem,
+                       const Values& init_values)
+      : problem_(problem), init_values_(init_values) {}
+
+  /** Constructor that packs the cost and constraints into a single factor
+   * graph. */
+  ConstrainedOptimizer(const NonlinearFactorGraph& graph,
+                       const Values& init_values)
+      : problem_(graph), init_values_(init_values) {}
 
   virtual ~ConstrainedOptimizer() {}
 
@@ -88,8 +98,7 @@ class GTSAM_EXPORT ConstrainedOptimizer {
   virtual Values optimize() const = 0;
 
  protected:
-  virtual bool checkConvergence(const State& state,
-                                const State& prev_state,
+  virtual bool checkConvergence(const State& state, const State& prev_state,
                                 const Params& params) const {
     if (state.iteration >= params.max_iterations) {
       return true;
@@ -100,7 +109,8 @@ class GTSAM_EXPORT ConstrainedOptimizer {
       return true;
     }
 
-    if (abs(state.violation() - prev_state.violation()) < params.relative_violation_tolerance &&
+    if (abs(state.violation() - prev_state.violation()) <
+            params.relative_violation_tolerance &&
         abs(state.cost - prev_state.cost) < params.relative_cost_tolerance) {
       return true;
     }

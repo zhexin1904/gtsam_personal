@@ -30,7 +30,7 @@ PenaltyOptimizer::State PenaltyOptimizer::iterate(const State& state) const {
 
   // Run unconstrained optimization.
   auto optimizer = createUnconstrainedOptimizer(merit_graph, state.values);
-  new_state.setValues(optimizer->optimize(), *problem_);
+  new_state.setValues(optimizer->optimize(), problem_);
   new_state.unconstrained_iters = optimizer->iterations();
 
   return new_state;
@@ -40,7 +40,7 @@ PenaltyOptimizer::State PenaltyOptimizer::iterate(const State& state) const {
 Values PenaltyOptimizer::optimize() const {
   /// Construct initial state
   State prev_state;
-  State state(0, problem_->initialValues(), *problem_);
+  State state(0, init_values_, problem_);
   LogInit(state);
 
   do {
@@ -54,9 +54,9 @@ Values PenaltyOptimizer::optimize() const {
 
 /* ********************************************************************************************* */
 NonlinearFactorGraph PenaltyOptimizer::meritFunction(const double mu_e, const double mu_i) const {
-  NonlinearFactorGraph graph = problem_->costs();
-  graph.add(problem_->eConstraints().penaltyGraph(mu_e));
-  graph.add(problem_->iConstraints().penaltyGraphCustom(p_->i_penalty_function, mu_i));
+  NonlinearFactorGraph graph = problem_.costs();
+  graph.add(problem_.eConstraints().penaltyGraph(mu_e));
+  graph.add(problem_.iConstraints().penaltyGraphCustom(p_->i_penalty_function, mu_i));
   return graph;
 }
 

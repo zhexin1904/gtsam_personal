@@ -117,8 +117,7 @@ NonlinearFactorGraph costs = Cost();
 NonlinearEqualityConstraints e_constraints = EqConstraints();
 NonlinearInequalityConstraints i_constraints;
 Values init_values = InitValues();
-ConstrainedOptProblem::shared_ptr problem =
-    std::make_shared<ConstrainedOptProblem>(costs, e_constraints, i_constraints, init_values);
+ConstrainedOptProblem problem(costs, e_constraints, i_constraints);
 Values optimal_values = OptimalValues();
 }  // namespace constrained_example1
 
@@ -174,8 +173,7 @@ NonlinearFactorGraph costs = Cost();
 NonlinearEqualityConstraints e_constraints = EqConstraints();
 NonlinearInequalityConstraints i_constraints = IneqConstraints();
 Values init_values = InitValues();
-ConstrainedOptProblem::shared_ptr problem =
-    std::make_shared<ConstrainedOptProblem>(costs, e_constraints, i_constraints, init_values);
+ConstrainedOptProblem problem(costs, e_constraints, i_constraints);
 Values optimal_values = OptimalValues();
 
 }  // namespace constrained_example2

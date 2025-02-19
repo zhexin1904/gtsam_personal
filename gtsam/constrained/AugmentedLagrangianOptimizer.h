@@ -76,10 +76,17 @@ class AugmentedLagrangianOptimizer : public ConstrainedOptimizer {
   mutable Progress progress_;
 
  public:
-  /// Constructor from parameters.
-  AugmentedLagrangianOptimizer(ConstrainedOptProblem::shared_ptr problem,
+  /// Constructor.
+  AugmentedLagrangianOptimizer(const ConstrainedOptProblem& problem,
+                               const Values& init_values,
                                Params::shared_ptr p = std::make_shared<Params>())
-      : Base(problem), p_(p), progress_() {}
+      : Base(problem, init_values), p_(p), progress_() {}
+
+  /// Constructor that packs costs and constraints into a single factor graph.
+  AugmentedLagrangianOptimizer(const NonlinearFactorGraph& graph,
+                               const Values& init_values,
+                               Params::shared_ptr p = std::make_shared<Params>())
+      : Base(graph, init_values), p_(p), progress_() {}
 
   /// Run optimization with equality constraints only.
   Values optimize() const override;

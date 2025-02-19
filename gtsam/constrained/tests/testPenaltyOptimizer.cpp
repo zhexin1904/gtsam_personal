@@ -24,7 +24,7 @@ TEST(PenaltyOptimizer, constrained_example1) {
 
   auto params = std::make_shared<PenaltyOptimizerParams>();
   params->verbose = true;
-  PenaltyOptimizer optimizer(problem, params);
+  PenaltyOptimizer optimizer(problem, init_values, params);
   Values results = optimizer.optimize();
 
   /// Check the result is correct within tolerance.
@@ -37,11 +37,31 @@ TEST(PenaltyOptimizer, constrained_example2) {
 
   auto params = std::make_shared<PenaltyOptimizerParams>();
   params->verbose = true;
-  PenaltyOptimizer optimizer(problem, params);
-  Values results = optimizer.optimize();
 
-  /// Check the result is correct within tolerance.
-  EXPECT(assert_equal(optimal_values, results, 1e-4));
+  {
+    PenaltyOptimizer optimizer(problem, init_values, params);
+    Values results = optimizer.optimize();
+
+    /// Check the result is correct within tolerance.
+    EXPECT(assert_equal(optimal_values, results, 1e-4));
+  }
+
+  // Check constructor from a single factor graph works
+  {
+    NonlinearFactorGraph graph = costs;
+    for (const auto& factor: e_constraints) {
+      graph.push_back(factor);
+    }
+    for (const auto& factor: i_constraints) {
+      graph.push_back(factor);
+    }
+    PenaltyOptimizer optimizer(graph, init_values, params);
+    Values results = optimizer.optimize();
+
+    /// Check the result is correct within tolerance.
+    EXPECT(assert_equal(optimal_values, results, 1e-4));
+  }
+
 }
 
 int main() {

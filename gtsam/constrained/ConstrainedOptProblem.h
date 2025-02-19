@@ -40,28 +40,30 @@ class GTSAM_EXPORT ConstrainedOptProblem {
   NonlinearFactorGraph costs_;                    // cost function, ||f(X)||^2
   NonlinearEqualityConstraints e_constraints_;    // equality constraints, h(X)=0
   NonlinearInequalityConstraints i_constraints_;  // inequality constraints, g(X)<=0
-  Values values_;                                 // initial value estimates of X
 
  public:
+  /** Default constructor. */
+  ConstrainedOptProblem() {}
+
+  /** Constructor that packs cost and constraints into a single factor graph. */
+  ConstrainedOptProblem(const NonlinearFactorGraph& graph);
+
   /** Constructor with both equality and inequality constraints. */
   ConstrainedOptProblem(const NonlinearFactorGraph& costs,
                         const NonlinearEqualityConstraints& e_constraints,
-                        const NonlinearInequalityConstraints& i_constraints,
-                        const Values& values = Values());
+                        const NonlinearInequalityConstraints& i_constraints);
 
   /** Constructor with equality constraints only. */
   static ConstrainedOptProblem EqConstrainedOptProblem(
       const NonlinearFactorGraph& costs,
-      const NonlinearEqualityConstraints& e_constraints,
-      const Values& values = Values()) {
-    return ConstrainedOptProblem(costs, e_constraints, NonlinearInequalityConstraints(), values);
+      const NonlinearEqualityConstraints& e_constraints) {
+    return ConstrainedOptProblem(costs, e_constraints, NonlinearInequalityConstraints());
   }
 
   /** Member variable access functions. */
   const NonlinearFactorGraph& costs() const { return costs_; }
   const NonlinearEqualityConstraints& eConstraints() const { return e_constraints_; }
   const NonlinearInequalityConstraints& iConstraints() const { return i_constraints_; }
-  const Values& initialValues() const { return values_; }
 
   /** Evaluate cost and constraint violations.
    * Return a tuple representing (cost, e-constraint violation, i-constraint violation).
@@ -74,7 +76,7 @@ class GTSAM_EXPORT ConstrainedOptProblem {
    * total dimension of inequality constraints,
    * total dimension of variables.
    */
-  std::tuple<size_t, size_t, size_t, size_t> dim() const;
+  std::tuple<size_t, size_t, size_t> dim() const;
 
   /** Base class to generate keys for auxiliary variables. */
   class GTSAM_EXPORT AuxiliaryKeyGenerator {
@@ -94,10 +96,11 @@ class GTSAM_EXPORT ConstrainedOptProblem {
     }
   };
 
-  /// Equivalent equality-constrained optimization probelm with auxiliary
+  /// Equivalent equality-constrained optimization problem with auxiliary
   /// variables z. Inequality constraints g(x)<=0 are transformed into equality
   /// constraints g(x)+z^2=0.
-  ConstrainedOptProblem auxiliaryProblem(const AuxiliaryKeyGenerator& generator) const;
+  std::pair<ConstrainedOptProblem, Values> auxiliaryProblem(
+      const Values& values, const AuxiliaryKeyGenerator& generator) const;
 };
 
 }  // namespace gtsam

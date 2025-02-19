@@ -51,7 +51,7 @@ AugmentedLagrangianOptimizer::iterate(const State& state,
 
   // Run unconstrained optimization.
   auto optimizer = createUnconstrainedOptimizer(dual_graph, state.values);
-  new_state.setValues(optimizer->optimize(), *problem_);
+  new_state.setValues(optimizer->optimize(), problem_);
   new_state.unconstrained_iters = optimizer->iterations();
 
   // Update penalty parameters for next iteration.
@@ -65,8 +65,8 @@ AugmentedLagrangianOptimizer::iterate(const State& state,
 Values AugmentedLagrangianOptimizer::optimize() const {
   /// Construct initial state
   State prev_state;
-  State state(0, problem_->initialValues(), *problem_);
-  state.initializeLagrangeMultipliers(*problem_);
+  State state(0, init_values_, problem_);
+  state.initializeLagrangeMultipliers(problem_);
   LogInit(state);
 
   /// Set penalty parameters for the first iteration.
@@ -87,10 +87,10 @@ Values AugmentedLagrangianOptimizer::optimize() const {
 NonlinearFactorGraph AugmentedLagrangianOptimizer::LagrangeDualFunction(
     const State& state, const double epsilon) const {
   // Initialize by adding in cost factors.
-  NonlinearFactorGraph graph = problem_->costs();
+  NonlinearFactorGraph graph = problem_.costs();
 
   // Create factors corresponding to equality constraints.
-  const NonlinearEqualityConstraints& e_constraints = problem_->eConstraints();
+  const NonlinearEqualityConstraints& e_constraints = problem_.eConstraints();
   const double& mu_e = state.mu_e;
   for (size_t i = 0; i < e_constraints.size(); i++) {
     const auto& constraint = e_constraints.at(i);
@@ -100,7 +100,7 @@ NonlinearFactorGraph AugmentedLagrangianOptimizer::LagrangeDualFunction(
   }
 
   // Create factors corresponding to penalty terms of inequality constraints.
-  const NonlinearInequalityConstraints& i_constraints = problem_->iConstraints();
+  const NonlinearInequalityConstraints& i_constraints = problem_.iConstraints();
   const double& mu_i = state.mu_i;
   graph.add(i_constraints.penaltyGraphCustom(p_->i_penalty_function, mu_i));
 
@@ -120,7 +120,7 @@ NonlinearFactorGraph AugmentedLagrangianOptimizer::LagrangeDualFunction(
 void AugmentedLagrangianOptimizer::updateLagrangeMultiplier(const State& prev_state,
                                                             State& state) const {
   // Perform dual ascent on Lagrange multipliers for e-constriants.
-  const NonlinearEqualityConstraints& e_constraints = problem_->eConstraints();
+  const NonlinearEqualityConstraints& e_constraints = problem_.eConstraints();
   state.lambda_e.resize(e_constraints.size());
   for (size_t i = 0; i < e_constraints.size(); i++) {
     const auto& constraint = e_constraints.at(i);
@@ -132,7 +132,7 @@ void AugmentedLagrangianOptimizer::updateLagrangeMultiplier(const State& prev_st
   }
 
   // Perform dual ascent on Lagrange multipliers for i-constriants.
-  const NonlinearInequalityConstraints& i_constraints = problem_->iConstraints();
+  const NonlinearInequalityConstraints& i_constraints = problem_.iConstraints();
   state.lambda_i.resize(i_constraints.size());
   // Update Lagrangian multipliers.
   for (size_t i = 0; i < i_constraints.size(); i++) {
@@ -148,13 +148,13 @@ void AugmentedLagrangianOptimizer::updateLagrangeMultiplier(const State& prev_st
 std::pair<double, double> AugmentedLagrangianOptimizer::updatePenaltyParameter(
     const State& prev_state, const State& state) const {
   double mu_e = state.mu_e;
-  if (problem_->eConstraints().size() > 0 &&
+  if (problem_.eConstraints().size() > 0 &&
       state.violation_e >= p_->mu_increase_threshold * prev_state.violation_e) {
     mu_e *= p_->mu_e_increase_rate;
   }
 
   double mu_i = state.mu_i;
-  if (problem_->iConstraints().size() > 0 &&
+  if (problem_.iConstraints().size() > 0 &&
       state.violation_i >= p_->mu_increase_threshold * prev_state.violation_i) {
     mu_i *= p_->mu_i_increase_rate;
   }

@@ -44,19 +44,33 @@ bool CheckPureCost(const NonlinearFactorGraph& graph) {
 /* ********************************************************************************************* */
 ConstrainedOptProblem::ConstrainedOptProblem(const NonlinearFactorGraph& costs,
                                              const NonlinearEqualityConstraints& e_constraints,
-                                             const NonlinearInequalityConstraints& i_constraints,
-                                             const Values& values)
-    : costs_(costs), e_constraints_(e_constraints), i_constraints_(i_constraints), values_(values) {
+                                             const NonlinearInequalityConstraints& i_constraints)
+    : costs_(costs), e_constraints_(e_constraints), i_constraints_(i_constraints) {
   if (!CheckPureCost(costs)) {
     throw std::runtime_error(
         "Cost contains factors with constrained noise model. They should be moved to constraints.");
   }
 }
 
+ConstrainedOptProblem::ConstrainedOptProblem(const NonlinearFactorGraph& graph) {
+  for (const auto& factor: graph) {
+    if (NonlinearEqualityConstraint::shared_ptr f = std::dynamic_pointer_cast<NonlinearEqualityConstraint>(factor)) {
+      e_constraints_.push_back(f);
+    }
+    else if (NonlinearInequalityConstraint::shared_ptr f = std::dynamic_pointer_cast<NonlinearInequalityConstraint>(factor)) {
+      i_constraints_.push_back(f);
+    }
+    else {
+      costs_.push_back(factor);
+    }
+  }
+
+}
+
 /* ********************************************************************************************* */
-std::tuple<size_t, size_t, size_t, size_t> ConstrainedOptProblem::dim() const {
+std::tuple<size_t, size_t, size_t> ConstrainedOptProblem::dim() const {
   return {
-      GraphDimension(costs()), eConstraints().dim(), iConstraints().dim(), initialValues().dim()};
+      GraphDimension(costs()), eConstraints().dim(), iConstraints().dim()};
 }
 
 /* ********************************************************************************************* */
@@ -67,14 +81,14 @@ std::tuple<double, double, double> ConstrainedOptProblem::evaluate(const Values&
 }
 
 /* ********************************************************************************************* */
-ConstrainedOptProblem ConstrainedOptProblem::auxiliaryProblem(
-    const AuxiliaryKeyGenerator& generator) const {
+std::pair<ConstrainedOptProblem, Values> ConstrainedOptProblem::auxiliaryProblem(
+    const Values& values, const AuxiliaryKeyGenerator& generator) const {
   if (iConstraints().size() == 0) {
-    return *this;
+    return {*this, values};
   }
 
   NonlinearEqualityConstraints new_e_constraints = eConstraints();
-  Values new_values = initialValues();
+  Values new_values = values;
 
   size_t k = 0;
   for (const auto& i_constraint : iConstraints()) {
@@ -90,15 +104,15 @@ ConstrainedOptProblem ConstrainedOptProblem::auxiliaryProblem(
           equality_expr, 0.0, p->noiseModel()->sigmas());
 
       // Compute initial value for auxiliary key.
-      if (!i_constraint->feasible(initialValues())) {
+      if (!i_constraint->feasible(values)) {
         new_values.insert(aux_key, 0.0);
       } else {
-        Vector gap = i_constraint->unwhitenedExpr(initialValues());
+        Vector gap = i_constraint->unwhitenedExpr(values);
         new_values.insert(aux_key, sqrt(-gap(0)));
       }
     }
   }
-  return ConstrainedOptProblem::EqConstrainedOptProblem(costs_, new_e_constraints, new_values);
+  return {ConstrainedOptProblem::EqConstrainedOptProblem(costs_, new_e_constraints), new_values};
 }
 
 /* ********************************************************************************************* */

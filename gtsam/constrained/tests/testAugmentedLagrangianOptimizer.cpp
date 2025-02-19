@@ -68,7 +68,7 @@ TEST(LagrangeDualFunction, constrained_example1) {
 
   // Construct optimizer
   auto params = std::make_shared<AugmentedLagrangianParams>();
-  AugmentedLagrangianOptimizer optimizer(problem, params);
+  AugmentedLagrangianOptimizer optimizer(problem, init_values, params);
 
   AugmentedLagrangianState state;
   state.lambda_e.emplace_back(Vector1(0.3));
@@ -90,7 +90,7 @@ TEST(LagrangeDualFunction, constrained_example2) {
 
   // Construct optimizer
   auto params = std::make_shared<AugmentedLagrangianParams>();
-  AugmentedLagrangianOptimizer optimizer(problem, params);
+  AugmentedLagrangianOptimizer optimizer(problem, init_values, params);
 
   AugmentedLagrangianState state;
   state.lambda_e.emplace_back(Vector1(0.3));
@@ -132,7 +132,7 @@ TEST(AugmentedLagrangianOptimizer, constrained_example1) {
 
   auto params = std::make_shared<AugmentedLagrangianParams>();
   params->verbose = true;
-  AugmentedLagrangianOptimizer optimizer(problem, params);
+  AugmentedLagrangianOptimizer optimizer(problem, init_values, params);
   Values results = optimizer.optimize();
 
   /// Check the result is correct within tolerance.
@@ -145,7 +145,7 @@ TEST(AugmentedLagrangianOptimizer, constrained_example2) {
 
   auto params = std::make_shared<AugmentedLagrangianParams>();
   params->verbose = true;
-  AugmentedLagrangianOptimizer optimizer(problem, params);
+  AugmentedLagrangianOptimizer optimizer(problem, init_values, params);
   Values results = optimizer.optimize();
 
   /// Check the result is correct within tolerance.
