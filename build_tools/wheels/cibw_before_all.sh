@@ -40,4 +40,4 @@ cmake $PROJECT_DIR \
     -DCMAKE_INSTALL_PREFIX=$PROJECT_DIR/gtsam_install
 
 cd $PROJECT_DIR/build/python
-make -j$(nproc) install
+make -j $(nproc) install
