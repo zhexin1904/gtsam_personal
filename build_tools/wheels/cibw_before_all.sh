@@ -37,3 +37,6 @@ cmake $PROJECT_DIR \
     -DPYTHON_EXECUTABLE:FILEPATH=$(which $PYTHON) \
     -DGTSAM_ALLOW_DEPRECATED_SINCE_V43=OFF \
     -DCMAKE_INSTALL_PREFIX=$PROJECT_DIR/gtsam_install
+
+cd $PROJECT_DIR/build/python
+make install
