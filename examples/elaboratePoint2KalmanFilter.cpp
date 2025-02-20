@@ -33,6 +33,7 @@
 
 using namespace std;
 using namespace gtsam;
+using symbol_shorthand::X;
 
 int main() {
 
@@ -54,18 +55,20 @@ int main() {
   // i.e., we should get 0,0  0,1  0,2 if there is no noise
 
   // Create new state variable
-  Symbol x0('x',0);
+  Key x0 = X(0);
   ordering->push_back(x0);
 
   // Initialize state x0 (2D point) at origin by adding a prior factor, i.e., Bayes net P(x0)
   // This is equivalent to x_0 and P_0
   Point2 x_initial(0,0);
-  SharedDiagonal P_initial = noiseModel::Diagonal::Sigmas((gtsam::Vector2() << 0.1, 0.1).finished());
+  SharedDiagonal P_initial = noiseModel::Isotropic::Sigma(2, 0.1);
 
    // Create a JacobianFactor directly - this represents the prior constraint on x0
-   JacobianFactor::shared_ptr factor1(
-	new JacobianFactor(x0, P_initial->R(), Vector::Zero(2),
-	  noiseModel::Unit::Create(2)));
+   auto factor1 = std::make_shared<JacobianFactor>(
+    x0, 
+    P_initial->R(), 
+    Vector::Zero(2),
+    noiseModel::Unit::Create(2));
   
   // Linearize the factor and add it to the linear factor graph
   linearizationPoints.insert(x0, x_initial);
@@ -91,11 +94,11 @@ int main() {
   // so, difference = x_{t+1} - x_{t} = F*x_{t} + B*u_{t} - I*x_{t}
   //                                  = (F - I)*x_{t} + B*u_{t}
   //                                  = B*u_{t} (for our example)
-  Symbol x1('x',1);
+  Key x1 = X(1);
   ordering->push_back(x1);
 
   Point2 difference(1,0);
-  SharedDiagonal Q = noiseModel::Diagonal::Sigmas((gtsam::Vector2() << 0.1, 0.1).finished());
+  SharedDiagonal Q = noiseModel::Isotropic::Sigma(2, 0.1);
   BetweenFactor<Point2> factor2(x0, x1, difference, Q);
   // Linearize the factor and add it to the linear factor graph
   linearizationPoints.insert(x1, x_initial);
@@ -119,7 +122,7 @@ int main() {
 
   // Extract the current estimate of x1,P1 from the Bayes Network
   VectorValues result = bayesNet->optimize();
-  Point2 x1_predict = linearizationPoints.at<Point2>(x1) + Point2(result[x1]);
+  Point2 x1_predict = linearizationPoints.at<Point2>(x1) + result[x1];
   traits<Point2>::Print(x1_predict, "X1 Predict");
 
   // Update the new linearization point to the new estimate
@@ -143,11 +146,11 @@ int main() {
   //                              -> b'' = b' - F(dx1' - dx1'')
   //                              = || F*dx1'' - (b'  - F(dx1' - dx1'')) ||^2
   //                              = || F*dx1'' - (b'  - F(x_predict - x_inital)) ||^2
-  JacobianFactor::shared_ptr newPrior(new JacobianFactor(
+  auto newPrior = std::make_shared<JacobianFactor>(
     x1, 
     x1Conditional->R(),
     x1Conditional->d() - x1Conditional->R() * result[x1],
-    x1Conditional->get_model()));
+    x1Conditional->get_model());
 
   // Ensure correct number of rows, that there is one variable, and that variable is x1
   assert(newPrior->rows() == x1Conditional->R().rows());
@@ -183,7 +186,7 @@ int main() {
   //    = (x_{t} - z_{t}) * R^-1 * (x_{t} - z_{t})^T
   // This can be modeled using the PriorFactor, where the mean is z_{t} and the covariance is R.
   Point2 z1(1.0, 0.0);
-  SharedDiagonal R1 = noiseModel::Diagonal::Sigmas((gtsam::Vector2() << 0.25, 0.25).finished());
+  SharedDiagonal R1 = noiseModel::Isotropic::Sigma(2, 0.25);
   PriorFactor<Point2> factor4(x1, z1, R1);
   // Linearize the factor and add it to the linear factor graph
   linearFactorGraph->push_back(factor4.linearize(linearizationPoints));
@@ -201,7 +204,7 @@ int main() {
 
   // Extract the current estimate of x1 from the Bayes Network
   VectorValues updatedResult = updatedBayesNet->optimize();
-  Point2 x1_update = linearizationPoints.at<Point2>(x1) + Point2(updatedResult[x1]);
+  Point2 x1_update = linearizationPoints.at<Point2>(x1) + updatedResult[x1];
   traits<Point2>::Print(x1_update, "X1 Update");
 
   // Update the linearization point to the new estimate
@@ -219,11 +222,11 @@ int main() {
   // Convert the root conditional, P(x1) in this case, into a Prior for the next step
   // The linearization point of this prior must be moved to the new estimate of x, and the key/index needs to be reset to 0,
   // the first key in the next iteration
-  JacobianFactor::shared_ptr updatedPrior(new JacobianFactor(
+  auto updatedPrior = std::make_shared<JacobianFactor>(
     x1, 
     updatedConditional->R(),
     updatedConditional->d() - updatedConditional->R() * updatedResult[x1],
-    updatedConditional->get_model()));
+    updatedConditional->get_model());
  
   // Ensure correct number of rows, that there is one variable, and that variable is x1
   assert(updatedPrior->rows() == updatedConditional->R().rows());
@@ -233,7 +236,7 @@ int main() {
   linearFactorGraph->push_back(updatedPrior);
 
   // Create a key for the new state
-  Symbol x2('x',2);
+  Key x2 = X(2);
 
   // Create the desired ordering
   ordering = Ordering::shared_ptr(new Ordering);
@@ -242,7 +245,7 @@ int main() {
   
   // Create a nonlinear factor describing the motion model (moving right again)
   Point2 difference2(1,0);
-  SharedDiagonal Q2 = noiseModel::Diagonal::Sigmas((gtsam::Vector2() << 0.1, 0.1).finished());
+  SharedDiagonal Q2 = noiseModel::Isotropic::Sigma(2, 0.1);
   BetweenFactor<Point2> factor6(x1, x2, difference2, Q2);
 
   // Linearize the factor and add it to the linear factor graph
@@ -255,7 +258,7 @@ int main() {
    
   // Extract the predicted state
   VectorValues prediction2Result = predictionBayesNet2->optimize();
-  Point2 x2_predict = linearizationPoints.at<Point2>(x2) + Point2(prediction2Result[x2]);
+  Point2 x2_predict = linearizationPoints.at<Point2>(x2) + prediction2Result[x2];
   traits<Point2>::Print(x2_predict, "X2 Predict");
 
   // Update the linearization point to the new estimate
@@ -266,11 +269,11 @@ int main() {
   linearFactorGraph = GaussianFactorGraph::shared_ptr(new GaussianFactorGraph);
 
   // Convert the root conditional, P(x1) in this case, into a Prior for the next step
-  JacobianFactor::shared_ptr prior2(new JacobianFactor(
+  auto prior2 = std::make_shared<JacobianFactor>(
     x2, 
     x2Conditional->R(),
-	x2Conditional->d() - x2Conditional->R() * prediction2Result[x2],
-	x2Conditional->get_model()));
+    x2Conditional->d() - x2Conditional->R() * prediction2Result[x2],
+    x2Conditional->get_model());
 
   assert(prior2->rows() == x2Conditional->R().rows());
   assert(prior2->size() == 1);
@@ -303,7 +306,7 @@ int main() {
 
   // Extract the current estimate of x2 from the Bayes Network
   VectorValues updatedResult2 = updatedBayesNet2->optimize();
-  Point2 x2_update = linearizationPoints.at<Point2>(x2) + Point2(updatedResult2[x2]);
+  Point2 x2_update = linearizationPoints.at<Point2>(x2) + updatedResult2[x2];
   traits<Point2>::Print(x2_update, "X2 Update");
 
   // Update the linearization point to the new estimate
@@ -321,16 +324,16 @@ int main() {
   // Convert the root conditional, P(x1) in this case, into a Prior for the next step
   Matrix updatedR2 = updatedConditional2->R();
   Vector updatedD2 = updatedConditional2->d() - updatedR2 * updatedResult2[x2];
-  JacobianFactor::shared_ptr updatedPrior2(new JacobianFactor(
+  auto updatedPrior2 = std::make_shared<JacobianFactor>(
     x2, 
     updatedR2,
     updatedD2,
-    updatedConditional2->get_model()));
+    updatedConditional2->get_model());
 
   linearFactorGraph->push_back(updatedPrior2);
 
   // Create a key for the new state
-  Symbol x3('x',3);
+  Key x3 = X(3);
 
   // Create the desired ordering
   ordering = Ordering::shared_ptr(new Ordering);
@@ -339,7 +342,7 @@ int main() {
 
   // Create a nonlinear factor describing the motion model
   Point2 difference3(1,0);
-  SharedDiagonal Q3 = noiseModel::Diagonal::Sigmas((gtsam::Vector2() << 0.1, 0.1).finished());
+  SharedDiagonal Q3 = noiseModel::Isotropic::Sigma(2, 0.1);
   BetweenFactor<Point2> factor10(x2, x3, difference3, Q3);
 
   // Linearize the factor and add it to the linear factor graph
@@ -352,7 +355,7 @@ int main() {
 
   // Extract the current estimate of x3 from the Bayes Network
   VectorValues prediction3Result = predictionBayesNet3->optimize();
-  Point2 x3_predict = linearizationPoints.at<Point2>(x3) + Point2(prediction3Result[x3]);
+  Point2 x3_predict = linearizationPoints.at<Point2>(x3) + prediction3Result[x3];
   traits<Point2>::Print(x3_predict, "X3 Predict");
 
   // Update the linearization point to the new estimate
@@ -365,11 +368,11 @@ int main() {
   linearFactorGraph = GaussianFactorGraph::shared_ptr(new GaussianFactorGraph);
 
   // Convert the root conditional, P(x1) in this case, into a Prior for the next step
-  JacobianFactor::shared_ptr prior3(new JacobianFactor(
-	x3, 
-	x3Conditional->R(),
-	x3Conditional->d() - x3Conditional->R() * prediction3Result[x3],
-	x3Conditional->get_model()));
+  auto prior3 = std::make_shared<JacobianFactor>(
+    x3, 
+    x3Conditional->R(),
+    x3Conditional->d() - x3Conditional->R() * prediction3Result[x3],
+    x3Conditional->get_model());
 
   linearFactorGraph->push_back(prior3);
  
@@ -379,7 +382,7 @@ int main() {
 
   // And update using z3 ...
   Point2 z3(3.0, 0.0);
-  SharedDiagonal R3 = noiseModel::Diagonal::Sigmas((gtsam::Vector2() << 0.25, 0.25).finished());
+  SharedDiagonal R3 = noiseModel::Isotropic::Sigma(2, 0.25);
   PriorFactor<Point2> factor12(x3, z3, R3);
 
   // Linearize the factor and add it to the linear factor graph
@@ -398,7 +401,7 @@ int main() {
 
   // Extract the current estimate of x2 from the Bayes Network
   VectorValues updatedResult3 = updatedBayesNet3->optimize();
-  Point2 x3_update = linearizationPoints.at<Point2>(x3) + Point2(updatedResult3[x3]);
+  Point2 x3_update = linearizationPoints.at<Point2>(x3) + updatedResult3[x3];
   traits<Point2>::Print(x3_update, "X3 Update");
 
   // Update the linearization point to the new estimate
