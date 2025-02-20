@@ -41,6 +41,7 @@ jobs:
           CIBW_BUILD: cp${{ matrix.cibw_python_version }}-${{ matrix.platform_id }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_ARCHS: all
+          CIBW_ENVIRONMENT_PASS_LINUX: NIGHTLY
 
           CIBW_BUILD_FRONTEND: "build"
           CIBW_BEFORE_ALL: bash {project}/build_tools/wheels/cibw_before_all.sh ${{ matrix.python_version }} {project}
