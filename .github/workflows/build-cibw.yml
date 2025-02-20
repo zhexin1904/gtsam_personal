@@ -31,7 +31,7 @@ jobs:
 
       - name: Run CMake
         run: |
-          cmake .. -DGTSAM_BUILD_PYTHON=1 -DGTSAM_PYTHON_VERSION=${{ matrix.python_version }}
+          cmake . -B build -DGTSAM_BUILD_PYTHON=1 -DGTSAM_PYTHON_VERSION=${{ matrix.python_version }}
 
       - name: Build and test wheels
         env:
