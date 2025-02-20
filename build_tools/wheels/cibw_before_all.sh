@@ -23,7 +23,6 @@ cd ..
 rm -rf $PROJECT_DIR/build
 rm -rf CMakeCache.txt CMakeFiles
 
-export CMAKE_GENERATOR=Ninja
 cmake $PROJECT_DIR \
     -B build \
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
@@ -40,4 +39,5 @@ cmake $PROJECT_DIR \
     -DGTSAM_ALLOW_DEPRECATED_SINCE_V43=OFF \
     -DCMAKE_INSTALL_PREFIX=$PROJECT_DIR/gtsam_install
 
-make install -C $PROJECT_DIR/build
+cd $PROJECT_DIR/build
+make -j$(nproc) install
