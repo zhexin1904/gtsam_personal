@@ -8,7 +8,7 @@ PROJECT_DIR="$2"
 
 export PYTHON="python${PYTHON_VERSION}"
 
-rm -rf /build/python
+rm -rf $PROJECT_DIR/build
 
 export CMAKE_GENERATOR=Ninja
 cmake $PROJECT_DIR \
