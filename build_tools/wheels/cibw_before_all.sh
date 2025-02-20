@@ -8,10 +8,18 @@ PROJECT_DIR="$2"
 
 export PYTHON="python${PYTHON_VERSION}"
 
-apt-get install -y wget libicu-dev python3-pip python3-setuptools libboost-all-dev ninja-build
+yum install -y wget ninja-build
 pip install -r $PROJECT_DIR/python/dev_requirements.txt
 
+wget https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz
+tar -xzf boost_1_87_0.tar.gz
+cd boost_1_87_0
+./bootstrap.sh --prefix=/opt/boost
+./b2 install --prefix=/opt/boost --with=all
+
+cd ..
 rm -rf $PROJECT_DIR/build
+rm -rf CMakeCache.txt CMakeFiles
 
 export CMAKE_GENERATOR=Ninja
 cmake $PROJECT_DIR \
