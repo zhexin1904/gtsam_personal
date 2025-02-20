@@ -25,7 +25,7 @@ class BinaryDistribution(Distribution):
         return True
 
 setup(
-    name='gtsam',
+    name='${SETUP_NAME}',
     description='Georgia Tech Smoothing And Mapping library',
     url='https://gtsam.org/',
     version='${GTSAM_VERSION_STRING}',  # https://www.python.org/dev/peps/pep-0440/
