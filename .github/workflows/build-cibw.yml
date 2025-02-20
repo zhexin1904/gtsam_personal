@@ -44,7 +44,7 @@ jobs:
 
           CIBW_BUILD_VERBOSITY: 1
 
-        run: bash {project}/build_tools/wheels/build_wheels.sh
+        run: bash build_tools/wheels/build_wheels.sh
 
       - name: Store artifacts
         uses: actions/upload-artifact@v4
