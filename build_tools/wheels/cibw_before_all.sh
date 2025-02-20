@@ -11,12 +11,14 @@ export PYTHON="python${PYTHON_VERSION}"
 yum install -y wget ninja-build
 pip install -r $PROJECT_DIR/python/dev_requirements.txt
 
+# Install Boost
 wget https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz
 tar -xzf boost_1_87_0.tar.gz
 cd boost_1_87_0
 ./bootstrap.sh --prefix=/opt/boost
 ./b2 install --prefix=/opt/boost --with=all
 
+# Remove build/cache files that were generated on host
 cd ..
 rm -rf $PROJECT_DIR/build
 rm -rf CMakeCache.txt CMakeFiles
@@ -38,5 +40,4 @@ cmake $PROJECT_DIR \
     -DGTSAM_ALLOW_DEPRECATED_SINCE_V43=OFF \
     -DCMAKE_INSTALL_PREFIX=$PROJECT_DIR/gtsam_install
 
-cd $PROJECT_DIR/build/python
-make install
+make install -C $PROJECT_DIR/build
