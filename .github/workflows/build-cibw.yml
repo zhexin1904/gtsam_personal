@@ -1,0 +1,53 @@
+name: Build Wheels (cibuildwheel)
+
+on: [workflow_dispatch]
+
+jobs:
+  build_wheels:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python_version: "3.10"
+            cibw_python_version: 310
+            platform_id: manylinux_x86_64
+            manylinux_image: manylinux2014
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python_version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get install -y wget libicu-dev python3-pip python3-setuptools libboost-all-dev ninja-build
+          python3 -m pip install -r python/dev_requirements.txt
+
+      - name: Run CMake
+        run: |
+          cmake .. -DGTSAM_BUILD_PYTHON=1 -DGTSAM_PYTHON_VERSION=${{ matrix.python_version }}
+
+      - name: Build and test wheels
+        env:
+          CIBW_BUILD: cp${{ matrix.cibw_python_version }}-${{ matrix.platform_id }}
+          CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
+          CIBW_ARCHS: all
+
+          CIBW_BUILD_FRONTEND: "build"
+          CIBW_BEFORE_ALL: bash {project}/build_tools/wheels/cibw_before_all.sh ${{ matrix.python_version }} {project}
+
+          CIBW_BUILD_VERBOSITY: 1
+
+        run: bash {project}/build_tools/wheels/build_wheels.sh
+
+      - name: Store artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-cp${{ matrix.cibw_python_version }}-${{ matrix.platform_id }}
+          path: wheelhouse/*.whl
