@@ -9,10 +9,10 @@ PROJECT_DIR="$2"
 export PYTHON="python${PYTHON_VERSION}"
 
 yum install -y wget ninja-build
-pip install -r $PROJECT_DIR/python/dev_requirements.txt
+$(which $PYTHON) -m pip install -r $PROJECT_DIR/python/dev_requirements.txt
 
 # Install Boost
-wget https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz
+wget https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz --quiet
 tar -xzf boost_1_87_0.tar.gz
 cd boost_1_87_0
 ./bootstrap.sh --prefix=/opt/boost
@@ -39,5 +39,5 @@ cmake $PROJECT_DIR \
     -DGTSAM_ALLOW_DEPRECATED_SINCE_V43=OFF \
     -DCMAKE_INSTALL_PREFIX=$PROJECT_DIR/gtsam_install
 
-cd $PROJECT_DIR/build
+cd $PROJECT_DIR/build/python
 make -j$(nproc) install

@@ -1,6 +1,6 @@
 """Setup file to install the GTSAM package."""
 
-from setuptools import setup, find_namespace_packages
+from setuptools import setup, find_namespace_packages, Distribution
 
 packages = find_namespace_packages(
     where=".",
@@ -19,6 +19,10 @@ package_data = {
 
 # Cleaner to read in the contents rather than copy them over.
 readme_contents = open("${GTSAM_SOURCE_DIR}/README.md").read()
+
+class BinaryDistribution(Distribution):
+    def has_ext_modules(foo):
+        return True
 
 setup(
     name='gtsam',
@@ -46,6 +50,7 @@ setup(
     packages=packages,
     include_package_data=True,
     package_data=package_data,
+    distclass=BinaryDistribution,
     test_suite="gtsam.tests",
     install_requires=open("${GTSAM_SOURCE_DIR}/python/requirements.txt").readlines(),
     zip_safe=False,
