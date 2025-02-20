@@ -8,8 +8,8 @@ PROJECT_DIR="$2"
 
 export PYTHON="python${PYTHON_VERSION}"
 
-sudo apt-get install -y wget libicu-dev python3-pip python3-setuptools libboost-all-dev ninja-build
-python -m pip install -r $PROJECT_DIR/python/dev_requirements.txt
+apt-get install -y wget libicu-dev python3-pip python3-setuptools libboost-all-dev ninja-build
+pip install -r $PROJECT_DIR/python/dev_requirements.txt
 
 rm -rf $PROJECT_DIR/build
 
