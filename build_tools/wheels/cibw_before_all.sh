@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# This script is invoked prior to building the wheels with cibuildwheel. It is used in the build-cibw.yml workflow in .github/workflows.
+# It installs the necessary dependencies and builds the wrapper module for the specified Python version.
+
 set -e
 set -x
 

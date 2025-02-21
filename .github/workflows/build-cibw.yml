@@ -24,8 +24,10 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Set Nightly Flag
-        run: echo "NIGHTLY=1" >> $GITHUB_ENV
+      - name: Set Develop Flag
+        run: |
+          echo "DEVELOP=1" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$(git rev-parse --short=7 "$GITHUB_SHA")" >> $GITHUB_ENV
 
       - name: Install Dependencies
         run: |
@@ -41,7 +43,7 @@ jobs:
           CIBW_BUILD: cp${{ matrix.cibw_python_version }}-${{ matrix.platform_id }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_ARCHS: all
-          CIBW_ENVIRONMENT_PASS_LINUX: NIGHTLY
+          CIBW_ENVIRONMENT_PASS_LINUX: DEVELOP COMMIT_HASH
 
           CIBW_BUILD_FRONTEND: "build"
           CIBW_BEFORE_ALL: bash {project}/build_tools/wheels/cibw_before_all.sh ${{ matrix.python_version }} {project}
