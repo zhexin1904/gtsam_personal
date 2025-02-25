@@ -19,6 +19,12 @@ jobs:
             platform_id: manylinux_x86_64
             manylinux_image: manylinux2014
 
+          - os: ubuntu-24.04-arm
+            python_version: "3.10"
+            cibw_python_version: 310
+            platform_id: manylinux_aarch64
+            manylinux_image: manylinux2014
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,6 +52,7 @@ jobs:
         env:
           CIBW_BUILD: cp${{ matrix.cibw_python_version }}-${{ matrix.platform_id }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
+          CIBW_MANYLINUX_AARCH64_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_ARCHS: all
           CIBW_ENVIRONMENT_PASS_LINUX: DEVELOP COMMIT_HASH
 
