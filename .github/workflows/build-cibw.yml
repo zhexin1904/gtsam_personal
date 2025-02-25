@@ -1,6 +1,10 @@
 name: Build Wheels (cibuildwheel)
 
-on: [workflow_dispatch]
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
 
 jobs:
   build_wheels:
