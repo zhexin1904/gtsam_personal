@@ -11,7 +11,13 @@ PROJECT_DIR="$2"
 
 export PYTHON="python${PYTHON_VERSION}"
 
-yum install -y wget ninja-build
+ARCH=$(uname -m)
+if [[ $ARCH == x86_64* ]]; then
+    yum install -y wget ninja-build
+elif [[ $ARCH == arm* ]] || [[ $ARCH = aarch64 ]]; then
+    yum install -y wget
+fi
+
 $(which $PYTHON) -m pip install -r $PROJECT_DIR/python/dev_requirements.txt
 
 # Install Boost
