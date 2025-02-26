@@ -76,8 +76,15 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          sudo apt-get install -y wget libicu-dev python3-pip python3-setuptools libboost-all-dev ninja-build
           python3 -m pip install -r python/dev_requirements.txt
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get install -y wget libicu-dev python3-pip python3-setuptools libboost-all-dev ninja-build
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            brew install wget icu4c boost ninja python-setuptools
+          else
+            echo "$RUNNER_OS not supported"
+            exit 1
+          fi
 
       - name: Run CMake
         run: |
