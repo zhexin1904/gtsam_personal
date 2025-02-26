@@ -8,24 +8,24 @@ set -x
 
 PYTHON_VERSION="$1"
 PROJECT_DIR="$2"
+ARCH=$(uname -m)
 
 export PYTHON="python${PYTHON_VERSION}"
 
-ARCH=$(uname -m)
-if [[ $ARCH == x86_64* ]]; then
-    yum install -y wget ninja-build
-elif [[ $ARCH == arm* ]] || [[ $ARCH = aarch64 ]]; then
+if [ "$(uname)" == "Linux" ]; then
     yum install -y wget
+
+    # Install Boost from source
+    wget https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz --quiet
+    tar -xzf boost_1_87_0.tar.gz
+    cd boost_1_87_0
+    ./bootstrap.sh --prefix=/opt/boost
+    ./b2 install --prefix=/opt/boost --with=all 
+elif [ "$(uname)" == "Darwin" ]; then
+    brew install wget cmake boost
 fi
 
 $(which $PYTHON) -m pip install -r $PROJECT_DIR/python/dev_requirements.txt
-
-# Install Boost
-wget https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz --quiet
-tar -xzf boost_1_87_0.tar.gz
-cd boost_1_87_0
-./bootstrap.sh --prefix=/opt/boost
-./b2 install --prefix=/opt/boost --with=all
 
 # Remove build/cache files that were generated on host
 cd ..
@@ -50,3 +50,4 @@ cmake $PROJECT_DIR \
 
 cd $PROJECT_DIR/build/python
 make -j $(nproc) install
+make -j $(nproc) python-stubs
