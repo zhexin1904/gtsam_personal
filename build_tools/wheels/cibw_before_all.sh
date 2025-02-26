@@ -21,6 +21,7 @@ if [ "$(uname)" == "Linux" ]; then
     cd boost_1_87_0
     ./bootstrap.sh --prefix=/opt/boost
     ./b2 install --prefix=/opt/boost --with=all 
+    cd ..
 elif [ "$(uname)" == "Darwin" ]; then
     brew install wget cmake boost
 fi
@@ -28,7 +29,6 @@ fi
 $(which $PYTHON) -m pip install -r $PROJECT_DIR/python/dev_requirements.txt
 
 # Remove build/cache files that were generated on host
-cd ..
 rm -rf $PROJECT_DIR/build
 rm -rf CMakeCache.txt CMakeFiles
 
