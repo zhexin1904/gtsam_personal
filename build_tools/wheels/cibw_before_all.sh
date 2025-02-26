@@ -49,5 +49,12 @@ cmake $PROJECT_DIR \
     -DCMAKE_INSTALL_PREFIX=$PROJECT_DIR/gtsam_install
 
 cd $PROJECT_DIR/build/python
-make -j $(nproc) install
-make -j $(nproc) python-stubs
+
+if [ "$(uname)" == "Linux" ]; then
+    make -j $(nproc) install
+    make -j $(nproc) python-stubs
+elif [ "$(uname)" == "Darwin" ]; then
+    make -j $(sysctl -n hw.logicalcpu) install
+    make -j $(sysctl -n hw.logicalcpu) python-stubs
+fi
+
