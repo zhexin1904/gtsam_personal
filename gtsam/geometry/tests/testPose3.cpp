@@ -19,6 +19,7 @@
 #include <gtsam/base/testLie.h>
 #include <gtsam/base/lieProxies.h>
 #include <gtsam/base/TestableAssertions.h>
+#include <gtsam/slam/expressions.h>
 
 
 #include <CppUnitLite/TestHarness.h>
@@ -1298,6 +1299,39 @@ TEST(Pose3, interpolateRtJacobians) {
 
     Matrix expectedJacobianT = numericalDerivative33<Pose3,Pose3,Pose3,double>(testing_interpolate_rt, X, Y, t);
     EXPECT(assert_equal(expectedJacobianT,actualJacobianT,1e-6));
+  }
+}
+
+TEST(Pose3, expressionWrappers) {
+  Pose3 X(Rot3::Ypr(0.1,0.2,0.3), Point3(10, 5, -2));
+  Pose3 Y(Rot3::Ypr(1.1,-2.2,-0.3), Point3(-5, 1, 1));
+  double t = 0.3;
+  Values vals;
+  vals.insert(0,X);
+  vals.insert(1,Y);
+  vals.insert(2,t);
+  
+  { // interpolate (templated wrapper applies to all classes)
+    Matrix expectedJacobianX, expectedJacobianY, expectedJacobianT;
+    std::vector<Matrix> Hlist = {{},{},{}};
+    Pose3 expected = interpolate(X, Y, t, expectedJacobianX, expectedJacobianY, expectedJacobianT);
+    Pose3 actual = interpolate(Pose3_(Key(0)), Pose3_(Key(1)), Double_(Key(2))).value(vals, Hlist);
+
+    EXPECT(assert_equal(expected,actual,1e-6));
+    EXPECT(assert_equal(expectedJacobianX,Hlist[0],1e-6));
+    EXPECT(assert_equal(expectedJacobianY,Hlist[1],1e-6));
+    EXPECT(assert_equal(expectedJacobianT,Hlist[2],1e-6));
+  }
+  { // interpolateRt (Pose3 specialisation)
+    Matrix expectedJacobianX, expectedJacobianY, expectedJacobianT;
+    std::vector<Matrix> Hlist = {{},{},{}};
+    Pose3 expected = X.interpolateRt(Y, t, expectedJacobianX, expectedJacobianY, expectedJacobianT);
+    Pose3 actual = interpolateRt(Pose3_(Key(0)), Pose3_(Key(1)), Double_(Key(2))).value(vals, Hlist);
+
+    EXPECT(assert_equal(expected,actual,1e-6));
+    EXPECT(assert_equal(expectedJacobianX,Hlist[0],1e-6));
+    EXPECT(assert_equal(expectedJacobianY,Hlist[1],1e-6));
+    EXPECT(assert_equal(expectedJacobianT,Hlist[2],1e-6));
   }
 }
 
