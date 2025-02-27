@@ -199,4 +199,14 @@ gtsam::Expression<typename gtsam::traits<T>::TangentVector> logmap(
       gtsam::traits<T>::Logmap, between(x1, x2));
 }
 
+template <typename T>
+inline Expression<T> interpolate(const Expression<T>& p, const Expression<T>& q,
+                                 const Expression<double>& t){
+  T (*f)(const T&, const T&, double,
+         typename MakeOptionalJacobian<T, T>::type,
+         typename MakeOptionalJacobian<T, T>::type,
+         typename MakeOptionalJacobian<T, double>::type) = &interpolate;
+  return Expression<T>(f, p, q, t);
+}
+
 }  // \namespace gtsam
