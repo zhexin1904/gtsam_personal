@@ -1,3 +1,6 @@
+# This workflow builds the Python wheels using cibuildwheel and uploads them to TestPyPI.
+# It can be triggered on push to the develop branch or manually via Github Actions.
+
 name: Build Wheels (cibuildwheel)
 
 on:
@@ -7,6 +10,9 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Get the system time and store it in an output. This is used to tag the wheels.
+  # This needs to be done in a separate job so that each matrix job in build_wheels can
+  # access the same timestamp.
   get_system_time:
     name: Get System Time
     runs-on: ubuntu-latest
@@ -96,6 +102,8 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
+      # Set the DEVELOP flag and the TIMESTAMP environment variables. This is used in the
+      # top-level CMakeLists.txt to generate the GTSAM_VERSION_STRING.
       - name: Set Develop Flag
         run: |
           echo "DEVELOP=1" >> $GITHUB_ENV
@@ -113,18 +121,26 @@ jobs:
             exit 1
           fi
 
+      # We first build the Python wrapper module on the host machine. This is done because cibuildwheel
+      # expects a setup.py file to be present in the project directory.
+      #
+      # The Python wrapper module is then rebuilt within the cibuildwheel container before building
+      # the wheels to ensure platform compatibility.
       - name: Run CMake
         run: |
           cmake . -B build -DGTSAM_BUILD_PYTHON=1 -DGTSAM_PYTHON_VERSION=${{ matrix.python_version }}
 
       - name: Build and test wheels
         env:
+          # Generate the platform identifier. See https://cibuildwheel.pypa.io/en/stable/options/#build-skip.
           CIBW_BUILD: cp${{ matrix.cibw_python_version }}-${{ matrix.platform_id }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_MANYLINUX_AARCH64_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_ARCHS: all
           CIBW_ENVIRONMENT_PASS_LINUX: DEVELOP TIMESTAMP
 
+          # Use build instead of pip wheel to build the wheels. This is recommended by PyPA.
+          # See https://cibuildwheel.pypa.io/en/stable/options/#build-frontend.
           CIBW_BUILD_FRONTEND: "build"
           CIBW_BEFORE_ALL: bash {project}/build_tools/wheels/cibw_before_all.sh ${{ matrix.python_version }} {project}
 

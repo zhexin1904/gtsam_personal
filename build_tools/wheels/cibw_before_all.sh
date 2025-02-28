@@ -13,6 +13,7 @@ ARCH=$(uname -m)
 export PYTHON="python${PYTHON_VERSION}"
 
 if [ "$(uname)" == "Linux" ]; then
+    # manylinux2014 is based on CentOS 7, so use yum to install dependencies
     yum install -y wget
 
     # Install Boost from source
@@ -32,6 +33,7 @@ $(which $PYTHON) -m pip install -r $PROJECT_DIR/python/dev_requirements.txt
 rm -rf $PROJECT_DIR/build
 rm -rf CMakeCache.txt CMakeFiles
 
+# Build the Python wrapper module
 cmake $PROJECT_DIR \
     -B build \
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
@@ -50,6 +52,7 @@ cmake $PROJECT_DIR \
 
 cd $PROJECT_DIR/build/python
 
+# Install the Python wrapper module and generate Python stubs
 if [ "$(uname)" == "Linux" ]; then
     make -j $(nproc) install
     make -j $(nproc) python-stubs
