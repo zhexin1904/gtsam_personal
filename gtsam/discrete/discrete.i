@@ -477,9 +477,9 @@ class DiscreteSearchSolution {
 };
 
 class DiscreteSearch {
-  static DiscreteSearch FromFactorGraph(const gtsam::DiscreteFactorGraph& factorGraph,
-                                        const gtsam::Ordering& ordering,
-                                        bool buildJunctionTree = false);
+  static gtsam::DiscreteSearch FromFactorGraph(
+      const gtsam::DiscreteFactorGraph& factorGraph,
+      const gtsam::Ordering& ordering, bool buildJunctionTree = false);
 
   DiscreteSearch(const gtsam::DiscreteEliminationTree& etree);
   DiscreteSearch(const gtsam::DiscreteJunctionTree& junctionTree);
