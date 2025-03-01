@@ -22,6 +22,11 @@ class DiscreteKeys {
 // DiscreteValues is added in specializations/discrete.h as a std::map
 std::vector<gtsam::DiscreteValues> cartesianProduct(
     const gtsam::DiscreteKeys& keys);
+
+void PrintDiscreteValues(
+    const gtsam::DiscreteValues& values, const std::string& s = "",
+    const gtsam::KeyFormatter& keyFormatter = gtsam::DefaultKeyFormatter);
+
 string markdown(
     const gtsam::DiscreteValues& values,
     const gtsam::KeyFormatter& keyFormatter = gtsam::DefaultKeyFormatter);
