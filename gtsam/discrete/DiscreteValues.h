@@ -189,9 +189,9 @@ inline std::vector<DiscreteValues> cartesianProduct(const DiscreteKeys& keys) {
 }
 
 /// Free version of print for wrapper
-void PrintDiscreteValues(
-    const DiscreteValues& values, const std::string& s = "",
-    const KeyFormatter& keyFormatter = DefaultKeyFormatter);
+void GTSAM_EXPORT
+PrintDiscreteValues(const DiscreteValues& values, const std::string& s = "",
+                    const KeyFormatter& keyFormatter = DefaultKeyFormatter);
 
 /// Free version of markdown.
 std::string GTSAM_EXPORT
