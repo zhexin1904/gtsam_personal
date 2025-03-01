@@ -112,7 +112,7 @@ class City10000Dataset:
         if line:
             return self.parse_line(line)
         else:
-            return None, None
+            return None, None, None
 
 
 def plot_all_results(ground_truth,
@@ -140,7 +140,7 @@ def plot_all_results(ground_truth,
         fig, axes = plt.subplots(int(np.ceil(len(all_results) / 2)), 2)
         axes = axes.flatten()
 
-    for i, (estimates, s) in enumerate(all_results):
+    for i, (estimates, s, prob) in enumerate(all_results):
         ax = axes[i]
         ax.axis('equal')
         ax.axis((-75.0, 100.0, -75.0, 75.0))
@@ -159,14 +159,18 @@ def plot_all_results(ground_truth,
                 color=estimate_color,
                 label=estimate_label)
         # ax.legend()
-        # Plot text `s` at (x, y) on axis
-        ax.text(-60.0, 60.0, s)
+        ax.set_title(f"P={prob:.3f}\n{s}", fontdict={'fontsize': 10})
 
     fig.suptitle(f"After {iters} iterations")
 
     num_chunks = int(np.ceil(len(text) / 90))
     text = "\n".join(text[i * 60:(i + 1) * 60] for i in range(num_chunks))
-    fig.text(0.0, 0.015, s=text)
+    fig.text(0.5,
+             0.015,
+             s=text,
+             wrap=True,
+             horizontalalignment='center',
+             fontsize=12)
 
     fig.savefig(filename, format="svg")
 
@@ -388,7 +392,7 @@ class Experiment:
             key, cardinality = discrete_keys.at(i)
             if key not in self.smoother_.fixedValues().keys():
                 dkeys.push_back((key, cardinality))
-        fixed_values_str = "_".join(
+        fixed_values_str = " ".join(
             f"{gtsam.DefaultKeyFormatter(k)}:{v}"
             for k, v in self.smoother_.fixedValues().items())
 
@@ -420,7 +424,19 @@ class Experiment:
                 f"{gtsam.DefaultKeyFormatter(k)}={v}"
                 for k, v in assignment.items()
             ])
-            all_results.append((poses, assignment_string))
+
+            conditional = self.smoother_.hybridBayesNet().at(
+                self.smoother_.hybridBayesNet().size() - 1).asDiscrete()
+            discrete_values = self.smoother_.fixedValues()
+            for k, v in assignment.items():
+                discrete_values[k] = v
+
+            if conditional is None:
+                probability = 1.0
+            else:
+                probability = conditional.evaluate(discrete_values)
+
+            all_results.append((poses, assignment_string, probability))
 
         plot_all_results(gt,
                          all_results,
