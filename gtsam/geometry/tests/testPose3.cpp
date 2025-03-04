@@ -769,8 +769,9 @@ TEST(Pose3, PoseToPoseBearing) {
   EXPECT(assert_equal(Unit3(0,1,0), xl1.bearing(xl2, actualH1, actualH2), 1e-9));
 
   // Check numerical derivatives
-  expectedH1 = numericalDerivative21(bearing_proxy, xl1, l2);
-  H2block = numericalDerivative22(bearing_proxy, xl1, l2);
+  std::function<Unit3(const Pose3&, const Pose3&)> f = [](const Pose3& a, const Pose3& b) { return a.bearing(b); };
+  expectedH1 = numericalDerivative21(f, xl1, xl2);
+  expectedH2 = numericalDerivative22(f, xl1, xl2);
   EXPECT(assert_equal(expectedH1, actualH1, 1e-5));
   EXPECT(assert_equal(expectedH2, actualH2, 1e-5));
 }
