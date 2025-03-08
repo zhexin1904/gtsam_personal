@@ -52,6 +52,13 @@ static const NavState T2(Rot3::Rodrigues(0.3, 0.2, 0.1), P2, V2);
 static const NavState T3(Rot3::Rodrigues(-90, 0, 0), Point3(5, 6, 7),
                          Point3(1, 2, 3));
 
+//******************************************************************************
+TEST(NavState, Concept) {
+  GTSAM_CONCEPT_ASSERT(IsGroup<NavState >);
+  GTSAM_CONCEPT_ASSERT(IsManifold<NavState >);
+  GTSAM_CONCEPT_ASSERT(IsMatrixLieGroup<NavState >);
+}
+
 /* ************************************************************************* */
 TEST(NavState, Constructor) {
   std::function<NavState(const Rot3&, const Point3&, const Vector3&)> create =

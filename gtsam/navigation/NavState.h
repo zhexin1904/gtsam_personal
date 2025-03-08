@@ -254,10 +254,10 @@ public:
   };
 
   /// Hat maps from tangent vector to Lie algebra
-  static LieAlgebra Hat(const TangentVector& xi);
+  static Matrix5 Hat(const Vector9& xi);
 
   /// Vee maps from Lie algebra to tangent vector
-  static TangentVector Vee(const LieAlgebra& X);
+  static Vector9 Vee(const Matrix5& X);
 
   /// @}
   /// @name Dynamics
@@ -300,9 +300,9 @@ private:
 
 // Specialize NavState traits to use a Retract/Local that agrees with IMUFactors
 template <>
-struct traits<NavState> : public internal::LieGroup<NavState> {};
+struct traits<NavState> : public internal::MatrixLieGroup<NavState> {};
 
 template <>
-struct traits<const NavState> : public internal::LieGroup<NavState> {};
+struct traits<const NavState> : public internal::MatrixLieGroup<NavState> {};
 
 } // namespace gtsam
