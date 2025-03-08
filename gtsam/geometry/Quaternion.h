@@ -138,6 +138,16 @@ struct traits<QUATERNION_TYPE> {
     return omega;
   }
 
+  using LieAlgebra = Matrix3;
+
+  static LieAlgebra Hat(const Vector3& v) {
+    return SO3::Hat(v);
+  }
+  
+  static Vector3 Vee(const LieAlgebra& X) {
+    return SO3::Vee(X);
+  }
+
   /// @}
   /// @name Manifold traits
   /// @{

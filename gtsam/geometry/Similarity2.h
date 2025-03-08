@@ -139,6 +139,8 @@ class GTSAM_EXPORT Similarity2 : public LieGroup<Similarity2, 4> {
   /// @name Lie Group
   /// @{
 
+  using LieAlgebra = Matrix3;
+
   /**
    * Log map at the identity
    * \f$ [t_x, t_y, \delta, \lambda] \f$
@@ -166,6 +168,12 @@ class GTSAM_EXPORT Similarity2 : public LieGroup<Similarity2, 4> {
   Matrix4 AdjointMap() const;
 
   using LieGroup<Similarity2, 4>::inverse;
+
+  /// Hat maps from tangent vector to Lie algebra
+  static LieAlgebra Hat(const TangentVector& xi);
+
+  /// Vee maps from Lie algebra to tangent vector
+  static TangentVector Vee(const LieAlgebra& X);
 
   /// @}
   /// @name Standard interface
