@@ -201,10 +201,10 @@ public:
   using LieGroup<Pose2, 3>::inverse; // version with derivative
 
   /// Hat maps from tangent vector to Lie algebra
-  static LieAlgebra Hat(const TangentVector& xi);
+  static Matrix3 Hat(const Vector3& xi);
 
   /// Vee maps from Lie algebra to tangent vector
-  static TangentVector Vee(const LieAlgebra& X);
+  static Vector3 Vee(const Matrix3& X);
 
   /// @}
   /// @name Group Action on Point2
@@ -338,7 +338,7 @@ public:
 
 #ifdef GTSAM_ALLOW_DEPRECATED_SINCE_V43
   /// @deprecated: use Hat
-  static inline LieAlgebra wedge(double vx, double vy, double w) {
+  static inline Matrix3 wedge(double vx, double vy, double w) {
     return Hat(TangentVector(vx, vy, w));
   }
 #endif
@@ -375,10 +375,10 @@ using Pose2Pair = std::pair<Pose2, Pose2>;
 using Pose2Pairs = std::vector<Pose2Pair>;
 
 template <>
-struct traits<Pose2> : public internal::LieGroup<Pose2> {};
+struct traits<Pose2> : public internal::MatrixLieGroup<Pose2> {};
 
 template <>
-struct traits<const Pose2> : public internal::LieGroup<Pose2> {};
+struct traits<const Pose2> : public internal::MatrixLieGroup<Pose2> {};
 
 // bearing and range traits, used in RangeFactor
 template <typename T>

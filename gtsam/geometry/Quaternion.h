@@ -140,11 +140,11 @@ struct traits<QUATERNION_TYPE> {
 
   using LieAlgebra = Matrix3;
 
-  static LieAlgebra Hat(const Vector3& v) {
+  static Matrix3 Hat(const Vector3& v) {
     return SO3::Hat(v);
   }
   
-  static Vector3 Vee(const LieAlgebra& X) {
+  static Vector3 Vee(const Matrix3& X) {
     return SO3::Vee(X);
   }
 

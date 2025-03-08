@@ -170,10 +170,10 @@ class GTSAM_EXPORT Similarity2 : public LieGroup<Similarity2, 4> {
   using LieGroup<Similarity2, 4>::inverse;
 
   /// Hat maps from tangent vector to Lie algebra
-  static LieAlgebra Hat(const TangentVector& xi);
+  static Matrix3 Hat(const Vector4& xi);
 
   /// Vee maps from Lie algebra to tangent vector
-  static TangentVector Vee(const LieAlgebra& X);
+  static Vector4 Vee(const Matrix3& X);
 
   /// @}
   /// @name Standard interface
@@ -201,9 +201,9 @@ class GTSAM_EXPORT Similarity2 : public LieGroup<Similarity2, 4> {
 };
 
 template <>
-struct traits<Similarity2> : public internal::LieGroup<Similarity2> {};
+struct traits<Similarity2> : public internal::MatrixLieGroup<Similarity2> {};
 
 template <>
-struct traits<const Similarity2> : public internal::LieGroup<Similarity2> {};
+struct traits<const Similarity2> : public internal::MatrixLieGroup<Similarity2> {};
 
 }  // namespace gtsam

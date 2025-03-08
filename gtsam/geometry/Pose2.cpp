@@ -204,8 +204,8 @@ Pose2 Pose2::inverse() const {
 }
 
 /* ************************************************************************* */
-Pose2::LieAlgebra Pose2::Hat(const Pose2::TangentVector& xi) {
-  LieAlgebra X;
+Matrix3 Pose2::Hat(const Pose2::TangentVector& xi) {
+  Matrix3 X;
   X << 0., -xi.z(), xi.x(),
     xi.z(), 0., xi.y(),
     0., 0., 0.;
@@ -213,7 +213,7 @@ Pose2::LieAlgebra Pose2::Hat(const Pose2::TangentVector& xi) {
 }
 
 /* ************************************************************************* */
-Pose2::TangentVector Pose2::Vee(const Pose2::LieAlgebra& X) {
+Pose2::TangentVector Pose2::Vee(const Matrix3& X) {
   return TangentVector(X(0, 2), X(1, 2), X(1,0));
 }
 

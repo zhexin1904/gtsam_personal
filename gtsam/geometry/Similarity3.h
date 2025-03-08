@@ -174,10 +174,10 @@ class GTSAM_EXPORT Similarity3 : public LieGroup<Similarity3, 7> {
    * @param xi 7-dim twist (w,u,lambda) where
    * @return 4*4 element of Lie algebra that can be exponentiated
    */
-  static LieAlgebra Hat(const TangentVector& xi);
+  static Matrix4 Hat(const Vector7& xi);
 
   /// Vee maps from Lie algebra to tangent vector
-  static TangentVector Vee(const LieAlgebra& X);
+  static Vector7 Vee(const Matrix4& X);
 
   /// @}
   /// @name Standard interface
@@ -243,9 +243,9 @@ inline Matrix wedge<Similarity3>(const Vector& xi) {
 }
 #endif
 template <>
-struct traits<Similarity3> : public internal::LieGroup<Similarity3> {};
+struct traits<Similarity3> : public internal::MatrixLieGroup<Similarity3> {};
 
 template <>
-struct traits<const Similarity3> : public internal::LieGroup<Similarity3> {};
+struct traits<const Similarity3> : public internal::MatrixLieGroup<Similarity3> {};
 
 }  // namespace gtsam

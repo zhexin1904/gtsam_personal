@@ -45,7 +45,7 @@ static const double tol=1e-5;
 TEST(Pose3 , Concept) {
   GTSAM_CONCEPT_ASSERT(IsGroup<Pose3 >);
   GTSAM_CONCEPT_ASSERT(IsManifold<Pose3 >);
-  GTSAM_CONCEPT_ASSERT(IsLieGroup<Pose3 >);
+  GTSAM_CONCEPT_ASSERT(IsMatrixLieGroup<Pose3 >);
 }
 
 /* ************************************************************************* */

@@ -158,10 +158,10 @@ namespace gtsam {
     using LieGroup<Rot2, 1>::inverse; // version with derivative
 
     /// Hat maps from tangent vector to Lie algebra
-    static LieAlgebra Hat(const TangentVector& xi);
+    static Matrix2 Hat(const Vector1& xi);
 
     /// Vee maps from Lie algebra to tangent vector
-    static TangentVector Vee(const LieAlgebra& X);
+    static Vector1 Vee(const Matrix2& X);
 
     /// @}
     /// @name Group Action on Point2
@@ -239,9 +239,9 @@ namespace gtsam {
   };
 
   template<>
-  struct traits<Rot2> : public internal::LieGroup<Rot2> {};
+  struct traits<Rot2> : public internal::MatrixLieGroup<Rot2> {};
 
   template<>
-  struct traits<const Rot2> : public internal::LieGroup<Rot2> {};
+  struct traits<const Rot2> : public internal::MatrixLieGroup<Rot2> {};
 
 } // gtsam

@@ -82,15 +82,15 @@ Vector1 Rot2::Logmap(const Rot2& r, OptionalJacobian<1, 1> H) {
   return v;
 }
 /* ************************************************************************* */
-Rot2::LieAlgebra Rot2::Hat(const Rot2::TangentVector& xi) {
-  LieAlgebra X;
+Matrix2 Rot2::Hat(const Vector1& xi) {
+  Matrix2 X;
   X << 0., -xi.x(),
     xi.x(), 0.;
   return X;
 }
 
 /* ************************************************************************* */
-Rot2::TangentVector Rot2::Vee(const Rot2::LieAlgebra& X) {
+Vector1 Rot2::Vee(const Matrix2& X) {
   TangentVector v;
   v << X(1, 0);
   return v;

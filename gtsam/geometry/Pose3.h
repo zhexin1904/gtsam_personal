@@ -238,10 +238,10 @@ public:
    *  v (vx,vy,vz) = 3D velocity
    * @return xihat, 4*4 element of Lie algebra that can be exponentiated
    */
-  static LieAlgebra Hat(const TangentVector& xi);
+  static Matrix4 Hat(const Vector6& xi);
 
   /// Vee maps from Lie algebra to tangent vector
-  static TangentVector Vee(const LieAlgebra& X);
+  static Vector6 Vee(const Matrix4& X);
 
   /// @}
   /// @name Group Action on Point3
@@ -446,10 +446,10 @@ using Pose3Pairs = std::vector<std::pair<Pose3, Pose3> >;
 typedef std::vector<Pose3> Pose3Vector;
 
 template <>
-struct traits<Pose3> : public internal::LieGroup<Pose3> {};
+struct traits<Pose3> : public internal::MatrixLieGroup<Pose3> {};
 
 template <>
-struct traits<const Pose3> : public internal::LieGroup<Pose3> {};
+struct traits<const Pose3> : public internal::MatrixLieGroup<Pose3> {};
 
 // bearing and range traits, used in RangeFactor
 template <>

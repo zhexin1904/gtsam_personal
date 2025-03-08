@@ -40,7 +40,7 @@ static double error = 1e-9, epsilon = 0.001;
 TEST(Rot3 , Concept) {
   GTSAM_CONCEPT_ASSERT(IsGroup<Rot3 >);
   GTSAM_CONCEPT_ASSERT(IsManifold<Rot3 >);
-  GTSAM_CONCEPT_ASSERT(IsLieGroup<Rot3 >);
+  GTSAM_CONCEPT_ASSERT(IsMatrixLieGroup<Rot3 >);
 }
 
 /* ************************************************************************* */

@@ -37,7 +37,7 @@ GTSAM_CONCEPT_LIE_INST(Pose2)
 TEST(Pose2 , Concept) {
   GTSAM_CONCEPT_ASSERT(IsGroup<Pose2 >);
   GTSAM_CONCEPT_ASSERT(IsManifold<Pose2 >);
-  GTSAM_CONCEPT_ASSERT(IsLieGroup<Pose2 >);
+  GTSAM_CONCEPT_ASSERT(IsMatrixLieGroup<Pose2 >);
 }
 
 /* ************************************************************************* */

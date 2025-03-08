@@ -37,7 +37,7 @@ static const double s = 4;
 TEST(Similarity2, Concepts) {
   GTSAM_CONCEPT_ASSERT(IsGroup<Similarity2>);
   GTSAM_CONCEPT_ASSERT(IsManifold<Similarity2>);
-  GTSAM_CONCEPT_ASSERT(IsLieGroup<Similarity2>);
+  GTSAM_CONCEPT_ASSERT(IsMatrixLieGroup<Similarity2>);
 }
 
 //******************************************************************************
