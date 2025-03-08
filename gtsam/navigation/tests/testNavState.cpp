@@ -534,6 +534,63 @@ TEST(NavState, Adjoint_compose_full) {
 }
 
 /* ************************************************************************* */
+TEST(NavState, HatAndVee) {
+  // Create a few test vectors
+  Vector9 v1(1, 2, 3, 4, 5, 6, 7, 8, 9);
+  Vector9 v2(0.1, -0.5, 1.0, -1.0, 0.5, 2.0, 0.3, -0.2, 0.8);
+  Vector9 v3 = Vector9::Zero();
+
+  // Test that Vee(Hat(v)) == v for various inputs
+  EXPECT(assert_equal(v1, NavState::Vee(NavState::Hat(v1))));
+  EXPECT(assert_equal(v2, NavState::Vee(NavState::Hat(v2))));
+  EXPECT(assert_equal(v3, NavState::Vee(NavState::Hat(v3))));
+
+  // Check the structure of the Lie Algebra element
+  Matrix5 expected;
+  expected << 0, -3, 2, 4, 7,
+    3, 0, -1, 5, 8,
+    -2, 1, 0, 6, 9,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0;
+
+  EXPECT(assert_equal(expected, NavState::Hat(v1)));
+}
+
+/* ************************************************************************* */
+// Checks correct exponential map (Expmap) with brute force matrix exponential
+TEST(NavState, BruteForceExpmap1) {
+  const Vector9 xi(0, 0, 0, 14, 24, 34, 15, 25, 35);
+  EXPECT(assert_equal(NavState::Expmap(xi), expm<NavState>(xi), 1e-6));
+}
+
+TEST(NavState, BruteForceExpmap2) {
+  const Vector9 xi(0.1, 0.2, 0.3, 0, 0, 0, 0, 0, 0);
+  EXPECT(assert_equal(NavState::Expmap(xi), expm<NavState>(xi), 1e-6));
+}
+
+TEST(NavState, BruteForceExpmap3) {
+  const Vector9 xi(0.1, 0.2, 0.3, 4, 5, 6, 7, 8, 9);
+  EXPECT(assert_equal(NavState::Expmap(xi), expm<NavState>(xi), 1e-6));
+}
+
+/* ************************************************************************* */
+// assert that T*Hat(xi)*T^-1 is equal to Hat(Ad_T(xi))
+TEST(NavState, Adjoint_hat)
+{
+  Matrix5 expected = T.matrix() * NavState::Hat(screwNavState::xi) * T.matrix().inverse();
+  Matrix5 xiprime = NavState::Hat(T.Adjoint(screwNavState::xi));
+  EXPECT(assert_equal(expected, xiprime, 1e-6));
+
+  Matrix5 expected2 = T2.matrix() * NavState::Hat(screwNavState::xi) * T2.matrix().inverse();
+  Matrix5 xiprime2 = NavState::Hat(T2.Adjoint(screwNavState::xi));
+  EXPECT(assert_equal(expected2, xiprime2, 1e-6));
+
+  Matrix5 expected3 = T3.matrix() * NavState::Hat(screwNavState::xi) * T3.matrix().inverse();
+  Matrix5 xiprime3 = NavState::Hat(T3.Adjoint(screwNavState::xi));
+  EXPECT(assert_equal(expected3, xiprime3, 1e-6));
+}
+
+/* ************************************************************************* */
 TEST(NavState, Retract_LocalCoordinates) {
   Vector9 d;
   d << 1, 2, 3, 4, 5, 6, 7, 8, 9;
