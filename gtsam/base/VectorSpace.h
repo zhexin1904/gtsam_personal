@@ -51,6 +51,8 @@ struct VectorSpaceImpl {
   /// @name Lie Group
   /// @{
 
+  typedef Eigen::Matrix<double, N, 1> LieAlgebra;
+
   static TangentVector Logmap(const Class& m, ChartJacobian Hm = {}) {
     if (Hm) *Hm = Jacobian::Identity();
     return m.vector();
@@ -80,6 +82,13 @@ struct VectorSpaceImpl {
     return -v;
   }
 
+  static LieAlgebra Hat(const TangentVector& v) {
+    return v;
+  }
+
+  static TangentVector Vee(const LieAlgebra& X) {
+    return X;
+  }
   /// @}
 };
 

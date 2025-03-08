@@ -171,21 +171,22 @@ namespace internal {
 /// Assumes existence of: identity, dimension, localCoordinates, retract,
 /// and additionally Logmap, Expmap, compose, between, and inverse
 template<class Class>
-struct LieGroupTraits: GetDimensionImpl<Class, Class::dimension> {
-  typedef lie_group_tag structure_category;
+struct LieGroupTraits: public GetDimensionImpl<Class, Class::dimension> {
+  using structure_category = lie_group_tag;
 
   /// @name Group
   /// @{
-  typedef multiplicative_group_tag group_flavor;
+  using group_flavor = multiplicative_group_tag;
   static Class Identity() { return Class::Identity();}
   /// @}
 
   /// @name Manifold
   /// @{
-  typedef Class ManifoldType;
+  using ManifoldType = Class;
   inline constexpr static auto dimension = Class::dimension;
-  typedef Eigen::Matrix<double, dimension, 1> TangentVector;
-  typedef OptionalJacobian<dimension, dimension> ChartJacobian;
+  using LieAlgebra = Class::LieAlgebra;
+  using TangentVector = Eigen::Matrix<double, dimension, 1>;
+  using ChartJacobian = OptionalJacobian<dimension, dimension>;
 
   static TangentVector Local(const Class& origin, const Class& other,
       ChartJacobian Horigin = {}, ChartJacobian Hother = {}) {
@@ -222,13 +223,21 @@ struct LieGroupTraits: GetDimensionImpl<Class, Class::dimension> {
       ChartJacobian H = {}) {
     return m.inverse(H);
   }
+
+  static LieAlgebra Hat(const TangentVector& v) {
+    return Class::Hat(v);
+  }
+  
+  static TangentVector Vee(const LieAlgebra& X) {
+    return Class::Vee(X);
+  }
   /// @}
 };
 
 /// Both LieGroupTraits and Testable
 template<class Class> struct LieGroup: LieGroupTraits<Class>, Testable<Class> {};
 
-} // \ namepsace internal
+} // \ namespace internal
 
 /**
  * These core global functions can be specialized by new Lie types
@@ -261,6 +270,7 @@ class IsLieGroup: public IsGroup<T>, public IsManifold<T> {
 public:
   typedef typename traits<T>::structure_category structure_category_tag;
   typedef typename traits<T>::ManifoldType ManifoldType;
+  typedef typename traits<T>::LieAlgebra LieAlgebra;
   typedef typename traits<T>::TangentVector TangentVector;
   typedef typename traits<T>::ChartJacobian ChartJacobian;
 
@@ -269,7 +279,7 @@ public:
         (std::is_base_of<lie_group_tag, structure_category_tag>::value),
         "This type's trait does not assert it is a Lie group (or derived)");
 
-    // group opertations with Jacobians
+    // group operations with Jacobians
     g = traits<T>::Compose(g, h, Hg, Hh);
     g = traits<T>::Between(g, h, Hg, Hh);
     g = traits<T>::Inverse(g, Hg);
@@ -279,9 +289,13 @@ public:
     // log and exponential map with Jacobians
     g = traits<T>::Expmap(v, Hg);
     v = traits<T>::Logmap(g, Hg);
+    // hat and vee
+    X = traits<T>::Hat(v);
+    v = traits<T>::Vee(X);
   }
 private:
   T g, h;
+  LieAlgebra X;
   TangentVector v;
   ChartJacobian Hg, Hh;
 };
@@ -301,22 +315,21 @@ T BCH(const T& X, const T& Y) {
   return T(X + Y + _2 * X_Y + _12 * bracket(X - Y, X_Y) - _24 * bracket(Y, bracket(X, X_Y)));
 }
 
-/**
- * Declaration of wedge (see Murray94book) used to convert
- * from n exponential coordinates to n*n element of the Lie algebra
- */
+#ifdef GTSAM_ALLOW_DEPRECATED_SINCE_V43
+/// @deprecated: use T::Hat
 template <class T> Matrix wedge(const Vector& x);
+#endif
 
 /**
  * Exponential map given exponential coordinates
- * class T needs a wedge<> function and a constructor from Matrix
+ * class T needs a constructor from Matrix.
  * @param x exponential coordinates, vector of size n
  * @ return a T
  */
 template <class T>
-T expm(const Vector& x, int K=7) {
-  Matrix xhat = wedge<T>(x);
-  return T(expm(xhat,K));
+T expm(const Vector& x, int K = 7) {
+  auto xhat = T::Hat(x);
+  return T(expm(xhat, K));
 }
 
 /**
