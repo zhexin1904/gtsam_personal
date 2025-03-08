@@ -184,7 +184,6 @@ struct LieGroupTraits: public GetDimensionImpl<Class, Class::dimension> {
   /// @{
   using ManifoldType = Class;
   inline constexpr static auto dimension = Class::dimension;
-  using LieAlgebra = Class::LieAlgebra;
   using TangentVector = Eigen::Matrix<double, dimension, 1>;
   using ChartJacobian = OptionalJacobian<dimension, dimension>;
 
@@ -223,19 +222,29 @@ struct LieGroupTraits: public GetDimensionImpl<Class, Class::dimension> {
       ChartJacobian H = {}) {
     return m.inverse(H);
   }
+  /// @}
+};
+
+
+/// Both LieGroupTraits and Testable
+template<class Class> struct LieGroup: LieGroupTraits<Class>, Testable<Class> {};
+
+/// Adds LieAlgebra, Hat, and Vie to LieGroupTraits
+template<class Class> struct MatrixLieGroupTraits: LieGroupTraits<Class> {
+  using LieAlgebra = typename Class::LieAlgebra;
+  using TangentVector = typename LieGroupTraits<Class>::TangentVector;
 
   static LieAlgebra Hat(const TangentVector& v) {
     return Class::Hat(v);
   }
-  
+
   static TangentVector Vee(const LieAlgebra& X) {
     return Class::Vee(X);
   }
-  /// @}
 };
 
 /// Both LieGroupTraits and Testable
-template<class Class> struct LieGroup: LieGroupTraits<Class>, Testable<Class> {};
+template<class Class> struct MatrixLieGroup: MatrixLieGroupTraits<Class>, Testable<Class> {};
 
 } // \ namespace internal
 
@@ -270,7 +279,6 @@ class IsLieGroup: public IsGroup<T>, public IsManifold<T> {
 public:
   typedef typename traits<T>::structure_category structure_category_tag;
   typedef typename traits<T>::ManifoldType ManifoldType;
-  typedef typename traits<T>::LieAlgebra LieAlgebra;
   typedef typename traits<T>::TangentVector TangentVector;
   typedef typename traits<T>::ChartJacobian ChartJacobian;
 
@@ -289,15 +297,30 @@ public:
     // log and exponential map with Jacobians
     g = traits<T>::Expmap(v, Hg);
     v = traits<T>::Logmap(g, Hg);
-    // hat and vee
-    X = traits<T>::Hat(v);
-    v = traits<T>::Vee(X);
   }
 private:
   T g, h;
-  LieAlgebra X;
   TangentVector v;
   ChartJacobian Hg, Hh;
+};
+
+/**
+ * Matrix Lie Group Concept
+ */
+template<typename T>
+class IsMatrixLieGroup: public IsLieGroup<T> {
+public:
+typedef typename traits<T>::LieAlgebra LieAlgebra;
+typedef typename traits<T>::TangentVector TangentVector;
+
+  BOOST_CONCEPT_USAGE(IsMatrixLieGroup) {
+    // hat and vee
+    X = traits<T>::Hat(xi);
+    xi = traits<T>::Vee(X);
+  }
+private:
+  LieAlgebra X;
+  TangentVector xi;
 };
 
 /**
