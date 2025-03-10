@@ -194,6 +194,33 @@ Similarity2 Similarity2::Align(const Pose2Pairs& abPosePairs) {
   return internal::AlignGivenR(abPointPairs, aRb_estimate);
 }
 
+Matrix2 Similarity2::GetV(double theta, double lambda) {
+  // Derivation from https://ethaneade.com/lie_groups.pdf page 6
+  const double lambda2 = lambda * lambda, theta2 = theta * theta;
+  double A, B, C;
+  if (theta2 > 1e-9) {
+    A = sin(theta) / theta;
+    B = (1 - cos(theta)) / theta2;
+    C = (1 - A) / theta2;
+  } else {
+    // Taylor series expansion for theta=0
+    A = 1.0;
+    B = 0.5 - theta2 / 24.0;
+    C = 1.0 / 6.0 - theta2 / 120.0;
+  }
+  double alpha = 1.0 / (1.0 + theta2 / lambda2);
+  const double s = exp(lambda);
+
+  double s_inv = 1.0 / s;
+  double X = alpha * (1 - s_inv) / lambda + (1 - alpha) * (A - lambda * B);
+  double Y =
+      alpha * (s_inv - 1 + lambda) / lambda2 + (1 - alpha) * (B - lambda * C);
+
+  Matrix2 V;
+  V << X, -theta * Y, theta * Y, X;
+  return V;
+}
+
 Vector4 Similarity2::Logmap(const Similarity2& S,  //
                             OptionalJacobian<4, 4> Hm) {
   const Vector2 u = S.t_;
