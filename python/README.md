@@ -38,6 +38,15 @@ For instructions on updating the version of the [wrap library](https://github.co
 
 See Windows Installation in INSTALL.md in the root directory.
 
+## Generate Docstrings
+
+The wrap library provides for building the Python wrapper with docstrings included, sourced from the C++ Doxygen comments. To build the Python wrapper with docstrings, follow these instructions:
+
+1. Change `GENERATE_XML` in `doc/Doxyfile.in` to `YES`.
+2. Build GTSAM. This will compile the `doc/Doxyfile.in` into a `Doxyfile`.
+3. From the project root directory, run `doxygen build/<build_name>/doc/Doxyfile`. This will generate the Doxygen XML documentation in `xml/`.
+4. Build the Python wrapper with the CMake option `GTWRAP_ADD_DOCSTRINGS` enabled.
+
 ## Unit Tests
 
 The Python toolbox also has a small set of unit tests located in the
