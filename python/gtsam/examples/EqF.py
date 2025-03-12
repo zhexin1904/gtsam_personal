@@ -22,26 +22,6 @@ from typing import List
 
 coordinate = "EXPONENTIAL"
 
-def wedge(vec : np.ndarray) -> np.ndarray:
-    if not isinstance(vec, np.ndarray):
-        raise TypeError
-    if not vec.size == 3:
-        raise ValueError
-    mat = np.array([[      0.0, -vec.item(2),  vec.item(1)],
-                    [ vec.item(2),       0.0, -vec.item(0)],
-                    [-vec.item(1),  vec.item(0),       0.0]])
-    return mat
-
-def vee(mat : np.ndarray) -> np.ndarray:
-    if not isinstance(mat, np.ndarray):
-        raise TypeError
-    if not mat.shape == (3,3):
-        raise ValueError
-    vec = np.array([mat[2,1],
-                    mat[0,2],
-                    mat[1,0]])
-    return vec
-
 def Rot3LeftJacobian(arr: np.ndarray) -> np.ndarray:
     """Return the SO(3) Left Jacobian
 
@@ -56,7 +36,7 @@ def Rot3LeftJacobian(arr: np.ndarray) -> np.ndarray:
 
     # Near |phi|==0, use first order Taylor expansion
     if np.isclose(angle, 0.):
-        return np.eye(3) + 0.5 * wedge(arr)
+        return np.eye(3) + 0.5 * Rot3.Hat(arr)
 
     axis = arr / angle
     s = np.sin(angle)
@@ -64,7 +44,7 @@ def Rot3LeftJacobian(arr: np.ndarray) -> np.ndarray:
 
     return (s / angle) * np.eye(3) + \
            (1 - (s / angle)) * np.outer(axis, axis) + \
-           ((1 - c) / angle) * wedge(axis)
+           ((1 - c) / angle) * Rot3.Hat(axis)
 
 def checkNorm(x: np.ndarray, tol: float = 1e-3):
   """Check norm of a vector being 1 or nan
@@ -183,7 +163,7 @@ class Input:
         :return: self.w as a skew-symmetric matrix
         """
 
-        return wedge(self.w)
+        return Rot3.Hat(self.w)
 
 class G:
     """Symmetry group (SO(3) |x so(3)) x SO(3) x ... x SO(3)
@@ -233,7 +213,7 @@ class G:
         assert (isinstance(other, G))
         assert (len(self.B) == len(other.B))
         return G(self.A * other.A,
-                 self.a + wedge(self.A.matrix() @ vee(other.a)),
+                 self.a + Rot3.Hat(self.A.matrix() @ Rot3.Vee(other.a)),
                  [self.B[i]*other.B[i] for i in range(len(self.B))])
 
     @staticmethod
@@ -260,7 +240,7 @@ class G:
 
         n = int((x.size - 6) / 3)
         A = Rot3.Expmap(x[0:3])
-        a = wedge(Rot3LeftJacobian(x[0:3]) @ x[3:6])
+        a = Rot3.Hat(Rot3LeftJacobian(x[0:3]) @ x[3:6])
         B = [Rot3.Expmap(x[(6 + 3 * i):(9 + 3 * i)]) for i in range(n)]
 
         return G(A, a, B)
@@ -271,7 +251,7 @@ class G:
         :return: A element of the group G given by the inverse of self
         """
 
-        return G(self.A.inverse(), -wedge(self.A.inverse().matrix() @ vee(self.a)), [B.inverse() for B in self.B])
+        return G(self.A.inverse(), -Rot3.Hat(self.A.inverse().matrix() @ Rot3.Vee(self.a)), [B.inverse() for B in self.B])
 
 class Direction:
     """Define a direction as a S2 element"""
@@ -317,25 +297,6 @@ def repBlock(A : np.ndarray, n: int) -> np.ndarray:
         res = blockDiag(res, A)
     return res
 
-def wedge(vec : np.ndarray) -> np.ndarray:
-    if not isinstance(vec, np.ndarray):
-        raise TypeError
-    if not vec.size == 3:
-        raise ValueError
-    mat = np.array([[      0.0, -vec.item(2),  vec.item(1)],
-                    [ vec.item(2),       0.0, -vec.item(0)],
-                    [-vec.item(1),  vec.item(0),       0.0]])
-    return mat
-
-def vee(mat : np.ndarray) -> np.ndarray:
-    if not isinstance(mat, np.ndarray):
-        raise TypeError
-    if not mat.shape == (3,3):
-        raise ValueError
-    vec = np.array([mat[2,1],
-                    mat[0,2],
-                    mat[1,0]])
-    return vec
 
 def Rot3LeftJacobian(arr: np.ndarray) -> np.ndarray:
     """Return the SO(3) Left Jacobian
@@ -351,7 +312,7 @@ def Rot3LeftJacobian(arr: np.ndarray) -> np.ndarray:
 
     # Near |phi|==0, use first order Taylor expansion
     if np.isclose(angle, 0.):
-        return np.eye(3) + 0.5 * wedge(arr)
+        return np.eye(3) + 0.5 * Rot3.Hat(arr)
 
     axis = arr / angle
     s = np.sin(angle)
@@ -359,7 +320,7 @@ def Rot3LeftJacobian(arr: np.ndarray) -> np.ndarray:
 
     return (s / angle) * np.eye(3) + \
            (1 - (s / angle)) * np.outer(axis, axis) + \
-           ((1 - c) / angle) * wedge(axis)
+           ((1 - c) / angle) * Rot3.Hat(axis)
 
 def numericalDifferential(f, x) -> np.ndarray:
     """Compute the numerical derivative via central difference"""
@@ -415,7 +376,7 @@ def stateAction(X: G, xi: State) -> State:
         raise ValueError("the number of calibration states and B elements of the symmetry group has to match")
 
     return State(xi.R * X.A,
-                 X.A.inverse().matrix() @ (xi.b - vee(X.a)),
+                 X.A.inverse().matrix() @ (xi.b - Rot3.Vee(X.a)),
                   [(X.A.inverse() * xi.S[i] * X.B[i]) for i in range(len(X.B))])
 
 
@@ -427,7 +388,7 @@ def velocityAction(X: G, u: Input) -> Input:
     :return: A new element of the Input given by the action of psi of G in the Input space
     """
 
-    return Input(X.A.inverse().matrix() @ (u.w - vee(X.a)), u.Sigma) 
+    return Input(X.A.inverse().matrix() @ (u.w - Rot3.Vee(X.a)), u.Sigma) 
 
 
 def outputAction(X: G, y: Direction, idx: int = -1) -> np.ndarray:
@@ -457,7 +418,7 @@ def local_coords(e: State) -> np.ndarray:
         eps = np.concatenate((Rot3.Logmap(e.R), e.b, np.asarray(tmp).reshape(3 * len(tmp),)))
     elif coordinate == "NORMAL":
         raise ValueError("Normal coordinate representation is not implemented yet")
-        # X = G(e.R, -SO3.wedge(e.R @ e.b), e.S)
+        # X = G(e.R, -SO3.Rot3.Hat(e.R @ e.b), e.S)
         # eps = G.log(X)
     else:
         raise ValueError("Invalid coordinate representation")
@@ -630,7 +591,7 @@ class EqF:
         assert (y.cal_idx <= self.__n_cal)
 
         Ct = self.__measurementMatrixC(y.d, y.cal_idx)                              # Equation 14b
-        delta = wedge(y.d.d.unitVector()) @ outputAction(self.__X_hat.inv(), y.y, y.cal_idx)
+        delta = Rot3.Hat(y.d.d.unitVector()) @ outputAction(self.__X_hat.inv(), y.y, y.cal_idx)
         Dt = self.__outputMatrixDt(y.cal_idx)
         S = Ct @ self.__Sigma @ Ct.T + Dt @ y.Sigma @ Dt.T                          # Equation 21
         K = self.__Sigma @ Ct.T @ np.linalg.inv(S)                                  # Equation 22
@@ -714,9 +675,9 @@ class EqF:
 
         # If the measurement is related to a sensor that has a calibration state
         if idx >= 0:
-            Cc[(3 * idx):(3 + 3 * idx), :] = wedge(d.d.unitVector())
+            Cc[(3 * idx):(3 + 3 * idx), :] = Rot3.Hat(d.d.unitVector())
 
-        return wedge(d.d.unitVector()) @ np.hstack((wedge(d.d.unitVector()), np.zeros((3, 3)), Cc))
+        return Rot3.Hat(d.d.unitVector()) @ np.hstack((Rot3.Hat(d.d.unitVector()), np.zeros((3, 3)), Cc))
 
     def __outputMatrixDt(self, idx: int) -> np.ndarray:
         """Return the measurement output matrix Dt
