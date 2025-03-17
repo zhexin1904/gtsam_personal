@@ -101,6 +101,12 @@ void HybridSmoother::update(const HybridNonlinearFactorGraph &newFactors,
                             std::optional<size_t> maxNrLeaves,
                             const std::optional<Ordering> given_ordering) {
   HybridGaussianFactorGraph linearizedFactors = *newFactors.linearize(initial);
+
+  // Record the new nonlinear factors and
+  // linearization point for relinearization
+  allFactors_.push_back(newFactors);
+  linearizationPoint_.insert_or_assign(initial);
+
   const KeySet originalNewFactorKeys = newFactors.keys();
 #ifdef DEBUG_SMOOTHER
   std::cout << "hybridBayesNet_ size before: " << hybridBayesNet_.size()

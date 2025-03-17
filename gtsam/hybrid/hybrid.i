@@ -287,6 +287,8 @@ class HybridSmoother {
       std::optional<size_t> maxNrLeaves = std::nullopt,
       const std::optional<gtsam::Ordering> given_ordering = std::nullopt);
 
+  void relinearize();
+
   gtsam::Ordering getOrdering(const gtsam::HybridGaussianFactorGraph& factors,
                               const gtsam::KeySet& newFactorKeys);
 

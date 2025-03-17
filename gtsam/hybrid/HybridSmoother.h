@@ -28,6 +28,7 @@ namespace gtsam {
 class GTSAM_EXPORT HybridSmoother {
  private:
   HybridNonlinearFactorGraph allFactors_;
+  Values linearizationPoint_;
 
   HybridBayesNet hybridBayesNet_;
   /// The threshold above which we make a decision about a mode.
@@ -124,6 +125,16 @@ class GTSAM_EXPORT HybridSmoother {
 
   /// Optimize the hybrid Bayes Net, taking into accound fixed values.
   HybridValues optimize() const;
+
+  void relinearize() {
+    allFactors_ = allFactors_.restrict(fixedValues_);
+    HybridGaussianFactorGraph::shared_ptr linearized =
+        allFactors_.linearize(linearizationPoint_);
+    HybridBayesNet::shared_ptr bayesNet = linearized->eliminateSequential();
+    HybridValues delta = bayesNet->optimize();
+    linearizationPoint_ = linearizationPoint_.retract(delta.continuous());
+    reInitialize(*bayesNet);
+  }
 
  private:
   /// Helper to compute the ordering if ordering is not given.
