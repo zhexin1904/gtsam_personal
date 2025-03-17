@@ -118,6 +118,13 @@ void HybridSmoother::update(const HybridGaussianFactorGraph &newFactors,
   }
 #endif
 
+  // Remove fixed values for discrete keys which are introduced in newFactors
+  for (Key key : newFactors.discreteKeySet()) {
+    if (fixedValues_.find(key) != fixedValues_.end()) {
+      fixedValues_.erase(key);
+    }
+  }
+
 #ifdef DEBUG_SMOOTHER
   // Print discrete keys in the bayesNetFragment:
   std::cout << "Discrete keys in bayesNetFragment: ";
