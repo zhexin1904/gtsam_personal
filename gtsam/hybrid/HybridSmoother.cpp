@@ -307,4 +307,9 @@ Values HybridSmoother::linearizationPoint() const {
   return linearizationPoint_;
 }
 
+/* ************************************************************************* */
+HybridNonlinearFactorGraph HybridSmoother::allFactors() const {
+  return allFactors_;
+}
+
 }  // namespace gtsam

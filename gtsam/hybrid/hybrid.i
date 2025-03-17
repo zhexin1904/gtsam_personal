@@ -291,6 +291,7 @@ class HybridSmoother {
   void relinearize();
 
   gtsam::Values linearizationPoint() const;
+  gtsam::HybridNonlinearFactorGraph allFactors() const;
 
   gtsam::Ordering getOrdering(const gtsam::HybridGaussianFactorGraph& factors,
                               const gtsam::KeySet& newFactorKeys);

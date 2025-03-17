@@ -133,6 +133,9 @@ class GTSAM_EXPORT HybridSmoother {
   /// Return the current linearization point.
   Values linearizationPoint() const;
 
+  /// Return all the recorded nonlinear factors
+  HybridNonlinearFactorGraph allFactors() const;
+
  private:
   /// Helper to compute the ordering if ordering is not given.
   Ordering maybeComputeOrdering(const HybridGaussianFactorGraph& updatedGraph,
