@@ -291,4 +291,20 @@ HybridValues HybridSmoother::optimize() const {
   return HybridValues(continuous, mpe);
 }
 
+/* ************************************************************************* */
+void HybridSmoother::relinearize() {
+  allFactors_ = allFactors_.restrict(fixedValues_);
+  HybridGaussianFactorGraph::shared_ptr linearized =
+      allFactors_.linearize(linearizationPoint_);
+  HybridBayesNet::shared_ptr bayesNet = linearized->eliminateSequential();
+  HybridValues delta = bayesNet->optimize();
+  linearizationPoint_ = linearizationPoint_.retract(delta.continuous());
+  reInitialize(*bayesNet);
+}
+
+/* ************************************************************************* */
+Values HybridSmoother::linearizationPoint() const {
+  return linearizationPoint_;
+}
+
 }  // namespace gtsam

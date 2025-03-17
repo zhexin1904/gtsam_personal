@@ -126,15 +126,12 @@ class GTSAM_EXPORT HybridSmoother {
   /// Optimize the hybrid Bayes Net, taking into accound fixed values.
   HybridValues optimize() const;
 
-  void relinearize() {
-    allFactors_ = allFactors_.restrict(fixedValues_);
-    HybridGaussianFactorGraph::shared_ptr linearized =
-        allFactors_.linearize(linearizationPoint_);
-    HybridBayesNet::shared_ptr bayesNet = linearized->eliminateSequential();
-    HybridValues delta = bayesNet->optimize();
-    linearizationPoint_ = linearizationPoint_.retract(delta.continuous());
-    reInitialize(*bayesNet);
-  }
+  /// Relinearize the nonlinear factor graph
+  /// with the latest linearization point.
+  void relinearize();
+
+  /// Return the current linearization point.
+  Values linearizationPoint() const;
 
  private:
   /// Helper to compute the ordering if ordering is not given.

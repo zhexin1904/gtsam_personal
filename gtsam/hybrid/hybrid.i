@@ -283,11 +283,14 @@ class HybridSmoother {
   void reInitialize(gtsam::HybridBayesNet& hybridBayesNet);
 
   void update(
-      const gtsam::HybridNonlinearFactorGraph& graph, const Values& initial,
+      const gtsam::HybridNonlinearFactorGraph& graph,
+      const gtsam::Values& initial,
       std::optional<size_t> maxNrLeaves = std::nullopt,
       const std::optional<gtsam::Ordering> given_ordering = std::nullopt);
 
   void relinearize();
+
+  gtsam::Values linearizationPoint() const;
 
   gtsam::Ordering getOrdering(const gtsam::HybridGaussianFactorGraph& factors,
                               const gtsam::KeySet& newFactorKeys);
