@@ -247,6 +247,13 @@ double f(double x) {
   return 3.0 * pow(x, 3) - 2.0 * pow(x, 2) + 5.0 * x - 11;
 }
 
+Eigen::Matrix<double, -1, 1> calculateFvals(size_t N, double a = -1., double b = 1.) {
+  const Vector xs = Chebyshev2::Points(N, a, b);
+  Vector fvals(N);
+  std::transform(xs.data(), xs.data() + N, fvals.data(), f);
+  return fvals;
+}
+
 // its derivative
 double fprime(double x) {
   // return 9*(x**2) - 4*(x) + 5
@@ -255,10 +262,7 @@ double fprime(double x) {
 
 //******************************************************************************
 TEST(Chebyshev2, CalculateWeights) {
-  Eigen::Matrix<double, -1, 1> fvals(N);
-  for (size_t i = 0; i < N; i++) {
-    fvals(i) = f(Chebyshev2::Point(N, i));
-  }
+Vector fvals = calculateFvals(N);
   double x1 = 0.7, x2 = -0.376;
   Weights weights1 = Chebyshev2::CalculateWeights(N, x1);
   Weights weights2 = Chebyshev2::CalculateWeights(N, x2);
@@ -268,11 +272,7 @@ TEST(Chebyshev2, CalculateWeights) {
 
 TEST(Chebyshev2, CalculateWeights2) {
   double a = 0, b = 10, x1 = 7, x2 = 4.12;
-
-  Eigen::Matrix<double, -1, 1> fvals(N);
-  for (size_t i = 0; i < N; i++) {
-    fvals(i) = f(Chebyshev2::Point(N, i, a, b));
-  }
+  Vector fvals = calculateFvals(N, a, b);
 
   Weights weights1 = Chebyshev2::CalculateWeights(N, x1, a, b);
   EXPECT_DOUBLES_EQUAL(f(x1), weights1 * fvals, 1e-8);
@@ -283,22 +283,29 @@ TEST(Chebyshev2, CalculateWeights2) {
   EXPECT_DOUBLES_EQUAL(expected2, actual2, 1e-8);
 }
 
-TEST(Chebyshev2, DerivativeWeights) {
-  Eigen::Matrix<double, -1, 1> fvals(N);
-  for (size_t i = 0; i < N; i++) {
-    fvals(i) = f(Chebyshev2::Point(N, i));
+// Test CalculateWeights when a point coincides with a Chebyshev point
+TEST(Chebyshev2, CalculateWeights_CoincidingPoint) {
+  const size_t N = 5;
+  const double coincidingPoint = Chebyshev2::Point(N, 1);  // Pick the 2nd point
+
+  // Generate weights for the coinciding point
+  Weights weights = Chebyshev2::CalculateWeights(N, coincidingPoint);
+
+  // Verify that the weights are zero everywhere except at the coinciding point
+  for (size_t j = 0; j < N; ++j) {
+    EXPECT_DOUBLES_EQUAL(j == 1 ? 1.0 : 0.0, weights(j), 1e-9);
   }
-  double x1 = 0.7, x2 = -0.376, x3 = 0.0;
-  Weights dWeights1 = Chebyshev2::DerivativeWeights(N, x1);
-  EXPECT_DOUBLES_EQUAL(fprime(x1), dWeights1 * fvals, 1e-9);
+}
 
-  Weights dWeights2 = Chebyshev2::DerivativeWeights(N, x2);
-  EXPECT_DOUBLES_EQUAL(fprime(x2), dWeights2 * fvals, 1e-9);
+TEST(Chebyshev2, DerivativeWeights) {
+  Vector fvals = calculateFvals(N);
+  std::vector<double> testPoints = {0.7, -0.376, 0.0};
+  for (double x : testPoints) {
+    Weights dWeights = Chebyshev2::DerivativeWeights(N, x);
+    EXPECT_DOUBLES_EQUAL(fprime(x), dWeights * fvals, 1e-9);
+  }
 
-  Weights dWeights3 = Chebyshev2::DerivativeWeights(N, x3);
-  EXPECT_DOUBLES_EQUAL(fprime(x3), dWeights3 * fvals, 1e-9);
-
-  // test if derivative calculation and cheb point is correct
+  // test if derivative calculation at cheb point is correct
   double x4 = Chebyshev2::Point(N, 3);
   Weights dWeights4 = Chebyshev2::DerivativeWeights(N, x4);
   EXPECT_DOUBLES_EQUAL(fprime(x4), dWeights4 * fvals, 1e-9);
@@ -306,11 +313,7 @@ TEST(Chebyshev2, DerivativeWeights) {
 
 TEST(Chebyshev2, DerivativeWeights2) {
   double x1 = 5, x2 = 4.12, a = 0, b = 10;
-
-  Eigen::Matrix<double, -1, 1> fvals(N);
-  for (size_t i = 0; i < N; i++) {
-    fvals(i) = f(Chebyshev2::Point(N, i, a, b));
-  }
+  Vector fvals = calculateFvals(N, a, b);
 
   Weights dWeights1 = Chebyshev2::DerivativeWeights(N, x1, a, b);
   EXPECT_DOUBLES_EQUAL(fprime(x1), dWeights1 * fvals, 1e-8);
@@ -318,11 +321,12 @@ TEST(Chebyshev2, DerivativeWeights2) {
   Weights dWeights2 = Chebyshev2::DerivativeWeights(N, x2, a, b);
   EXPECT_DOUBLES_EQUAL(fprime(x2), dWeights2 * fvals, 1e-8);
 
-  // test if derivative calculation and Chebyshev point is correct
+  // test if derivative calculation at Chebyshev point is correct
   double x3 = Chebyshev2::Point(N, 3, a, b);
   Weights dWeights3 = Chebyshev2::DerivativeWeights(N, x3, a, b);
   EXPECT_DOUBLES_EQUAL(fprime(x3), dWeights3 * fvals, 1e-8);
 }
+
 
 //******************************************************************************
 // Check two different ways to calculate the derivative weights
