@@ -85,22 +85,22 @@ class GTSAM_EXPORT Chebyshev2 : public Basis<Chebyshev2> {
    * obtain a linear map from parameter vectors f to interpolated values f(x).
    * Optional [a,b] interval can be specified as well.
    */
-  static Weights CalculateWeights(size_t N, double x, double a = -1,
-                                  double b = 1);
+  static Weights CalculateWeights(size_t N, double x, double a = -1, double b = 1);
 
   /**
    *  Evaluate derivative of barycentric weights.
    *  This is easy and efficient via the DifferentiationMatrix.
    */
-  static Weights DerivativeWeights(size_t N, double x, double a = -1,
-                                   double b = 1);
+  static Weights DerivativeWeights(size_t N, double x, double a = -1, double b = 1);
 
-  /// compute D = differentiation matrix, Trefethen00book p.53
-  /// when given a parameter vector f of function values at the Chebyshev
+  /// Compute D = differentiation matrix, Trefethen00book p.53
+  /// When given a parameter vector f of function values at the Chebyshev
   /// points, D*f are the values of f'.
   /// https://people.maths.ox.ac.uk/trefethen/8all.pdf Theorem 8.4
-  static DiffMatrix DifferentiationMatrix(size_t N, double a = -1,
-                                          double b = 1);
+  static DiffMatrix DifferentiationMatrix(size_t N);
+
+  /// Compute D = differentiation matrix, for interval [a,b]
+  static DiffMatrix DifferentiationMatrix(size_t N, double a, double b);
 
   /**
    *  Evaluate Clenshaw-Curtis integration weights.
