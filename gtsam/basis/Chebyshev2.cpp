@@ -21,12 +21,42 @@
 
 namespace gtsam {
 
-double Chebyshev2::Point(size_t N, int j, double a, double b) {
+double Chebyshev2::Point(size_t N, int j) {
+  if (N == 1) return 0.0;
   assert(j >= 0 && size_t(j) < N);
-  const double dtheta = M_PI / (N > 1 ? (N - 1) : 1);
-  // We add -PI so that we get values ordered from -1 to +1
-  // sin(-M_PI_2 + dtheta*j); also works
-  return a + (b - a) * (1. + cos(-M_PI + dtheta * j)) / 2;
+  const double dtheta = M_PI / (N - 1);
+  return -cos(dtheta * j);
+}
+
+double Chebyshev2::Point(size_t N, int j, double a, double b) {
+  if (N == 1) return (a + b) / 2;
+  return a + (b - a) * (Point(N, j) + 1.0) / 2.0;
+}
+
+Vector Chebyshev2::Points(size_t N) {
+  Vector points(N);
+  if (N == 1) {
+    points(0) = 0.0;
+    return points;
+  }
+  size_t half = N / 2;
+  const double dtheta = M_PI / (N - 1);
+  for (size_t j = 0; j < half; ++j) {
+    double c = cos(j * dtheta);
+    points(j) = -c;
+    points(N - 1 - j) = c;
+  }
+  if (N % 2 == 1) {
+    points(half) = 0.0;
+  }
+  return points;
+}
+
+Vector Chebyshev2::Points(size_t N, double a, double b) {
+  Vector points = Points(N);
+  const double T1 = (a + b) / 2, T2 = (b - a) / 2;
+  points = T1 + (T2 * points).array();
+  return points;
 }
 
 Weights Chebyshev2::CalculateWeights(size_t N, double x, double a, double b) {

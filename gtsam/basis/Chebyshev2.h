@@ -52,8 +52,16 @@ class GTSAM_EXPORT Chebyshev2 : public Basis<Chebyshev2> {
   using DiffMatrix = Eigen::Matrix<double, /*NxN*/ -1, -1>;
 
   /**
+   * @brief Specific Chebyshev point, within [-1,1] interval.
+   *
+   * @param N The degree of the polynomial
+   * @param j The index of the Chebyshev point
+   * @return double
+   */
+  static double Point(size_t N, int j);
+
+  /**
    * @brief Specific Chebyshev point, within [a,b] interval.
-   * Default interval is [-1, 1]
    *
    * @param N The degree of the polynomial
    * @param j The index of the Chebyshev point
@@ -61,24 +69,13 @@ class GTSAM_EXPORT Chebyshev2 : public Basis<Chebyshev2> {
    * @param b Upper bound of interval (default: 1)
    * @return double
    */
-  static double Point(size_t N, int j, double a = -1, double b = 1);
+  static double Point(size_t N, int j, double a, double b);
 
   /// All Chebyshev points
-  static Vector Points(size_t N) {
-    Vector points(N);
-    for (size_t j = 0; j < N; j++) {
-      points(j) = Point(N, j);
-    }
-    return points;
-  }
+  static Vector Points(size_t N);
 
   /// All Chebyshev points, within [a,b] interval
-  static Vector Points(size_t N, double a, double b) {
-    Vector points = Points(N);
-    const double T1 = (a + b) / 2, T2 = (b - a) / 2;
-    points = T1 + (T2 * points).array();
-    return points;
-  }
+  static Vector Points(size_t N, double a, double b);
 
   /**
    * Evaluate Chebyshev Weights on [-1,1] at any x up to order N-1 (N values)
