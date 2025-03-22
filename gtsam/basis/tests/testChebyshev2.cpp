@@ -480,7 +480,7 @@ TEST(Chebyshev2, ComponentDerivativeFunctor) {
 //******************************************************************************
 TEST(Chebyshev2, IntegralWeights) {
   const size_t N7 = 7;
-  Vector actual = Chebyshev2::IntegrationWeights(N7);
+  Vector actual = Chebyshev2::IntegrationWeights(N7, -1, 1);
   Vector expected = (Vector(N7) << 0.0285714285714286, 0.253968253968254,
                      0.457142857142857, 0.520634920634921, 0.457142857142857,
                      0.253968253968254, 0.0285714285714286)
@@ -488,7 +488,7 @@ TEST(Chebyshev2, IntegralWeights) {
   EXPECT(assert_equal(expected, actual));
 
   const size_t N8 = 8;
-  Vector actual2 = Chebyshev2::IntegrationWeights(N8);
+  Vector actual2 = Chebyshev2::IntegrationWeights(N8, -1, 1);
   Vector expected2 = (Vector(N8) << 0.0204081632653061, 0.190141007218208,
                       0.352242423718159, 0.437208405798326, 0.437208405798326,
                       0.352242423718159, 0.190141007218208, 0.0204081632653061)

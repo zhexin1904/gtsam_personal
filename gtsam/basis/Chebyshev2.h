@@ -105,22 +105,11 @@ class GTSAM_EXPORT Chebyshev2 : public Basis<Chebyshev2> {
   /**
    *  Evaluate Clenshaw-Curtis integration weights.
    *  Trefethen00book, pg 128, clencurt.m
-   *  Note that N in clencurt.m is 1 less than our N
-   *  K = N-1;
-      theta = pi*(0:K)'/K;
-      w = zeros(1,N); ii = 2:K; v = ones(K-1, 1);
-      if mod(K,2) == 0
-          w(1) = 1/(K^2-1); w(N) = w(1);
-          for k=1:K/2-1, v = v-2*cos(2*k*theta(ii))/(4*k^2-1); end
-          v = v - cos(K*theta(ii))/(K^2-1);
-      else
-          w(1) = 1/K^2; w(N) = w(1);
-          for k=1:K/2, v = v-2*cos(2*k*theta(ii))/(4*k^2-1); end
-      end
-      w(ii) = 2*v/K;
-
    */
-  static Weights IntegrationWeights(size_t N, double a = -1, double b = 1);
+  static Weights IntegrationWeights(size_t N);
+
+  /// Evaluate Clenshaw-Curtis integration weights, for interval [a,b]
+  static Weights IntegrationWeights(size_t N, double a, double b);
 
   /**
    * Create matrix of values at Chebyshev points given vector-valued function.

@@ -227,28 +227,32 @@ Chebyshev2::DiffMatrix Chebyshev2::DifferentiationMatrix(size_t N, double a, dou
   return D / ((b - a) / 2.0);
 }
 
-Weights Chebyshev2::IntegrationWeights(size_t N, double a, double b) {
+Weights Chebyshev2::IntegrationWeights(size_t N) {
   Weights weights(N);
-  size_t K = N - 1,  // number of intervals between N points
+  const size_t K = N - 1,  // number of intervals between N points
     K2 = K * K;
 
   // Compute endpoint weight.
-  weights(0) = 0.5 * (b - a) / (K2 + K % 2 - 1);
+  weights(0) = 1.0 / (K2 + K % 2 - 1);
   weights(N - 1) = weights(0);
 
   // Compute up to the middle; mirror symmetry holds.
-  size_t mid = (N - 1) / 2;
+  const size_t mid = (N - 1) / 2;
+  double dTheta = M_PI / K;
   for (size_t i = 1; i <= mid; ++i) {
-    double theta = i * M_PI / K;
-    double w = (K % 2 == 0) ? 1 - cos(K * theta) / (K2 - 1) : 1;
-    size_t last_k = K / 2 + K % 2 - 1;
+    double w = (K % 2 == 0) ? 1 - cos(i * M_PI) / (K2 - 1) : 1;
+    const size_t last_k = K / 2 + K % 2 - 1;
+    const double theta = i * dTheta;
     for (size_t k = 1; k <= last_k; ++k)
-      w -= 2 * cos(2 * k * theta) / (4 * k * k - 1);
-    w *= (b - a) / K;
+      w -= 2.0 * cos(2 * k * theta) / (4 * k * k - 1);
+    w *= 2.0 / K;
     weights(i) = w;
     weights(N - 1 - i) = w;
   }
   return weights;
 }
 
+Weights Chebyshev2::IntegrationWeights(size_t N, double a, double b) {
+  return IntegrationWeights(N) * (b - a) / 2.0;
+}
 }  // namespace gtsam
