@@ -24,8 +24,8 @@ namespace gtsam {
 double Chebyshev2::Point(size_t N, int j) {
   if (N == 1) return 0.0;
   assert(j >= 0 && size_t(j) < N);
-  const double dtheta = M_PI / (N - 1);
-  return -cos(dtheta * j);
+  const double dTheta = M_PI / (N - 1);
+  return -cos(dTheta * j);
 }
 
 double Chebyshev2::Point(size_t N, int j, double a, double b) {
@@ -40,9 +40,9 @@ Vector Chebyshev2::Points(size_t N) {
     return points;
   }
   size_t half = N / 2;
-  const double dtheta = M_PI / (N - 1);
+  const double dTheta = M_PI / (N - 1);
   for (size_t j = 0; j < half; ++j) {
-    double c = cos(j * dtheta);
+    double c = cos(j * dTheta);
     points(j) = -c;
     points(N - 1 - j) = c;
   }
@@ -59,25 +59,49 @@ Vector Chebyshev2::Points(size_t N, double a, double b) {
   return points;
 }
 
-Weights Chebyshev2::CalculateWeights(size_t N, double x, double a, double b) {
-  // Allocate space for weights
-  Weights weights(N);
-
-  // We start by getting distances from x to all Chebyshev points
-  // as well as getting smallest distance
-  Weights distances(N);
-
-  for (size_t j = 0; j < N; j++) {
-    const double dj =
-        x - Point(N, j, a, b);  // only thing that depends on [a,b]
-
-    if (std::abs(dj) < 1e-12) {
-      // exceptional case: x coincides with a Chebyshev point
-      weights.setZero();
-      weights(j) = 1;
-      return weights;
+namespace {
+  // Find the index of the Chebyshev point that coincides with x
+  // within the interval [a, b]. If no such point exists, return nullopt.
+  static std::optional<size_t> coincidentPoint(size_t N, double x, double a, double b, double tol = 1e-12) {
+    if (N == 0) return std::nullopt;
+    if (N == 1) {
+      double mid = (a + b) / 2;
+      if (std::abs(x - mid) < tol) return 0;
     }
-    distances(j) = dj;
+    else {
+      // Compute normalized value y such that cos(j*dTheta) = y.
+      double y = 1.0 - 2.0 * (x - a) / (b - a);
+      if (y < -1.0 || y > 1.0) return std::nullopt;
+      double dTheta = M_PI / (N - 1);
+      double jCandidate = std::acos(y) / dTheta;
+      size_t jRounded = static_cast<size_t>(std::round(jCandidate));
+      if (std::abs(jCandidate - jRounded) < tol) return jRounded;
+    }
+    return std::nullopt;
+  }
+
+  // Get signed distances from x to all Chebyshev points
+  static Vector signedDistances(size_t N, double x, double a, double b) {
+    Vector result(N);
+    const Vector points = Chebyshev2::Points(N, a, b); // only thing that depends on [a,b]
+    for (size_t j = 0; j < N; j++) {
+      const double dj = x - points[j];
+      result(j) = dj;
+    }
+    return result;
+  }
+}
+
+Weights Chebyshev2::CalculateWeights(size_t N, double x, double a, double b) {
+  // We start by getting distances from x to all Chebyshev points
+  const Vector distances = signedDistances(N, x, a, b);
+
+  Weights weights(N);
+  if (auto j = coincidentPoint(N, x, a, b)) {
+    // exceptional case: x coincides with a Chebyshev point
+    weights.setZero();
+    weights(*j) = 1;
+    return weights;
   }
 
   // Beginning of interval, j = 0, x(0) = a
@@ -99,46 +123,32 @@ Weights Chebyshev2::CalculateWeights(size_t N, double x, double a, double b) {
 }
 
 Weights Chebyshev2::DerivativeWeights(size_t N, double x, double a, double b) {
-  // Allocate space for weights
   Weights weightDerivatives(N);
-
-  // toggle variable so we don't need to use `pow` for -1
-  double t = -1;
-
-  // We start by getting distances from x to all Chebyshev points
-  // as well as getting smallest distance
-  Weights distances(N);
-
-  for (size_t j = 0; j < N; j++) {
-    const double dj =
-        x - Point(N, j, a, b);  // only thing that depends on [a,b]
-    if (std::abs(dj) < 1e-12) {
-      // exceptional case: x coincides with a Chebyshev point
-      weightDerivatives.setZero();
-      // compute the jth row of the differentiation matrix for this point
-      double cj = (j == 0 || j == N - 1) ? 2. : 1.;
-      for (size_t k = 0; k < N; k++) {
-        if (j == 0 && k == 0) {
-          // we reverse the sign since we order the cheb points from -1 to 1
-          weightDerivatives(k) = -(cj * (N - 1) * (N - 1) + 1) / 6.0;
-        } else if (j == N - 1 && k == N - 1) {
-          // we reverse the sign since we order the cheb points from -1 to 1
-          weightDerivatives(k) = (cj * (N - 1) * (N - 1) + 1) / 6.0;
-        } else if (k == j) {
-          double xj = Point(N, j);
-          double xj2 = xj * xj;
-          weightDerivatives(k) = -0.5 * xj / (1 - xj2);
-        } else {
-          double xj = Point(N, j);
-          double xk = Point(N, k);
-          double ck = (k == 0 || k == N - 1) ? 2. : 1.;
-          t = ((j + k) % 2) == 0 ? 1 : -1;
-          weightDerivatives(k) = (cj / ck) * t / (xj - xk);
-        }
+  if (auto j = coincidentPoint(N, x, a, b)) {
+    // exceptional case: x coincides with a Chebyshev point
+    weightDerivatives.setZero();
+    // compute the jth row of the differentiation matrix for this point
+    double cj = (*j == 0 || *j == N - 1) ? 2. : 1.;
+    for (size_t k = 0; k < N; k++) {
+      if (*j == 0 && k == 0) {
+        // we reverse the sign since we order the cheb points from -1 to 1
+        weightDerivatives(k) = -(cj * (N - 1) * (N - 1) + 1) / 6.0;
+      } else if (*j == N - 1 && k == N - 1) {
+        // we reverse the sign since we order the cheb points from -1 to 1
+        weightDerivatives(k) = (cj * (N - 1) * (N - 1) + 1) / 6.0;
+      } else if (k == *j) {
+        double xj = Point(N, *j);
+        double xj2 = xj * xj;
+        weightDerivatives(k) = -0.5 * xj / (1 - xj2);
+      } else {
+        double xj = Point(N, *j);
+        double xk = Point(N, k);
+        double ck = (k == 0 || k == N - 1) ? 2. : 1.;
+        double t = ((*j + k) % 2) == 0 ? 1 : -1;
+        weightDerivatives(k) = (cj / ck) * t / (xj - xk);
       }
-      return 2 * weightDerivatives / (b - a);
     }
-    distances(j) = dj;
+    return 2 * weightDerivatives / (b - a);
   }
 
   // This section of code computes the derivative of
@@ -150,6 +160,7 @@ Weights Chebyshev2::DerivativeWeights(size_t N, double x, double a, double b) {
   double g = 0, k = 0;
   double w = 1;
 
+  const Vector distances = signedDistances(N, x, a, b);
   for (size_t j = 0; j < N; j++) {
     if (j == 0 || j == N - 1) {
       w = 0.5;
@@ -157,7 +168,7 @@ Weights Chebyshev2::DerivativeWeights(size_t N, double x, double a, double b) {
       w = 1.0;
     }
 
-    t = (j % 2 == 0) ? 1 : -1;
+    double t = (j % 2 == 0) ? 1 : -1;
 
     double c = t / distances(j);
     g += w * c;
@@ -183,19 +194,16 @@ Weights Chebyshev2::DerivativeWeights(size_t N, double x, double a, double b) {
   return weightDerivatives;
 }
 
-Chebyshev2::DiffMatrix Chebyshev2::DifferentiationMatrix(size_t N, double a,
-                                                         double b) {
+Chebyshev2::DiffMatrix Chebyshev2::DifferentiationMatrix(size_t N, double a, double b) {
   DiffMatrix D(N, N);
   if (N == 1) {
     D(0, 0) = 1;
     return D;
   }
 
-  // toggle variable so we don't need to use `pow` for -1
-  double t = -1;
-
+  const Vector points = Points(N); // a,b dependence is done at return
   for (size_t i = 0; i < N; i++) {
-    double xi = Point(N, i);
+    double xi = points(i);
     double ci = (i == 0 || i == N - 1) ? 2. : 1.;
     for (size_t j = 0; j < N; j++) {
       if (i == 0 && j == 0) {
@@ -208,9 +216,9 @@ Chebyshev2::DiffMatrix Chebyshev2::DifferentiationMatrix(size_t N, double a,
         double xi2 = xi * xi;
         D(i, j) = -xi / (2 * (1 - xi2));
       } else {
-        double xj = Point(N, j);
+        double xj = points(j);
         double cj = (j == 0 || j == N - 1) ? 2. : 1.;
-        t = ((i + j) % 2) == 0 ? 1 : -1;
+        double t = ((i + j) % 2) == 0 ? 1 : -1;
         D(i, j) = (ci / cj) * t / (xi - xj);
       }
     }
