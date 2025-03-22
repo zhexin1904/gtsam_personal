@@ -228,24 +228,26 @@ Chebyshev2::DiffMatrix Chebyshev2::DifferentiationMatrix(size_t N, double a, dou
 }
 
 Weights Chebyshev2::IntegrationWeights(size_t N, double a, double b) {
-  // Allocate space for weights
   Weights weights(N);
   size_t K = N - 1,  // number of intervals between N points
-      K2 = K * K;
+    K2 = K * K;
+
+  // Compute endpoint weight.
   weights(0) = 0.5 * (b - a) / (K2 + K % 2 - 1);
   weights(N - 1) = weights(0);
 
-  size_t last_k = K / 2 + K % 2 - 1;
-
-  for (size_t i = 1; i <= N - 2; ++i) {
+  // Compute up to the middle; mirror symmetry holds.
+  size_t mid = (N - 1) / 2;
+  for (size_t i = 1; i <= mid; ++i) {
     double theta = i * M_PI / K;
-    weights(i) = (K % 2 == 0) ? 1 - cos(K * theta) / (K2 - 1) : 1;
-
+    double w = (K % 2 == 0) ? 1 - cos(K * theta) / (K2 - 1) : 1;
+    size_t last_k = K / 2 + K % 2 - 1;
     for (size_t k = 1; k <= last_k; ++k)
-      weights(i) -= 2 * cos(2 * k * theta) / (4 * k * k - 1);
-    weights(i) *= (b - a) / K;
+      w -= 2 * cos(2 * k * theta) / (4 * k * k - 1);
+    w *= (b - a) / K;
+    weights(i) = w;
+    weights(N - 1 - i) = w;
   }
-
   return weights;
 }
 
