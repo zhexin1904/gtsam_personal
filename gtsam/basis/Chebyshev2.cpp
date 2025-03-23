@@ -232,7 +232,7 @@ Matrix Chebyshev2::IntegrationMatrix(size_t N) {
   Eigen::JacobiSVD<Matrix> svd(D, Eigen::ComputeThinU | Eigen::ComputeThinV);
   const auto& S = svd.singularValues();
   Matrix invS = Matrix::Zero(N, N);
-  for (int i = 0; i < N - 1; ++i) invS(i, i) = 1.0 / S(i);
+  for (size_t i = 0; i < N - 1; ++i) invS(i, i) = 1.0 / S(i);
   Matrix P = svd.matrixV() * invS * svd.matrixU().transpose();
 
   // Return a version of P that makes sure (P*f)(0) = 0.

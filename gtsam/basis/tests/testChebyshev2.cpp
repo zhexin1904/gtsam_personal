@@ -32,7 +32,7 @@ using namespace gtsam;
 
 //******************************************************************************
 TEST(Chebyshev2, Point) {
-  static const int N = 5;
+  static const size_t N = 5;
   auto points = Chebyshev2::Points(N);
   Vector expected(N);
   expected << -1., -sqrt(2.) / 2., 0., sqrt(2.) / 2., 1.;
@@ -50,7 +50,7 @@ TEST(Chebyshev2, Point) {
 
 //******************************************************************************
 TEST(Chebyshev2, PointInInterval) {
-  static const int N = 5;
+  static const size_t N = 5;
   auto points = Chebyshev2::Points(N, 0, 20);
   Vector expected(N);
   expected << 0., 1. - sqrt(2.) / 2., 1., 1. + sqrt(2.) / 2., 2.;
@@ -470,7 +470,7 @@ TEST(Chebyshev2, ComponentDerivativeFunctor) {
 
 //******************************************************************************
 TEST(Chebyshev2, IntegrationMatrix) {
-  const int N = 10;  // number of intervals => N+1 nodes
+  const size_t N = 10;  // number of intervals => N+1 nodes
   const double a = 0, b = 10;
 
   // Create integration matrix
@@ -482,7 +482,7 @@ TEST(Chebyshev2, IntegrationMatrix) {
   EXPECT_DOUBLES_EQUAL(0, F(0), 1e-9); // check first value is 0
   Vector points = Chebyshev2::Points(N, a, b);
   Vector ramp(N);
-  for (int i = 0; i < N; ++i) ramp(i) = points(i) - a;
+  for (size_t i = 0; i < N; ++i) ramp(i) = points(i) - a;
   EXPECT(assert_equal(ramp, F, 1e-9));
 
   // Get values of the derivative (fprime) at the Chebyshev nodes
