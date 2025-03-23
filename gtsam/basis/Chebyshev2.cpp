@@ -17,6 +17,9 @@
  */
 
 #include <gtsam/basis/Chebyshev2.h>
+
+#include <Eigen/Dense>
+
 #include <cassert>
 
 namespace gtsam {
@@ -93,24 +96,20 @@ namespace {
   // Helper function to calculate a row of the differentiation matrix, [-1,1] interval
   Vector differentiationMatrixRow(size_t N, const Vector& points, size_t i) {
     Vector row(N);
+    const size_t K = N - 1;
     double xi = points(i);
-    double ci = (i == 0 || i == N - 1) ? 2. : 1.;
     for (size_t j = 0; j < N; j++) {
-      if (i == 0 && j == 0) {
-        // we reverse the sign since we order the cheb points from -1 to 1
-        row(j) = -(ci * (N - 1) * (N - 1) + 1) / 6.0;
-      }
-      else if (i == N - 1 && j == N - 1) {
-        // we reverse the sign since we order the cheb points from -1 to 1
-        row(j) = (ci * (N - 1) * (N - 1) + 1) / 6.0;
-      }
-      else if (i == j) {
-        double xi2 = xi * xi;
-        row(j) = -xi / (2 * (1 - xi2));
+      if (i == j) {
+        // Diagonal elements
+        if (i == 0 || i == K)
+          row(j) = (i == 0 ? -1 : 1) * (2.0 * K * K + 1) / 6.0;
+        else
+          row(j) = -xi / (2.0 * (1.0 - xi * xi));
       }
       else {
         double xj = points(j);
-        double cj = (j == 0 || j == N - 1) ? 2. : 1.;
+        double ci = (i == 0 || i == K) ? 2. : 1.;
+        double cj = (j == 0 || j == K) ? 2. : 1.;
         double t = ((i + j) % 2) == 0 ? 1 : -1;
         row(j) = (ci / cj) * t / (xi - xj);
       }
@@ -225,6 +224,43 @@ Chebyshev2::DiffMatrix Chebyshev2::DifferentiationMatrix(size_t N, double a, dou
   return DifferentiationMatrix(N) / ((b - a) / 2.0);
 }
 
+Matrix Chebyshev2::IntegrationMatrix(size_t N) {
+  // Obtain the differentiation matrix.
+  const Matrix D = DifferentiationMatrix(N);
+
+  // Compute the pseudo-inverse of the differentiation matrix.
+  Eigen::JacobiSVD<Matrix> svd(D, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  const auto& S = svd.singularValues();
+  Matrix invS = Matrix::Zero(N, N);
+  for (int i = 0; i < N - 1; ++i) invS(i, i) = 1.0 / S(i);
+  Matrix P = svd.matrixV() * invS * svd.matrixU().transpose();
+
+  // Return a version of P that makes sure (P*f)(0) = 0.
+  const Weights row0 = P.row(0);
+  P.rowwise() -= row0;
+  return P;
+}
+
+Matrix Chebyshev2::IntegrationMatrix(size_t N, double a, double b) {
+  return IntegrationMatrix(N) * (b - a) / 2.0;
+}
+
+/*
+   Trefethen00book, pg 128, clencurt.m
+   Note that N in clencurt.m is 1 less than our N, we call it K below.
+   K = N-1;
+   theta = pi*(0:K)'/K;
+   w = zeros(1,N); ii = 2:K; v = ones(K-1, 1);
+   if mod(K,2) == 0
+       w(1) = 1/(K^2-1); w(N) = w(1);
+       for k=1:K/2-1, v = v-2*cos(2*k*theta(ii))/(4*k^2-1); end
+       v = v - cos(K*theta(ii))/(K^2-1);
+   else
+       w(1) = 1/K^2; w(N) = w(1);
+       for k=1:K/2, v = v-2*cos(2*k*theta(ii))/(4*k^2-1); end
+   end
+   w(ii) = 2*v/K;
+*/
 Weights Chebyshev2::IntegrationWeights(size_t N) {
   Weights weights(N);
   const size_t K = N - 1,  // number of intervals between N points
@@ -254,17 +290,14 @@ Weights Chebyshev2::IntegrationWeights(size_t N, double a, double b) {
   return IntegrationWeights(N) * (b - a) / 2.0;
 }
 
-Matrix Chebyshev2::IntegrationMatrix(size_t N) {
-  // Obtain the differentiation matrix.
-  Matrix D = DifferentiationMatrix(N);
+Weights Chebyshev2::DoubleIntegrationWeights(size_t N) {
+  // we have w * P, where w are the Clenshaw-Curtis weights and P is the integration matrix
+  // But P does not by default return a function starting at zero.
+  return Chebyshev2::IntegrationWeights(N) * Chebyshev2::IntegrationMatrix(N);
+}
 
-  // We want f = D * F, where F is the anti-derivative of f.  
-  // However, D is singular, so we enforce F(0) = f(0) by modifying its first row.
-  D.row(0).setZero();
-  D(0, 0) = 1.0;
-
-  // Now D is invertible; its inverse is the integration operator.
-  return D.inverse();
+Weights Chebyshev2::DoubleIntegrationWeights(size_t N, double a, double b) {
+  return Chebyshev2::IntegrationWeights(N, a, b) * Chebyshev2::IntegrationMatrix(N, a, b);
 }
 
 /**

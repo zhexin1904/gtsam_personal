@@ -102,19 +102,32 @@ class GTSAM_EXPORT Chebyshev2 : public Basis<Chebyshev2> {
   /// Compute D = differentiation matrix, for interval [a,b]
   static DiffMatrix DifferentiationMatrix(size_t N, double a, double b);
 
+  /// IntegrationMatrix returns the (N+1)×(N+1) matrix P such that for any f,
+  /// F = P * f recovers F (the antiderivative) satisfying f = D * F and F(0)=0.
+  static Matrix IntegrationMatrix(size_t N);
+
+  /// IntegrationMatrix returns the (N+1)×(N+1) matrix P for interval [a,b]
+  static Matrix IntegrationMatrix(size_t N, double a, double b);
+
   /**
-   *  Evaluate Clenshaw-Curtis integration weights.
+   *  Calculate Clenshaw-Curtis integration weights.
    *  Trefethen00book, pg 128, clencurt.m
    *  Note that N in clencurt.m is 1 less than our N
    */
   static Weights IntegrationWeights(size_t N);
 
-  /// Evaluate Clenshaw-Curtis integration weights, for interval [a,b]
+  /// Calculate Clenshaw-Curtis integration weights, for interval [a,b]
   static Weights IntegrationWeights(size_t N, double a, double b);
 
-  /// IntegrationMatrix returns the (N+1)×(N+1) matrix P such that for any f,
-  /// F = P * f recovers F (the antiderivative) satisfying f = D * F and F(0)=0.
-  static Matrix IntegrationMatrix(size_t N);
+  /**
+   * Calculate Double Clenshaw-Curtis integration weights
+   * We compute them as W * P, where W are the Clenshaw-Curtis weights and P is
+   * the integration matrix.
+   */
+  static Weights DoubleIntegrationWeights(size_t N);
+
+  /// Calculate Double Clenshaw-Curtis integration weights, for interval [a,b]
+  static Weights DoubleIntegrationWeights(size_t N, double a, double b);
 
   /// Create matrix of values at Chebyshev points given vector-valued function.
   static Vector vector(std::function<double(double)> f,
