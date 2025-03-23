@@ -105,22 +105,28 @@ class GTSAM_EXPORT Chebyshev2 : public Basis<Chebyshev2> {
   /**
    *  Evaluate Clenshaw-Curtis integration weights.
    *  Trefethen00book, pg 128, clencurt.m
+   *  Note that N in clencurt.m is 1 less than our N
    */
   static Weights IntegrationWeights(size_t N);
 
   /// Evaluate Clenshaw-Curtis integration weights, for interval [a,b]
   static Weights IntegrationWeights(size_t N, double a, double b);
 
-  /**
-   * Create matrix of values at Chebyshev points given vector-valued function.
-   */
+  /// IntegrationMatrix returns the (N+1)×(N+1) matrix P such that for any f,
+  /// F = P * f recovers F (the antiderivative) satisfying f = D * F and F(0)=0.
+  static Matrix IntegrationMatrix(size_t N);
+
+  /// Create matrix of values at Chebyshev points given vector-valued function.
+  static Vector vector(std::function<double(double)> f,
+    size_t N, double a = -1, double b = 1);
+
+  /// Create matrix of values at Chebyshev points given vector-valued function.
   template <size_t M>
   static Matrix matrix(std::function<Eigen::Matrix<double, M, 1>(double)> f,
-                       size_t N, double a = -1, double b = 1) {
+    size_t N, double a = -1, double b = 1) {
     Matrix Xmat(M, N);
-    for (size_t j = 0; j < N; j++) {
-      Xmat.col(j) = f(Point(N, j, a, b));
-    }
+    const Vector points = Points(N, a, b);
+    for (size_t j = 0; j < N; j++) Xmat.col(j) = f(points(j));
     return Xmat;
   }
 };  // \ Chebyshev2

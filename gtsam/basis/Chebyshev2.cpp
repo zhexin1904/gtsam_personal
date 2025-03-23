@@ -253,4 +253,28 @@ Weights Chebyshev2::IntegrationWeights(size_t N) {
 Weights Chebyshev2::IntegrationWeights(size_t N, double a, double b) {
   return IntegrationWeights(N) * (b - a) / 2.0;
 }
+
+Matrix Chebyshev2::IntegrationMatrix(size_t N) {
+  // Obtain the differentiation matrix.
+  Matrix D = DifferentiationMatrix(N);
+
+  // We want f = D * F, where F is the anti-derivative of f.  
+  // However, D is singular, so we enforce F(0) = f(0) by modifying its first row.
+  D.row(0).setZero();
+  D(0, 0) = 1.0;
+
+  // Now D is invertible; its inverse is the integration operator.
+  return D.inverse();
+}
+
+/**
+ * Create vector of values at Chebyshev points given scalar-valued function.
+ */
+Vector Chebyshev2::vector(std::function<double(double)> f, size_t N, double a, double b) {
+  Vector fvals(N);
+  const Vector points = Points(N, a, b);
+  for (size_t j = 0; j < N; j++) fvals(j) = f(points(j));
+  return fvals;
+}
+
 }  // namespace gtsam

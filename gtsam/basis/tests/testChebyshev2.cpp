@@ -247,13 +247,6 @@ double f(double x) {
   return 3.0 * pow(x, 3) - 2.0 * pow(x, 2) + 5.0 * x - 11;
 }
 
-Eigen::Matrix<double, -1, 1> calculateFvals(size_t N, double a = -1., double b = 1.) {
-  const Vector xs = Chebyshev2::Points(N, a, b);
-  Vector fvals(N);
-  std::transform(xs.data(), xs.data() + N, fvals.data(), f);
-  return fvals;
-}
-
 // its derivative
 double fprime(double x) {
   // return 9*(x**2) - 4*(x) + 5
@@ -262,7 +255,7 @@ double fprime(double x) {
 
 //******************************************************************************
 TEST(Chebyshev2, CalculateWeights) {
-Vector fvals = calculateFvals(N);
+Vector fvals = Chebyshev2::vector(f, N);
   double x1 = 0.7, x2 = -0.376;
   Weights weights1 = Chebyshev2::CalculateWeights(N, x1);
   Weights weights2 = Chebyshev2::CalculateWeights(N, x2);
@@ -272,7 +265,7 @@ Vector fvals = calculateFvals(N);
 
 TEST(Chebyshev2, CalculateWeights2) {
   double a = 0, b = 10, x1 = 7, x2 = 4.12;
-  Vector fvals = calculateFvals(N, a, b);
+  Vector fvals = Chebyshev2::vector(f, N, a, b);
 
   Weights weights1 = Chebyshev2::CalculateWeights(N, x1, a, b);
   EXPECT_DOUBLES_EQUAL(f(x1), weights1 * fvals, 1e-8);
@@ -298,14 +291,14 @@ TEST(Chebyshev2, CalculateWeights_CoincidingPoint) {
 }
 
 TEST(Chebyshev2, DerivativeWeights) {
-  Vector fvals = calculateFvals(N);
+  Vector fvals = Chebyshev2::vector(f, N);
   std::vector<double> testPoints = {0.7, -0.376, 0.0};
   for (double x : testPoints) {
     Weights dWeights = Chebyshev2::DerivativeWeights(N, x);
     EXPECT_DOUBLES_EQUAL(fprime(x), dWeights * fvals, 1e-9);
   }
 
-  // test if derivative calculation at cheb point is correct
+  // test if derivative calculation at Chebyshev point is correct
   double x4 = Chebyshev2::Point(N, 3);
   Weights dWeights4 = Chebyshev2::DerivativeWeights(N, x4);
   EXPECT_DOUBLES_EQUAL(fprime(x4), dWeights4 * fvals, 1e-9);
@@ -313,7 +306,7 @@ TEST(Chebyshev2, DerivativeWeights) {
 
 TEST(Chebyshev2, DerivativeWeights2) {
   double x1 = 5, x2 = 4.12, a = 0, b = 10;
-  Vector fvals = calculateFvals(N, a, b);
+  Vector fvals = Chebyshev2::vector(f, N, a, b);
 
   Weights dWeights1 = Chebyshev2::DerivativeWeights(N, x1, a, b);
   EXPECT_DOUBLES_EQUAL(fprime(x1), dWeights1 * fvals, 1e-8);
@@ -370,9 +363,8 @@ double proxy3(double x) {
   return Chebyshev2::EvaluationFunctor(6, x)(f3_at_6points);
 }
 
+// Check Derivative evaluation at point x=0.2
 TEST(Chebyshev2, Derivative6) {
-  // Check Derivative evaluation at point x=0.2
-
   // calculate expected values by numerical derivative of synthesis
   const double x = 0.2;
   Matrix numeric_dTdx = numericalDerivative11<double, double>(proxy3, x);
@@ -494,6 +486,38 @@ TEST(Chebyshev2, IntegralWeights) {
                       0.352242423718159, 0.190141007218208, 0.0204081632653061)
                          .finished();
   EXPECT(assert_equal(expected2, actual2));
+}
+
+//******************************************************************************
+TEST(Chebyshev2, IntegrationMatrixOperator) {
+  const int N = 10;  // number of intervals => N+1 nodes
+  const double a = -1.0, b = 1.0;
+
+  // Create integration matrix
+  Matrix P = Chebyshev2::IntegrationMatrix(N);
+
+  // Get values of the derivative (fprime) at the Chebyshev nodes
+  Vector ff = Chebyshev2::vector(fprime, N, a, b);
+
+  // Integrate to get back f, using the integration matrix
+  Vector F_est = P * ff;
+
+  // Assert that the first value is ff(0)
+  EXPECT_DOUBLES_EQUAL(ff(0), F_est(0), 1e-9);
+
+  // For comparison, get actual function values at the nodes
+  Vector F_true = Chebyshev2::vector(f, N, a, b);
+
+  // Verify the integration matrix worked correctly
+  F_est.array() += F_true(0) - F_est(0);
+  EXPECT(assert_equal(F_true, F_est, 1e-9));
+
+  // Differentiate the result to get back to our derivative function
+  Matrix D = Chebyshev2::DifferentiationMatrix(N);
+  Vector ff_est = D * F_est;
+
+  // Verify the round trip worked
+  EXPECT(assert_equal(ff, ff_est, 1e-9));
 }
 
 //******************************************************************************
