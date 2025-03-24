@@ -35,6 +35,7 @@ def Chebyshev2_vector(f, N, a=-1.0, b=1.0):
 class TestChebyshev2(GtsamTestCase):
 
     def test_Point(self):
+        """Test that Chebyshev points are correctly calculated and symmetrical."""
         N = 5
         points = Chebyshev2.Points(N)
         expected = np.array([-1.0, -np.sqrt(2.0) / 2.0, 0.0, np.sqrt(2.0) / 2.0, 1.0])
@@ -50,6 +51,7 @@ class TestChebyshev2(GtsamTestCase):
         self.assertAlmostEqual(p1, -p3, delta=tol)
 
     def test_PointInInterval(self):
+        """Test that Chebyshev points map correctly to arbitrary intervals [a,b]."""
         N = 5
         points = Chebyshev2.Points(N, 0, 20)
         expected = (
@@ -65,6 +67,7 @@ class TestChebyshev2(GtsamTestCase):
         np.testing.assert_allclose(actual, expected, rtol=0, atol=tol)
 
     def test_Decomposition(self):
+        """Test fitting a linear function with Chebyshev basis."""
         # Create a sequence: dictionary mapping x -> y.
         sequence = {}
         for i in range(16):
@@ -76,6 +79,7 @@ class TestChebyshev2(GtsamTestCase):
         np.testing.assert_allclose(params, expected, rtol=0, atol=1e-4)
 
     def test_DifferentiationMatrix3(self):
+        """Test the 3×3 differentiation matrix against known values."""
         N = 3
         # Expected differentiation matrix (from chebfun) then multiplied by -1.
         expected = np.array([[1.5, -2.0, 0.5], [0.5, -0.0, -0.5], [-0.5, 2.0, -1.5]])
@@ -84,6 +88,7 @@ class TestChebyshev2(GtsamTestCase):
         np.testing.assert_allclose(actual, expected, rtol=0, atol=1e-4)
 
     def test_DerivativeMatrix6(self):
+        """Test the 6×6 differentiation matrix against known values."""
         N = 6
         expected = np.array(
             [
@@ -100,6 +105,7 @@ class TestChebyshev2(GtsamTestCase):
         np.testing.assert_allclose(actual, expected, rtol=0, atol=1e-4)
 
     def test_CalculateWeights(self):
+        """Test interpolation weights for a cubic function at arbitrary points."""
         N = 32
         fvals = Chebyshev2_vector(f, N)
         x1, x2 = 0.7, -0.376
@@ -109,6 +115,7 @@ class TestChebyshev2(GtsamTestCase):
         self.assertAlmostEqual(w2.dot(fvals), f(x2), delta=1e-8)
 
     def test_CalculateWeights2(self):
+        """Test interpolation weights in arbitrary interval [a,b]."""
         N = 32
         a, b = 0.0, 10.0
         x1, x2 = 7.0, 4.12
@@ -119,6 +126,7 @@ class TestChebyshev2(GtsamTestCase):
         self.assertAlmostEqual(w2.dot(fvals), f(x2), delta=1e-8)
 
     def test_CalculateWeights_CoincidingPoint(self):
+        """Test that weights are correctly computed when x coincides with a Chebyshev point."""
         N = 5
         coincidingPoint = Chebyshev2.Point(N, 1)
         w = Chebyshev2.CalculateWeights(N, coincidingPoint)
@@ -128,6 +136,7 @@ class TestChebyshev2(GtsamTestCase):
             self.assertAlmostEqual(w[j], expected, delta=tol)
 
     def test_DerivativeWeights(self):
+        """Test derivative weights for polynomial function at arbitrary points."""
         N = 32
         fvals = Chebyshev2_vector(f, N)
         for x in [0.7, -0.376, 0.0]:
@@ -138,6 +147,7 @@ class TestChebyshev2(GtsamTestCase):
         self.assertAlmostEqual(dw4.dot(fvals), fprime(x4), delta=1e-9)
 
     def test_DerivativeWeights2(self):
+        """Test derivative weights in arbitrary interval [a,b]."""
         N = 32
         a, b = 0.0, 10.0
         x1, x2 = 5.0, 4.12
@@ -151,6 +161,7 @@ class TestChebyshev2(GtsamTestCase):
         self.assertAlmostEqual(dw3.dot(fvals), fprime(x3), delta=1e-8)
 
     def test_DerivativeWeightsDifferentiationMatrix(self):
+        """Test that derivative weights match multiplication by differentiation matrix."""
         N6 = 6
         x1 = 0.311
         D6 = Chebyshev2.DifferentiationMatrix(N6)
@@ -165,6 +176,7 @@ class TestChebyshev2(GtsamTestCase):
         np.testing.assert_allclose(actual1, expected1, rtol=0, atol=1e-12)
 
     def test_DerivativeWeights6(self):
+        """Test that differentiating the identity function gives a constant."""
         N6 = 6
         D6 = Chebyshev2.DifferentiationMatrix(N6)
         x = Chebyshev2.Points(N6)  # ramp with slope 1
@@ -172,6 +184,7 @@ class TestChebyshev2(GtsamTestCase):
         np.testing.assert_allclose(D6.dot(x), ones, rtol=0, atol=1e-9)
 
     def test_DerivativeWeights7(self):
+        """Test that differentiating the identity function gives a constant (N=7)."""
         N7 = 7
         D7 = Chebyshev2.DifferentiationMatrix(N7)
         x = Chebyshev2.Points(N7)
@@ -179,6 +192,7 @@ class TestChebyshev2(GtsamTestCase):
         np.testing.assert_allclose(D7.dot(x), ones, rtol=0, atol=1e-9)
 
     def test_IntegrationMatrix(self):
+        """Test integration matrix properties and accuracy on polynomial functions."""
         N = 10
         a, b = 0.0, 10.0
         P = Chebyshev2.IntegrationMatrix(N, a, b)
@@ -198,6 +212,7 @@ class TestChebyshev2(GtsamTestCase):
         np.testing.assert_allclose(ff_est, fp, rtol=0, atol=1e-9)
 
     def test_IntegrationWeights7(self):
+        """Test integration weights against known values for N=7."""
         N = 7
         actual = Chebyshev2.IntegrationWeights(N, -1, 1)
         expected = np.array(
@@ -223,6 +238,7 @@ class TestChebyshev2(GtsamTestCase):
         self.assertAlmostEqual(p7.dot(fvals), actual.dot(fvals), delta=1e-9)
 
     def test_IntegrationWeights8(self):
+        """Test integration weights against known values for N=8."""
         N = 8
         actual = Chebyshev2.IntegrationWeights(N, -1, 1)
         expected = np.array(
@@ -241,22 +257,20 @@ class TestChebyshev2(GtsamTestCase):
         self.assertAlmostEqual(np.sum(actual), 2.0, delta=1e-9)
 
     def test_DoubleIntegrationWeights(self):
+        """Test double integration weights for constant function (N=7)."""
         N = 7
         a, b = 0.0, 10.0
         P = Chebyshev2.IntegrationMatrix(N, a, b)
         ones = np.ones(N)
-        ramp = P.dot(ones)
-        quadratic = P.dot(ramp)
         w = Chebyshev2.DoubleIntegrationWeights(N, a, b)
         self.assertAlmostEqual(w.dot(ones), b * b / 2.0, delta=1e-9)
 
     def test_DoubleIntegrationWeights2(self):
+        """Test double integration weights for constant function (N=8)."""
         N = 8
         a, b = 0.0, 3.0
         P = Chebyshev2.IntegrationMatrix(N, a, b)
         ones = np.ones(N)
-        ramp = P.dot(ones)
-        quadratic = P.dot(ramp)
         w = Chebyshev2.DoubleIntegrationWeights(N, a, b)
         self.assertAlmostEqual(w.dot(ones), b * b / 2.0, delta=1e-9)
 
