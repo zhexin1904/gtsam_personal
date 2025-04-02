@@ -35,7 +35,11 @@ DecisionTreeFactor DiscreteFactorFromErrors(
     const DiscreteKeys& discreteKeys, const AlgebraicDecisionTree<Key>& errors);
 
 /**
- * A discrete probabilistic factor.
+ * A discrete probabilistic factor which computes its values from the
+ * continuous factors connected to it and a set of values.
+ *
+ * Helps in computing the discrete probabilities at the boundary of
+ * discrete and continuous factors.
  *
  * @ingroup discrete
  */
@@ -82,7 +86,7 @@ class GTSAM_EXPORT DiscreteBoundaryFactor : public DecisionTreeFactor {
   /// @name Testable
   /// @{
 
-  // print
+  /// Print
   void print(
       const std::string& s = "DiscreteBoundaryFactor:\n",
       const KeyFormatter& formatter = DefaultKeyFormatter) const override;
@@ -107,9 +111,6 @@ class GTSAM_EXPORT DiscreteBoundaryFactor : public DecisionTreeFactor {
    * @return DecisionTreeFactor
    */
   DiscreteBoundaryFactor operator/(const DiscreteBoundaryFactor& f) const;
-
-  /// Convert into a decision tree
-  DecisionTreeFactor toDecisionTreeFactor() const override { return *this; }
 
   /// @}
   /// @name Advanced Interface
