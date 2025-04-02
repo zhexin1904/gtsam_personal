@@ -90,6 +90,26 @@ TEST(DCSAM, DiscretePriorFactor) {
   EXPECT_LONGS_EQUAL(mpeD, 1);
 }
 
+namespace discrete_mixture_fixture {
+// We'll make a variable with 2 possible assignments
+DiscreteKey dk(D(1), 2);
+
+// Key for single continuous variable
+Key x1 = X(1);
+
+// Make a factor for non-null hypothesis
+const double loc = 0.0;
+const double sigma1 = 1.0;
+auto prior_noise1 = noiseModel::Isotropic::Sigma(1, sigma1);
+auto f1 = std::make_shared<PriorFactor<double>>(x1, loc, prior_noise1);
+
+// Make a factor for null hypothesis
+const double sigmaNullHypo = 8.0;
+auto prior_noiseNullHypo = noiseModel::Isotropic::Sigma(1, sigmaNullHypo);
+auto fNullHypo =
+    std::make_shared<PriorFactor<double>>(x1, loc, prior_noiseNullHypo);
+}  // namespace discrete_mixture_fixture
+
 /*
  * Test discrete optimization using a simple mixture.
  *
@@ -103,29 +123,14 @@ TEST(DCSAM, DiscretePriorFactor) {
  * will initially choose the null hypothesis.
  */
 TEST(DCSAM, DiscreteMixture) {
+  using namespace discrete_mixture_fixture;
+
   // Make an empty hybrid factor graph
   HybridNonlinearFactorGraph dcfg;
 
-  // We'll make a variable with 2 possible assignments
-  const size_t cardinality = 2;
-  DiscreteKey dk(D(1), cardinality);
-
   // Make a symbol for a single continuous variable and add to KeyVector
-  Key x1 = X(1);
   KeyVector keys;
   keys.push_back(x1);
-
-  // Make a factor for non-null hypothesis
-  const double loc = 0.0;
-  const double sigma1 = 1.0;
-  auto prior_noise1 = noiseModel::Isotropic::Sigma(1, sigma1);
-  auto f1 = std::make_shared<PriorFactor<double>>(x1, loc, prior_noise1);
-
-  // Make a factor for null hypothesis
-  const double sigmaNullHypo = 8.0;
-  auto prior_noiseNullHypo = noiseModel::Isotropic::Sigma(1, sigmaNullHypo);
-  auto fNullHypo =
-      std::make_shared<PriorFactor<double>>(x1, loc, prior_noiseNullHypo);
 
   std::vector<NoiseModelFactor::shared_ptr> factorComponents{f1, fNullHypo};
 
@@ -204,29 +209,14 @@ TEST(DCSAM, DiscreteMixture) {
  * hypothesis will shift to the "alternative hypothesis."
  */
 TEST(DCSAM, ContinuousMixture) {
+  using namespace discrete_mixture_fixture;
+
   // Make an empty hybrid factor graph
   HybridNonlinearFactorGraph dcfg;
 
-  // We'll make a variable with 2 possible assignments
-  const size_t cardinality = 2;
-  DiscreteKey dk(D(1), cardinality);
-
   // Make a symbol for a single continuous variable and add to KeyVector
-  Key x1 = X(1);
   KeyVector keys;
   keys.push_back(x1);
-
-  // Make a factor for non-null hypothesis
-  const double loc = 0.0;
-  const double sigma1 = 1.0;
-  auto prior_noise1 = noiseModel::Isotropic::Sigma(1, sigma1);
-  auto f1 = std::make_shared<PriorFactor<double>>(x1, loc, prior_noise1);
-
-  // Make a factor for null hypothesis
-  const double sigmaNullHypo = 8.0;
-  auto prior_noiseNullHypo = noiseModel::Isotropic::Sigma(1, sigmaNullHypo);
-  auto fNullHypo =
-      std::make_shared<PriorFactor<double>>(x1, loc, prior_noiseNullHypo);
 
   std::vector<NonlinearFactorValuePair> factorComponents{
       {f1, prior_noise1->negLogConstant()},
@@ -336,26 +326,11 @@ TEST(DCSAM, ContinuousMixture) {
  * implemented manually as above).
  */
 TEST(DCSAM, simple_mixture_factor) {
-  // We'll make a variable with 2 possible assignments
-  const size_t cardinality = 2;
-  DiscreteKey dk(D(1), cardinality);
+  using namespace discrete_mixture_fixture;
 
   // Make a symbol for a single continuous variable and add to KeyVector
-  Key x1 = X(1);
   KeyVector keys;
   keys.push_back(x1);
-
-  // Make a factor for non-null hypothesis
-  double loc = 0.0;
-  double sigma1 = 1.0;
-  auto prior_noise1 = noiseModel::Isotropic::Sigma(1, sigma1);
-  auto f1 = std::make_shared<PriorFactor<double>>(x1, loc, prior_noise1);
-
-  // Make a factor for null hypothesis
-  double sigmaNullHypo = 8.0;
-  auto prior_noiseNullHypo = noiseModel::Isotropic::Sigma(1, sigmaNullHypo);
-  auto fNullHypo =
-      std::make_shared<PriorFactor<double>>(x1, loc, prior_noiseNullHypo);
 
   std::vector<NonlinearFactorValuePair> factorComponents{
       {f1, prior_noise1->negLogConstant()},
