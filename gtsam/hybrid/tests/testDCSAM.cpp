@@ -325,7 +325,7 @@ TEST(DCSAM, ContinuousMixture) {
  than
  * implemented manually as above).
  */
-TEST(DCSAM, simple_mixture_factor) {
+TEST(DCSAM, SimpleMixtureFactor) {
   using namespace discrete_mixture_fixture;
 
   // Make a symbol for a single continuous variable and add to KeyVector
@@ -374,11 +374,26 @@ TEST(DCSAM, simple_mixture_factor) {
   EXPECT_LONGS_EQUAL(0, mpeD);
 }
 
+namespace slam_fixture {
+const double prior_sigma = 0.1;
+const double meas_sigma = 1.0;
+
+auto prior_noise = noiseModel::Isotropic::Sigma(3, prior_sigma);
+auto meas_noise = noiseModel::Isotropic::Sigma(3, meas_sigma);
+
+Pose2 pose0(0, 0, 0);
+Pose2 dx(1, 0, 0.78539816);
+Pose2 noise(0.01, 0.01, 0.01);
+
+}  // namespace slam_fixture
+
 /**
  * This is a basic (qualitative) octagonal pose graph SLAM test
  * to verify that DCSAM works on standard SLAM examples.
  */
 TEST(DCSAM, SimpleSlamBatch) {
+  using namespace slam_fixture;
+
   // Make a hybrid factor graph
   HybridNonlinearFactorGraph graph;
 
@@ -386,13 +401,6 @@ TEST(DCSAM, SimpleSlamBatch) {
   Values initialGuess;
 
   Key x0 = X(0);
-  Pose2 pose0(0, 0, 0);
-  Pose2 dx(1, 0, 0.78539816);
-  const double prior_sigma = 0.1;
-  const double meas_sigma = 1.0;
-
-  auto prior_noise = noiseModel::Isotropic::Sigma(3, prior_sigma);
-  auto meas_noise = noiseModel::Isotropic::Sigma(3, meas_sigma);
 
   PriorFactor<Pose2> p0(x0, pose0, prior_noise);
   graph.push_back(p0);
@@ -403,7 +411,6 @@ TEST(DCSAM, SimpleSlamBatch) {
   DCSAM dcsam;
 
   Pose2 odom(pose0);
-  Pose2 noise(0.01, 0.01, 0.01);
   for (size_t i = 0; i < 7; i++) {
     Key xi = X(i);
     Key xj = X(i + 1);
@@ -443,6 +450,8 @@ TEST(DCSAM, SimpleSlamBatch) {
  * in the *incremental* setting.
  */
 TEST(DCSAM, SimpleSlamIncremental) {
+  using namespace slam_fixture;
+
   // Make a factor graph
   HybridNonlinearFactorGraph graph;
 
@@ -450,13 +459,6 @@ TEST(DCSAM, SimpleSlamIncremental) {
   Values initialGuess;
 
   Key x0 = X(0);
-  Pose2 pose0(0, 0, 0);
-  Pose2 dx(1, 0, 0.78539816);
-  const double prior_sigma = 0.1;
-  const double meas_sigma = 1.0;
-
-  auto prior_noise = noiseModel::Isotropic::Sigma(3, prior_sigma);
-  auto meas_noise = noiseModel::Isotropic::Sigma(3, meas_sigma);
 
   PriorFactor<Pose2> p0(x0, pose0, prior_noise);
 
@@ -471,7 +473,7 @@ TEST(DCSAM, SimpleSlamIncremental) {
   initialGuess.clear();
 
   Pose2 odom(pose0);
-  Pose2 noise(0.01, 0.01, 0.01);
+
   for (size_t i = 0; i < 7; i++) {
     Key xi = X(i);
     Key xj = X(i + 1);
@@ -554,6 +556,8 @@ TEST(DCSAM, SimpleDiscrete) {
  * the *incremental* setting
  */
 TEST(DCSAM, SimpleSemanticSlam) {
+  using namespace slam_fixture;
+
   // Make a factor graph
   HybridNonlinearFactorGraph hfg;
 
@@ -567,16 +571,11 @@ TEST(DCSAM, SimpleSemanticSlam) {
   Key lc1 = C(1);
   // Create a discrete key for landmark 1 class with cardinality 2.
   DiscreteKey lm1_class(lc1, 2);
-  Pose2 pose0(0, 0, 0);
-  Pose2 dx(1, 0, 0.78539816);
-  const double prior_sigma = 0.1;
-  const double meas_sigma = 1.0;
+
   const double circumradius = (std::sqrt(4 + 2 * std::sqrt(2))) / 2.0;
   Point2 landmark1(circumradius, circumradius);
 
-  auto prior_noise = noiseModel::Isotropic::Sigma(3, prior_sigma);
   auto prior_lm_noise = noiseModel::Isotropic::Sigma(2, prior_sigma);
-  auto meas_noise = noiseModel::Isotropic::Sigma(3, meas_sigma);
 
   // 0.1 rad std on bearing, 10cm on range
   auto br_noise = noiseModel::Isotropic::Sigma(2, 0.1);
@@ -612,7 +611,6 @@ TEST(DCSAM, SimpleSemanticSlam) {
   initialGuessDiscrete.clear();
 
   Pose2 odom(pose0);
-  Pose2 noise(0.01, 0.01, 0.01);
   for (size_t i = 0; i < 7; i++) {
     Key xi = X(i);
     Key xj = X(i + 1);
