@@ -31,7 +31,7 @@ namespace gtsam {
  * @param errors DecisionTree of (unnormalized) errors.
  * @return TableFactor::shared_ptr
  */
-DecisionTreeFactor DiscreteFactorFromErrors(
+GTSAM_EXPORT DecisionTreeFactor DiscreteFactorFromErrors(
     const DiscreteKeys& discreteKeys, const AlgebraicDecisionTree<Key>& errors);
 
 /**
