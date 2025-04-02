@@ -36,8 +36,11 @@
 #include <CppUnitLite/TestHarness.h>
 
 using namespace gtsam;
-using symbol_shorthand::X;
+
+using symbol_shorthand::C;
+using symbol_shorthand::D;
 using symbol_shorthand::L;
+using symbol_shorthand::X;
 
 const double tol = 1e-7;
 
@@ -59,7 +62,7 @@ TEST(DCSAM, DiscretePriorFactor) {
 
   // We'll make a variable with 2 possible assignments
   const size_t cardinality = 2;
-  DiscreteKey dk(Symbol('d', 1), cardinality);
+  DiscreteKey dk(D(1), cardinality);
   const std::vector<double> probs{0.1, 0.9};
 
   // Make a discrete prior factor and add it to the graph
@@ -114,10 +117,10 @@ TEST(DCSAM, DiscreteMixture) {
 
   // We'll make a variable with 2 possible assignments
   const size_t cardinality = 2;
-  DiscreteKey dk(Symbol('d', 1), cardinality);
+  DiscreteKey dk(D(1), cardinality);
 
   // Make a symbol for a single continuous variable and add to KeyVector
-  Symbol x1 = Symbol('x', 1);
+  Key x1 = X(1);
   KeyVector keys;
   keys.push_back(x1);
 
@@ -215,10 +218,10 @@ TEST(DCSAM, ContinuousMixture) {
 
   // We'll make a variable with 2 possible assignments
   const size_t cardinality = 2;
-  DiscreteKey dk(Symbol('d', 1), cardinality);
+  DiscreteKey dk(D(1), cardinality);
 
   // Make a symbol for a single continuous variable and add to KeyVector
-  Symbol x1 = Symbol('x', 1);
+  Key x1 = X(1);
   KeyVector keys;
   keys.push_back(x1);
 
@@ -344,10 +347,10 @@ TEST(DCSAM, ContinuousMixture) {
 TEST(DCSAM, simple_mixture_factor) {
   // We'll make a variable with 2 possible assignments
   const size_t cardinality = 2;
-  DiscreteKey dk(Symbol('d', 1), cardinality);
+  DiscreteKey dk(D(1), cardinality);
 
   // Make a symbol for a single continuous variable and add to KeyVector
-  Symbol x1 = Symbol('x', 1);
+  Key x1 = X(1);
   KeyVector keys;
   keys.push_back(x1);
 
@@ -416,7 +419,7 @@ TEST(DCSAM, SimpleSlamBatch) {
   // Values for initial guess
   Values initialGuess;
 
-  Symbol x0('x', 0);
+  Key x0 = X(0);
   Pose2 pose0(0, 0, 0);
   Pose2 dx(1, 0, 0.78539816);
   const double prior_sigma = 0.1;
@@ -436,8 +439,8 @@ TEST(DCSAM, SimpleSlamBatch) {
   Pose2 odom(pose0);
   Pose2 noise(0.01, 0.01, 0.01);
   for (size_t i = 0; i < 7; i++) {
-    Symbol xi('x', i);
-    Symbol xj('x', i + 1);
+    Key xi = X(i);
+    Key xj = X(i + 1);
 
     Pose2 meas = dx * noise;
 
@@ -448,8 +451,7 @@ TEST(DCSAM, SimpleSlamBatch) {
     initialGuess.insert(xj, odom);
   }
 
-  Symbol x7('x', 7);
-  BetweenFactor<Pose2> bw(x0, x7, dx * noise, meas_noise);
+  BetweenFactor<Pose2> bw(x0, X(7), dx * noise, meas_noise);
 
   dcsam.update(graph, initialGuess);
   HybridValues dcvals = dcsam.calculateEstimate();
@@ -481,7 +483,7 @@ TEST(DCSAM, SimpleSlamIncremental) {
   // Values for initial guess
   Values initialGuess;
 
-  Symbol x0('x', 0);
+  Key x0 = X(0);
   Pose2 pose0(0, 0, 0);
   Pose2 dx(1, 0, 0.78539816);
   const double prior_sigma = 0.1;
@@ -505,8 +507,8 @@ TEST(DCSAM, SimpleSlamIncremental) {
   Pose2 odom(pose0);
   Pose2 noise(0.01, 0.01, 0.01);
   for (size_t i = 0; i < 7; i++) {
-    Symbol xi('x', i);
-    Symbol xj('x', i + 1);
+    Key xi = X(i);
+    Key xj = X(i + 1);
 
     Pose2 meas = dx * noise;
 
@@ -521,8 +523,7 @@ TEST(DCSAM, SimpleSlamIncremental) {
     initialGuess.clear();
   }
 
-  Symbol x7('x', 7);
-  BetweenFactor<Pose2> bw(x0, x7, dx * noise, meas_noise);
+  BetweenFactor<Pose2> bw(x0, X(7), dx * noise, meas_noise);
 
   dcsam.update(graph, initialGuess);
   HybridValues dcvals = dcsam.calculateEstimate();
@@ -556,7 +557,7 @@ TEST(DCSAM, SimpleDiscrete) {
 
   // We'll make a variable with 2 possible assignments
   const size_t cardinality = 2;
-  DiscreteKey dk(Symbol('d', 1), cardinality);
+  DiscreteKey dk(D(1), cardinality);
   const std::vector<double> probs{0.1, 0.9};
 
   // Make a discrete prior factor and add it to the graph
@@ -595,9 +596,9 @@ TEST(DCSAM, SimpleSemanticSlam) {
   // Initial guess for discrete values (only used in certain circumstances)
   DiscreteValues initialGuessDiscrete;
 
-  Symbol x0('x', 0);
-  Symbol l1('l', 1);
-  Symbol lc1('c', 1);
+  Key x0 = X(0);
+  Key l1 = L(1);
+  Key lc1 = C(1);
   // Create a discrete key for landmark 1 class with cardinality 2.
   DiscreteKey lm1_class(lc1, 2);
   Pose2 pose0(0, 0, 0);
@@ -647,8 +648,8 @@ TEST(DCSAM, SimpleSemanticSlam) {
   Pose2 odom(pose0);
   Pose2 noise(0.01, 0.01, 0.01);
   for (size_t i = 0; i < 7; i++) {
-    Symbol xi('x', i);
-    Symbol xj('x', i + 1);
+    Key xi = X(i);
+    Key xj = X(i + 1);
 
     Pose2 meas = dx * noise;
 
@@ -684,8 +685,7 @@ TEST(DCSAM, SimpleSemanticSlam) {
     initialGuess.clear();
   }
 
-  Symbol x7('x', 7);
-  BetweenFactor<Pose2> bw(x0, x7, dx * noise, meas_noise);
+  BetweenFactor<Pose2> bw(x0, X(7), dx * noise, meas_noise);
 
   hfg.push_back(bw);
   dcsam.update(hfg, initialGuess);
