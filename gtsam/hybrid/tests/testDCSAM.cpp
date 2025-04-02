@@ -21,6 +21,7 @@
 #include <gtsam/discrete/DiscreteMarginals.h>
 #include <gtsam/geometry/Pose2.h>
 #include <gtsam/hybrid/DCSAM.h>
+#include <gtsam/hybrid/DiscreteBoundaryFactor.h>
 #include <gtsam/hybrid/HybridGaussianFactor.h>
 #include <gtsam/hybrid/HybridNonlinearFactor.h>
 #include <gtsam/hybrid/HybridNonlinearFactorGraph.h>
@@ -87,16 +88,6 @@ TEST(DCSAM, DiscretePriorFactor) {
 
   // Ensure that the most probable estimate is correct
   EXPECT_LONGS_EQUAL(mpeD, 1);
-}
-
-DecisionTreeFactor DiscreteFactorFromErrors(
-    const DiscreteKeys &discreteKeys,
-    const AlgebraicDecisionTree<Key> &errors) {
-  double min_log = errors.min();
-  AlgebraicDecisionTree<Key> potentials(
-      errors, [&min_log](const double x) { return exp(-(x - min_log)); });
-
-  return DecisionTreeFactor(discreteKeys, potentials);
 }
 
 /*
