@@ -288,7 +288,7 @@ class DiscreteBayesTree {
   const DiscreteBayesTreeClique* clique(size_t j) const;
   size_t numCachedSeparatorMarginals() const;
 
-  gtsam::DiscreteConditional marginalFactor(size_t key) const;
+  gtsam::DiscreteConditional* marginalFactor(size_t key) const;
   gtsam::DiscreteFactorGraph* joint(size_t j1, size_t j2) const;
   gtsam::DiscreteBayesNet* jointBayesNet(size_t j1, size_t j2) const;
 
