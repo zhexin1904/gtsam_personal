@@ -95,7 +95,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "file_paths",
         nargs='+',
-        help="The paths to the header files from the root gtsam directory.")
+        help=
+        "The paths to the header files from the root gtsam directory, e.g. 'gtsam/geometry/Pose3.h'."
+    )
     args = parser.parse_args()
 
     # Retrieves API key from environment variable OPENAI_API_KEY
