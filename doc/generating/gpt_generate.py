@@ -8,9 +8,10 @@ See LICENSE for the license information
 Author: Porter Zach
 
 This script generates interactive Python notebooks (.ipynb) that document GTSAM 
-header files. It retrieves the header file content from the GTSAM GitHub repository, 
-sends it to OpenAI's API for processing, and saves the generated documentation 
-as a Jupyter notebook.
+header files. Since inserting the text of the file directly into the prompt
+might be too many tokens, it retrieves the header file content from the GTSAM 
+GitHub repository. It then sends it to OpenAI's API for processing, and saves 
+the generated documentation as a Jupyter notebook.
 
 Functions:
     is_url_valid(url: str) -> bool:
