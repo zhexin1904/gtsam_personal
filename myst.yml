@@ -13,6 +13,9 @@ project:
       - file: ./gtsam/geometry/geometry.md
         children:
         - pattern: ./gtsam/geometry/doc/*
+      - file: ./gtsam/nonlinear/nonlinear.md
+        children:
+        - pattern: ./gtsam/nonlinear/doc/*
 site:
   nav: 
     - title: Getting started
