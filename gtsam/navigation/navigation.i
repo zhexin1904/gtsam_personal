@@ -97,6 +97,29 @@ virtual class PreintegratedRotationParams {
   void serialize() const;
 };
 
+class PreintegratedRotation {
+  // Constructors
+  PreintegratedRotation(const gtsam::PreintegratedRotationParams* params);
+
+  // Standard Interface
+  void resetIntegration();
+  void integrateGyroMeasurement(const gtsam::Vector&  measuredOmega, const gtsam::Vector& biasHat, double deltaT);
+  gtsam::Rot3 biascorrectedDeltaRij(const gtsam::Vector& biasOmegaIncr) const;
+  gtsam::Vector integrateCoriolis(const gtsam::Rot3& rot_i) const;
+
+  // Access instance variables
+  double deltaTij() const;
+  gtsam::Rot3 deltaRij() const;
+  gtsam::Matrix delRdelBiasOmega() const;
+
+  // Testable
+  void print(string s = "") const;
+  bool equals(const gtsam::PreintegratedRotation& expected, double tol) const;
+
+  // enabling serialization functionality
+  void serialize() const;
+};
+
 #include <gtsam/navigation/PreintegrationParams.h>
 virtual class PreintegrationParams : gtsam::PreintegratedRotationParams {
   PreintegrationParams(gtsam::Vector n_gravity);
