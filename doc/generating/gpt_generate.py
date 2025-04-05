@@ -1,3 +1,33 @@
+"""
+GTSAM Copyright 2010-2025, Georgia Tech Research Corporation,
+Atlanta, Georgia 30332-0415
+All Rights Reserved
+
+See LICENSE for the license information
+
+Author: Porter Zach
+
+This script generates interactive Python notebooks (.ipynb) that document GTSAM 
+header files. It retrieves the header file content from the GTSAM GitHub repository, 
+sends it to OpenAI's API for processing, and saves the generated documentation 
+as a Jupyter notebook.
+
+Functions:
+    is_url_valid(url: str) -> bool:
+        Verifies that the supplied URL does not return a 404.
+
+    save_ipynb(text: str, file_path: str) -> str:
+        Saves the provided text to a single Markdown cell in a new .ipynb file.
+
+    generate_ipynb(file_path: str, openai_client):
+        Generates an interactive Python notebook for the given GTSAM header file 
+        by sending a request to OpenAI's API and saving the response.
+
+Usage:
+    Run the script with paths to GTSAM header files as arguments. For example:
+        python gpt_generate.py gtsam/geometry/Pose3.h
+"""
+
 import os
 import time
 import requests
