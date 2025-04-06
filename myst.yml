@@ -19,6 +19,7 @@ project:
     - file: ./doc/examples.md
       children: 
       - pattern: ./python/gtsam/examples/*.ipynb
+    - file: ./doc/expressions.md
 site:
   nav: 
     - title: Getting started
