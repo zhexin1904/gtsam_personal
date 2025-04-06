@@ -9,13 +9,13 @@ The `navigation` module in GTSAM provides specialized tools for inertial navigat
 
 ## Attitude Estimation
 
+- **[PreintegrationParams](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/PreintegrationParams.h)**: Parameters for IMU preintegration.
 - **[PreintegratedRotation](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/PreintegratedRotation.h)**: Handles gyroscope measurements to track rotation changes.
 - **[AHRSFactor](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/AHRSFactor.h)**: Attitude and Heading Reference System factor for orientation estimation.
 - **[AttitudeFactor](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/AttitudeFactor.h)**: Factors for attitude estimation from reference directions.
 
 ## IMU Preintegration
 
-- **[PreintegrationParams](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/PreintegrationParams.h)**: Base parameters for IMU preintegration.
 - **[PreintegrationBase](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/PreintegrationBase.h)**: Base class for IMU preintegration classes.
 - **[ManifoldPreintegration](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/ManifoldPreintegration.h)**: Implements IMU preintegration using manifold-based methods as in the Forster et al paper.
 - **[TangentPreintegration](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/TangentPreintegration.h)**: Implements IMU preintegration using tangent space methods, developed at Skydio.

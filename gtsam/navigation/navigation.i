@@ -314,10 +314,7 @@ class PreintegratedAhrsMeasurements {
 
 virtual class AHRSFactor : gtsam::NonlinearFactor {
   AHRSFactor(size_t rot_i, size_t rot_j,size_t bias,
-      const gtsam::PreintegratedAhrsMeasurements& preintegratedMeasurements, gtsam::Vector omegaCoriolis);
-  AHRSFactor(size_t rot_i, size_t rot_j, size_t bias,
-      const gtsam::PreintegratedAhrsMeasurements& preintegratedMeasurements, gtsam::Vector omegaCoriolis,
-      const gtsam::Pose3& body_P_sensor);
+    const gtsam::PreintegratedAhrsMeasurements& preintegratedMeasurements);
 
   // Standard Interface
   gtsam::PreintegratedAhrsMeasurements preintegratedMeasurements() const;
@@ -329,6 +326,13 @@ virtual class AHRSFactor : gtsam::NonlinearFactor {
 
   // enable serialization functionality
   void serialize() const;
+
+  // deprecated:
+  AHRSFactor(size_t rot_i, size_t rot_j,size_t bias,
+    const gtsam::PreintegratedAhrsMeasurements& preintegratedMeasurements, gtsam::Vector omegaCoriolis);
+  AHRSFactor(size_t rot_i, size_t rot_j, size_t bias,
+    const gtsam::PreintegratedAhrsMeasurements& preintegratedMeasurements, gtsam::Vector omegaCoriolis,
+    const gtsam::Pose3& body_P_sensor);
 };
 
 #include <gtsam/navigation/AttitudeFactor.h>
