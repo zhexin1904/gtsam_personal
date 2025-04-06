@@ -731,7 +731,7 @@ virtual class BatchFixedLagSmoother : gtsam::FixedLagSmoother {
   VALUE calculateEstimate(size_t key) const;
 };
 
-#include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
+#include <gtsam/nonlinear/IncrementalFixedLagSmoother.h>
 virtual class IncrementalFixedLagSmoother : gtsam::FixedLagSmoother {
   IncrementalFixedLagSmoother();
   IncrementalFixedLagSmoother(double smootherLag);
