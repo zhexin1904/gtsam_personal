@@ -93,23 +93,6 @@ This section describes the classes involved in preintegrating full IMU measureme
 classDiagram
     direction TD
 
-    class PreintegratedRotationParams {
-     <<Parameter Base>>
-    }
-    class PreintegrationParams {
-     <<Parameters>>
-     +Matrix3 accelerometerCovariance
-     +Vector3 n_gravity
-    }
-    PreintegrationParams --|> PreintegratedRotationParams : inherits
-
-    class PreintegrationCombinedParams {
-     <<Parameters>>
-     +Matrix3 biasAccCovariance
-     +Matrix3 biasOmegaCovariance
-    }
-    PreintegrationCombinedParams --|> PreintegrationParams : inherits
-
     class PreintegrationBase {
         <<Abstract>>
         +imuBias::ConstantBias biasHat_
@@ -120,7 +103,6 @@ classDiagram
         +predict()
         +computeError()
     }
-    PreintegrationBase ..> PreintegrationParams : uses
 
     class ManifoldPreintegration {
         +NavState deltaXij_
@@ -137,18 +119,14 @@ classDiagram
     class PreintegratedImuMeasurements {
         +Matrix9 preintMeasCov_
     }
-    PreintegratedImuMeasurements --|> PreintegrationType : inherits
+    PreintegratedImuMeasurements --|> ManifoldPreintegration : inherits
+    PreintegratedImuMeasurements --|> TangentPreintegration : inherits
 
     class PreintegratedCombinedMeasurements {
        +Matrix preintMeasCov_ (15x15)
     }
-    PreintegratedCombinedMeasurements --|> PreintegrationType : inherits
-    PreintegratedCombinedMeasurements ..> PreintegrationCombinedParams : uses
-
-    class PreintegrationType{
-    }
-    PreintegrationType --|> ManifoldPreintegration : typedef
-    PreintegrationType --|> TangentPreintegration : typedef
+    PreintegratedCombinedMeasurements --|> ManifoldPreintegration : inherits
+    PreintegratedCombinedMeasurements --|> TangentPreintegration : inherits
 
     class ImuFactor {
         Pose3, Vector3, Pose3, Vector3, ConstantBias
@@ -167,6 +145,28 @@ classDiagram
          +evaluateError(...) Vector (15)
     }
     CombinedImuFactor ..> PreintegratedCombinedMeasurements : uses
+```
+
+```mermaid
+classDiagram
+    direction LR
+
+    class PreintegratedRotationParams {
+        +Matrix3 gyroscopeCovariance
+        +Vector3 omegaCoriolis
+        +Pose3 body_P_sensor
+    }
+    class PreintegrationParams {
+     +Matrix3 accelerometerCovariance
+     +Vector3 n_gravity
+    }
+    PreintegrationParams --|> PreintegratedRotationParams : inherits
+
+    class PreintegrationCombinedParams {
+     +Matrix3 biasAccCovariance
+     +Matrix3 biasOmegaCovariance
+    }
+    PreintegrationCombinedParams --|> PreintegrationParams : inherits
 ```
 
 The key components are:
