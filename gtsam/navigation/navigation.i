@@ -382,6 +382,7 @@ virtual class GPSFactor : gtsam::NonlinearFactor{
 
   // Standard Interface
   gtsam::Point3 measurementIn() const;
+  gtsam::Vector evaluateError(const gtsam::Pose3& nTb);
 
   // enable serialization functionality
   void serialize() const;
@@ -398,6 +399,7 @@ virtual class GPSFactor2 : gtsam::NonlinearFactor {
 
   // Standard Interface
   gtsam::Point3 measurementIn() const;
+  gtsam::Vector evaluateError(const gtsam::NavState& nTb);
 
   // enable serialization functionality
   void serialize() const;
@@ -418,6 +420,7 @@ virtual class BarometricFactor : gtsam::NonlinearFactor {
   const double& measurementIn() const;
   double heightOut(double n) const;
   double baroOut(const double& meters) const;
+  gtsam::Vector evaluateError(const gtsam::Pose3& p, double b);
 
   // enable serialization functionality
   void serialize() const;
