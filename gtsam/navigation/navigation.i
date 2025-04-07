@@ -388,6 +388,41 @@ virtual class GPSFactor : gtsam::NonlinearFactor{
   void serialize() const;
 };
 
+virtual class GPSFactorArm : gtsam::NonlinearFactor{
+  GPSFactorArm(size_t key, const gtsam::Point3& gpsIn,
+            const gtsam::Point3& leverArm, 
+            const gtsam::noiseModel::Base* model);
+
+  // Testable
+  void print(string s = "", const gtsam::KeyFormatter& keyFormatter =
+                                gtsam::DefaultKeyFormatter) const;
+  bool equals(const gtsam::NonlinearFactor& expected, double tol);
+
+  // Standard Interface
+  gtsam::Point3 measurementIn() const;
+  gtsam::Vector evaluateError(const gtsam::Pose3& nTb);
+
+  // enable serialization functionality
+  void serialize() const;
+};
+
+virtual class GPSFactorArmCalib : gtsam::NonlinearFactor{
+  GPSFactorArmCalib(size_t key1, size_t key2, const gtsam::Point3& gpsIn,
+            const gtsam::noiseModel::Base* model);
+
+  // Testable
+  void print(string s = "", const gtsam::KeyFormatter& keyFormatter =
+                                gtsam::DefaultKeyFormatter) const;
+  bool equals(const gtsam::NonlinearFactor& expected, double tol);
+
+  // Standard Interface
+  gtsam::Point3 measurementIn() const;
+  gtsam::Vector evaluateError(const gtsam::Pose3& nTb, const gtsam::Point3& leverArm);
+
+  // enable serialization functionality
+  void serialize() const;
+};
+
 virtual class GPSFactor2 : gtsam::NonlinearFactor {
   GPSFactor2(size_t key, const gtsam::Point3& gpsIn,
             const gtsam::noiseModel::Base* model);
@@ -400,6 +435,41 @@ virtual class GPSFactor2 : gtsam::NonlinearFactor {
   // Standard Interface
   gtsam::Point3 measurementIn() const;
   gtsam::Vector evaluateError(const gtsam::NavState& nTb);
+
+  // enable serialization functionality
+  void serialize() const;
+};
+
+virtual class GPSFactor2Arm : gtsam::NonlinearFactor{
+  GPSFactor2Arm(size_t key, const gtsam::Point3& gpsIn,
+            const gtsam::Point3& leverArm, 
+            const gtsam::noiseModel::Base* model);
+
+  // Testable
+  void print(string s = "", const gtsam::KeyFormatter& keyFormatter =
+                                gtsam::DefaultKeyFormatter) const;
+  bool equals(const gtsam::NonlinearFactor& expected, double tol);
+
+  // Standard Interface
+  gtsam::Point3 measurementIn() const;
+  gtsam::Vector evaluateError(const gtsam::NavState& nTb);
+
+  // enable serialization functionality
+  void serialize() const;
+};
+
+virtual class GPSFactor2ArmCalib : gtsam::NonlinearFactor{
+  GPSFactor2ArmCalib(size_t key1, size_t key2, const gtsam::Point3& gpsIn,
+            const gtsam::noiseModel::Base* model);
+
+  // Testable
+  void print(string s = "", const gtsam::KeyFormatter& keyFormatter =
+                                gtsam::DefaultKeyFormatter) const;
+  bool equals(const gtsam::NonlinearFactor& expected, double tol);
+
+  // Standard Interface
+  gtsam::Point3 measurementIn() const;
+  gtsam::Vector evaluateError(const gtsam::NavState& nTb, const gtsam::Point3& leverArm);
 
   // enable serialization functionality
   void serialize() const;
