@@ -502,6 +502,22 @@ class ConstantVelocityFactor : gtsam::NonlinearFactor {
   gtsam::Vector evaluateError(const gtsam::NavState &x1, const gtsam::NavState &x2) const;
 };
 
+#include <gtsam/navigation/MagFactor.h>
+
+class MagFactor: gtsam::NonlinearFactor {
+  MagFactor(size_t key, const gtsam::Point3& measured, double scale,
+      const gtsam::Unit3& direction, const gtsam::Point3& bias,
+      const gtsam::noiseModel::Base* model);
+  Vector evaluateError(const gtsam::Rot2& nRb);
+};
+
+class MagFactor1: gtsam::NonlinearFactor {
+  MagFactor1(size_t key, const gtsam::Point3& measured, double scale,
+      const gtsam::Unit3& direction, const gtsam::Point3& bias,
+      const gtsam::noiseModel::Base* model);
+  Vector evaluateError(const gtsam::Rot3& nRb);
+};
+
 #include <gtsam/navigation/Scenario.h>
 virtual class Scenario {
   gtsam::Pose3 pose(double t) const;
