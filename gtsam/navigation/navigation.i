@@ -426,6 +426,12 @@ virtual class BarometricFactor : gtsam::NonlinearFactor {
   void serialize() const;
 };
 
+#include <gtsam/navigation/ConstantVelocityFactor.h>
+class ConstantVelocityFactor : gtsam::NonlinearFactor {
+  ConstantVelocityFactor(size_t i, size_t j, double dt, const gtsam::noiseModel::Base* model);
+  gtsam::Vector evaluateError(const gtsam::NavState &x1, const gtsam::NavState &x2) const;
+};
+
 #include <gtsam/navigation/Scenario.h>
 virtual class Scenario {
   gtsam::Pose3 pose(double t) const;
