@@ -10,29 +10,35 @@ The `navigation` module in GTSAM provides specialized tools for inertial navigat
 
 ### Attitude Estimation
 
-- **[PreintegrationParams](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/PreintegrationParams.h)**: Parameters for IMU preintegration.
-- **[PreintegratedRotation](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/PreintegratedRotation.h)**: Handles gyroscope measurements to track rotation changes.
-- **[AHRSFactor](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/AHRSFactor.h)**: Attitude and Heading Reference System factor for orientation estimation.
-- **[AttitudeFactor](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/AttitudeFactor.h)**: Factors for attitude estimation from reference directions.
+- **[PreintegrationParams](doc/PreintegrationParams.ipynb)**: Parameters for IMU preintegration.
+- **[PreintegratedRotation](doc/PreintegratedRotation.ipynb)**: Handles gyroscope measurements to track rotation changes.
+- **[AHRSFactor](doc/AHRSFactor.ipynb)**: Attitude and Heading Reference System factor for orientation estimation.
+- **[AttitudeFactor](doc/AttitudeFactor.ipynb)**: Factors for attitude estimation from reference directions.
 
 ### IMU Preintegration (See also below)
 
 - **[PreintegrationBase](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/PreintegrationBase.h)**: Base class for IMU preintegration classes.
 - **[ManifoldPreintegration](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/ManifoldPreintegration.h)**: Implements IMU preintegration using manifold-based methods as in the Forster et al paper.
 - **[TangentPreintegration](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/TangentPreintegration.h)**: Implements IMU preintegration using tangent space methods, developed at Skydio.
-- **[CombinedImuFactor](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/CombinedImuFactor.h)**: Improved IMU factor with bias evolution.
+- **[ImuFactor](doc/ImuFactor.ipynb)**: IMU factor.
+- **[CombinedImuFactor](doc/CombinedImuFactor.ipynb)**: IMU factor with built-in bias evolution.
 
 ### GNSS Integration
 
-- **[GPSFactor](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/GPSFactor.h)**: Factor for incorporating GPS position measurements.
-- **[BarometricFactor](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/BarometricFactor.h)**: Incorporates barometric altitude measurements.
+- **[GPSFactor](doc/GPSFactor.ipynb)**: Factor for incorporating GPS position measurements.
+- **[BarometricFactor](doc/BarometricFactor.ipynb)**: Incorporates barometric altitude measurements.
+
+### Magnetic Field Integration
+
+- **[MagFactor](doc/MagFactor.ipynb)**: Factor for incorporating magnetic field measurements.
+- **[MagPoseFactor](doc/MagPoseFactor.ipynb)**: Factor for incorporating magnetic field measurements with pose constraints.
 
 ### Simulation Tools
 
-- **[Scenario](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/Scenario.h)**: Base class for defining motion scenarios.
+- **[Scenario](doc/Scenario.ipynb)**: Base class for defining motion scenarios.
 - **[ConstantTwistScenario](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/Scenario.h)**: Implements constant twist (angular and linear velocity) motion.
 - **[AcceleratingScenario](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/Scenario.h)**: Implements constantly accelerating motion.
-- **[ScenarioRunner](https://github.com/borglab/gtsam/blob/develop/gtsam/navigation/ScenarioRunner.h)**: Executes scenarios and generates IMU measurements.
+- **[ScenarioRunner](doc/ScenarioRunner.ipynb)**: Executes scenarios and generates IMU measurements.
 
 ## AHRSFactor and Preintegration
 
@@ -73,7 +79,7 @@ The key components are:
 1.  **Parameters (`PreintegratedRotationParams`)**:
     *   Stores parameters specific to gyroscope integration, including gyro noise covariance, optional Coriolis terms, and the sensor's pose relative to the body frame.
 
-2.  **Rotation Preintegration (`PreintegratedRotation`)**:
+2.  **Rotation Preintegration ([PreintegratedRotation](doc/PreintegratedRotation.ipynb))**:
     *   Handles the core logic for integrating gyroscope measurements over time to estimate the change in orientation (`deltaRij`).
     *   Calculates the Jacobian of this integrated rotation with respect to gyroscope bias (`delRdelBiasOmega`).
 
@@ -81,7 +87,7 @@ The key components are:
     *   Inherits from `PreintegratedRotation` and adds the calculation and storage of the covariance matrix (`preintMeasCov_`) associated with the preintegrated rotation.
     *   This class specifically accumulates the information needed by the `AHRSFactor`.
 
-4.  **AHRS Factor (`AHRSFactor`)**:
+4.  **AHRS Factor ([AHRSFactor](doc/AHRSFactor.ipynb))**:
     *   A factor that constrains two `Rot3` orientation variables and a `Vector3` bias variable using the information accumulated in a `PreintegratedAhrsMeasurements` object.
     *   It effectively measures the consistency between the orientation change predicted by the integrated gyro measurements and the orientation change implied by the factor's connected state variables.
 
@@ -189,9 +195,9 @@ The key components are:
     *   `PreintegratedCombinedMeasurements`: Similar, but designed for the `CombinedImuFactor`. Stores the larger 15x15 covariance matrix (`preintMeasCov_`) that includes correlations with the bias terms.
 
 5.  **IMU Factors (`...Factor`)**:
-    *   `ImuFactor`: A 5-way factor connecting previous pose/velocity, current pose/velocity, and a single (constant during the interval) bias estimate. Does *not* model bias evolution between factors.
-    *   `ImuFactor2`: A 3-way factor connecting previous `NavState`, current `NavState`, and a single bias estimate. Functionally similar to `ImuFactor` but uses the combined `NavState` type.
-    *   `CombinedImuFactor`: A 6-way factor connecting previous pose/velocity, current pose/velocity, previous bias, and current bias. *Includes* a model for bias random walk evolution between the two bias states.
+    * [ImuFactor](doc/ImuFactor.ipynb): A 5-way factor connecting previous pose/velocity, current pose/velocity, and a single (constant during the interval) bias estimate. Does *not* model bias evolution between factors.
+    * [ImuFactor2](doc/ImuFactor.ipynb): A 3-way factor connecting previous `NavState`, current `NavState`, and a single bias estimate. Functionally similar to `ImuFactor` but uses the combined `NavState` type.
+    * [CombinedImuFactor](doc/CombinedImuFactor.ipynb): A 6-way factor connecting previous pose/velocity, current pose/velocity, previous bias, and current bias. *Includes* a model for bias random walk evolution between the two bias states.
 
 ### Important notes
 - Which implementation is used for `PreintegrationType` depends on the compile flag `GTSAM_TANGENT_PREINTEGRATION`, which is true by default.
