@@ -518,6 +518,21 @@ class MagFactor1: gtsam::NonlinearFactor {
   Vector evaluateError(const gtsam::Rot3& nRb);
 };
 
+#include <gtsam/geometry/Pose2.h>
+#include <gtsam/navigation/MagPoseFactor.h>
+template <POSE = {gtsam::Pose2, gtsam::Pose3}>
+virtual class MagPoseFactor : gtsam::NoiseModelFactor {
+  MagPoseFactor(size_t pose_key,
+    const POSE::Translation& measured, double scale,
+    const POSE::Translation& direction, const POSE::Translation& bias,
+    const gtsam::noiseModel::Base* noiseModel);
+    MagPoseFactor(size_t pose_key,
+      const POSE::Translation& measured, double scale,
+      const POSE::Translation& direction, const POSE::Translation& bias,
+      const gtsam::noiseModel::Base* noiseModel, const POSE& body_P_sensor);
+    Vector evaluateError(const POSE& nRb);
+};
+
 #include <gtsam/navigation/Scenario.h>
 virtual class Scenario {
   gtsam::Pose3 pose(double t) const;
