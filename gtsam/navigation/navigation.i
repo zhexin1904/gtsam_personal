@@ -346,6 +346,7 @@ virtual class Rot3AttitudeFactor : gtsam::NoiseModelFactor {
   bool equals(const gtsam::NonlinearFactor& expected, double tol) const;
   gtsam::Unit3 nRef() const;
   gtsam::Unit3 bMeasured() const;
+  gtsam::Vector evaluateError(const gtsam::Rot3& nRb);
 
   // enable serialization functionality
   void serialize() const;
@@ -363,6 +364,7 @@ virtual class Pose3AttitudeFactor : gtsam::NoiseModelFactor {
   bool equals(const gtsam::NonlinearFactor& expected, double tol) const;
   gtsam::Unit3 nRef() const;
   gtsam::Unit3 bMeasured() const;
+  gtsam::Vector evaluateError(const gtsam::Pose3& nTb);
 
   // enable serialization functionality
   void serialize() const;
