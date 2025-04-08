@@ -192,9 +192,9 @@ class GTSAM_EXPORT DCSAM {
   //                          const Values &continuousEst,
   //                          const DiscreteFactorGraph &dfg);
 
-  DiscreteFactorGraph getDiscreteFactorGraph() const { return dfg_; }
+  const DiscreteFactorGraph &getDiscreteFactorGraph() const { return dfg_; }
 
-  NonlinearFactorGraph getNonlinearFactorGraph() const {
+  const NonlinearFactorGraph &getNonlinearFactorGraph() const {
     return isam_.getFactorsUnsafe();
   }
 };
