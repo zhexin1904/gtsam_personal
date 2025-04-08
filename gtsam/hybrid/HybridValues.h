@@ -59,6 +59,9 @@ class GTSAM_EXPORT HybridValues {
   HybridValues(const VectorValues& cv, const DiscreteValues& dv,
                const Values& v);
 
+  /// Construct from DiscreteValues and Values.
+  HybridValues(const DiscreteValues& dv, const Values& v);
+
   /// @}
   /// @name Testable
   /// @{
