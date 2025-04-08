@@ -86,8 +86,7 @@ class GTSAM_EXPORT DCSAM {
    * @param initialGuessDiscrete - Initial guess for discrete variables.
    */
   void update(const HybridNonlinearFactorGraph &graph,
-              const Values &initialGuessContinuous = Values(),
-              const DiscreteValues &initialGuessDiscrete = DiscreteValues());
+              const HybridValues &initialGuess = HybridValues());
 
   /**
    * Inline convenience function to allow "skipping" the initial guess for
@@ -95,7 +94,7 @@ class GTSAM_EXPORT DCSAM {
    */
   inline void update(const HybridNonlinearFactorGraph &graph,
                      const DiscreteValues &initialGuessDiscrete) {
-    update(graph, Values(), initialGuessDiscrete);
+    update(graph, HybridValues(VectorValues(), initialGuessDiscrete));
   }
 
   /**

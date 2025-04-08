@@ -34,17 +34,17 @@ DCSAM::DCSAM() {
 DCSAM::DCSAM(const ISAM2Params &isam_params) : isam_(ISAM2(isam_params)) {}
 
 void DCSAM::update(const HybridNonlinearFactorGraph &hnfg,
-                   const Values &initialGuessContinuous,
-                   const DiscreteValues &initialGuessDiscrete) {
-  // First things first: combine currContinuous_ estimate with the new values
-  // from initialGuessContinuous to produce the full continuous variable state.
-  for (const Key k : initialGuessContinuous.keys()) {
-    currContinuous_.insert_or_assign(k, initialGuessContinuous.at(k));
+                   const HybridValues &initialGuess) {
+  // First things first: combine currContinuous_ estimate with
+  // the new continuous values from initialGuess to
+  // produce the full continuous variable state.
+  for (const Key k : initialGuess.nonlinear().keys()) {
+    currContinuous_.insert_or_assign(k, initialGuess.nonlinear().at(k));
   }
 
-  // Also combine currDiscrete_ estimate with new values from
-  // initialGuessDiscrete to give a full discrete variable state.
-  updateDiscreteInfo(initialGuessDiscrete);
+  // Also combine currDiscrete_ estimate with new discrete values from
+  // initialGuess to give a full discrete variable state.
+  updateDiscreteInfo(initialGuess.discrete());
 
   // We'll combine the nonlinear factors with DCContinuous factors before
   // passing to the continuous solver; likewise for the discrete factors and
@@ -78,7 +78,7 @@ void DCSAM::update(const HybridNonlinearFactorGraph &hnfg,
   updateDiscrete(discreteCombined);
 
   // Update current discrete state estimate.
-  if (!initialGuessContinuous.empty() && initialGuessDiscrete.empty() &&
+  if (!initialGuess.nonlinear().empty() && initialGuess.discrete().empty() &&
       discreteCombined.empty()) {
   } else {
     currDiscrete_ = solveDiscrete();
@@ -96,7 +96,7 @@ void DCSAM::update(const HybridNonlinearFactorGraph &hnfg,
   // Only the initialGuess needs to be provided for the continuous solver
   // (not the entire continuous state).
   updateContinuousInfo(currDiscrete_, continuousCombined,
-                       initialGuessContinuous);
+                       initialGuess.nonlinear());
 
   currContinuous_ = isam_.calculateEstimate();
   // Update discrete info from last solve and
@@ -155,13 +155,13 @@ HybridValues DCSAM::calculateEstimate() const {
   return values;
 }
 
-//TODO(Varun) Create HybridMarginals
-// // NOTE separate dcmarginals class?
-// DCMarginals DCSAM::getMarginals(const NonlinearFactorGraph &graph,
-//                                 const Values &continuousEst,
-//                                 const DiscreteFactorGraph &dfg) {
-//   return DCMarginals{Marginals(graph, continuousEst),
-//                      dcsam::DiscreteMarginalsOrdered(dfg)};
-// }
+// TODO(Varun) Create HybridMarginals
+//  // NOTE separate dcmarginals class?
+//  DCMarginals DCSAM::getMarginals(const NonlinearFactorGraph &graph,
+//                                  const Values &continuousEst,
+//                                  const DiscreteFactorGraph &dfg) {
+//    return DCMarginals{Marginals(graph, continuousEst),
+//                       dcsam::DiscreteMarginalsOrdered(dfg)};
+//  }
 
 }  // namespace gtsam

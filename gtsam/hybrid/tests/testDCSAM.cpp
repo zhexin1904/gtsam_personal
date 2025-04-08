@@ -344,9 +344,9 @@ TEST(DCSAM, SimpleMixtureFactor) {
   hfg.push_back(dcMixture);
 
   // Let's make an initial guess
-  Values initialGuess;
+  Values initialGuessContinuous;
   double initVal = -2.5;
-  initialGuess.insert(x1, initVal);
+  initialGuessContinuous.insert(x1, initVal);
 
   // We also need an initial guess for the discrete variables
   // (this will only be used if it is needed by your factors),
@@ -357,8 +357,10 @@ TEST(DCSAM, SimpleMixtureFactor) {
   // Let's make a solver
   DCSAM dcsam;
 
+  HybridValues initialGuess(initialGuessDiscrete, initialGuessContinuous);
+
   // Add the HybridFactorGraph to DCSAM
-  dcsam.update(hfg, initialGuess, initialGuessDiscrete);
+  dcsam.update(hfg, initialGuess);
 
   // Solve
   HybridValues dcvals = dcsam.calculateEstimate();
@@ -398,14 +400,14 @@ TEST(DCSAM, SimpleSlamBatch) {
   HybridNonlinearFactorGraph graph;
 
   // Values for initial guess
-  Values initialGuess;
+  Values initialGuessContinuous;
 
   Key x0 = X(0);
 
   PriorFactor<Pose2> p0(x0, pose0, prior_noise);
   graph.push_back(p0);
 
-  initialGuess.insert(x0, pose0);
+  initialGuessContinuous.insert(x0, pose0);
 
   // Setup dcsam
   DCSAM dcsam;
@@ -421,11 +423,12 @@ TEST(DCSAM, SimpleSlamBatch) {
     graph.push_back(bw);
 
     odom = odom * meas;
-    initialGuess.insert(xj, odom);
+    initialGuessContinuous.insert(xj, odom);
   }
 
   BetweenFactor<Pose2> bw(x0, X(7), dx * noise, meas_noise);
 
+  HybridValues initialGuess(DiscreteValues(), initialGuessContinuous);
   dcsam.update(graph, initialGuess);
   HybridValues dcvals = dcsam.calculateEstimate();
 
@@ -456,21 +459,22 @@ TEST(DCSAM, SimpleSlamIncremental) {
   HybridNonlinearFactorGraph graph;
 
   // Values for initial guess
-  Values initialGuess;
+  Values initialGuessContinuous;
 
   Key x0 = X(0);
 
   PriorFactor<Pose2> p0(x0, pose0, prior_noise);
 
-  initialGuess.insert(x0, pose0);
+  initialGuessContinuous.insert(x0, pose0);
   graph.push_back(p0);
 
   // Setup dcsam
   DCSAM dcsam;
+  HybridValues initialGuess(DiscreteValues(), initialGuessContinuous);
   dcsam.update(graph, initialGuess);
 
   graph.resize(0);
-  initialGuess.clear();
+  initialGuessContinuous.clear();
 
   Pose2 odom(pose0);
 
@@ -484,16 +488,18 @@ TEST(DCSAM, SimpleSlamIncremental) {
     graph.push_back(bw);
 
     odom = odom * meas;
-    initialGuess.insert(xj, odom);
+    initialGuessContinuous.insert(xj, odom);
+    initialGuess =
+        HybridValues(initialGuess.discrete(), initialGuessContinuous);
     dcsam.update(graph, initialGuess);
 
     graph.resize(0);
-    initialGuess.clear();
+    initialGuessContinuous.clear();
   }
 
   BetweenFactor<Pose2> bw(x0, X(7), dx * noise, meas_noise);
 
-  dcsam.update(graph, initialGuess);
+  dcsam.update(graph, HybridValues(initialGuess.discrete(), Values()));
   HybridValues dcvals = dcsam.calculateEstimate();
 
   // Values from the DCSAM repo
@@ -562,7 +568,7 @@ TEST(DCSAM, SimpleSemanticSlam) {
   HybridNonlinearFactorGraph hfg;
 
   // Values for initial guess
-  Values initialGuess;
+  Values initialGuessContinuous;
   // Initial guess for discrete values (only used in certain circumstances)
   DiscreteValues initialGuessDiscrete;
 
@@ -590,8 +596,8 @@ TEST(DCSAM, SimpleSemanticSlam) {
   // add prior on discrete landmark
   DecisionTreeFactor plc1(lm1_class, prior_lm1_class);
 
-  initialGuess.insert(x0, pose0);
-  initialGuess.insert(l1, landmark1);
+  initialGuessContinuous.insert(x0, pose0);
+  initialGuessContinuous.insert(l1, landmark1);
 
   // Set initial guess for discrete class var (ignored internally; only used for
   // MaxMixtures and SumMixtures)
@@ -602,12 +608,13 @@ TEST(DCSAM, SimpleSemanticSlam) {
 
   // Setup dcsam
   DCSAM dcsam;
-  dcsam.update(hfg, initialGuess, initialGuessDiscrete);
+  HybridValues initialGuess(initialGuessDiscrete, initialGuessContinuous);
+  dcsam.update(hfg, initialGuess);
 
   HybridValues dcval_start = dcsam.calculateEstimate();
 
   hfg.resize(0);
-  initialGuess.clear();
+  initialGuessContinuous.clear();
   initialGuessDiscrete.clear();
 
   Pose2 odom(pose0);
@@ -640,19 +647,20 @@ TEST(DCSAM, SimpleSemanticSlam) {
     hfg.push_back(dpf);
 
     odom = odom * meas;
-    initialGuess.insert(xj, odom);
+    initialGuessContinuous.insert(xj, odom);
+    initialGuess = HybridValues(DiscreteValues(), initialGuessContinuous);
     dcsam.update(hfg, initialGuess);
 
     HybridValues dcvals = dcsam.calculateEstimate();
 
     hfg.resize(0);
-    initialGuess.clear();
+    initialGuessContinuous.clear();
   }
 
   BetweenFactor<Pose2> bw(x0, X(7), dx * noise, meas_noise);
 
   hfg.push_back(bw);
-  dcsam.update(hfg, initialGuess);
+  dcsam.update(hfg, HybridValues(initialGuess.discrete(), Values()));
 
   HybridValues dcvals = dcsam.calculateEstimate();
 
