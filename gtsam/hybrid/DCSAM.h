@@ -40,11 +40,19 @@ namespace gtsam {
 
 class GTSAM_EXPORT DCSAM {
  private:
-  // Global factor graph and iSAM2 instance
+  /// The factor graph for all continuous factors
   NonlinearFactorGraph nfg_;
+  /// The factor graph for all discrete factors
   DiscreteFactorGraph dfg_;
+  /// The factor graph for hybrid factors
+  HybridNonlinearFactorGraph hfg_;
+
+  /// ISAM2 optimizer for continuous optimization
   ISAM2 isam_;
+
+  /// The current best estimate for continuous values
   Values currContinuous_;
+  /// The current best estimate for discrete values
   DiscreteValues currDiscrete_;
 
  public:
@@ -122,13 +130,15 @@ class GTSAM_EXPORT DCSAM {
    * For any factors in `dfg_`, update their stored local continuous information
    * with the values from `values`.
    *
-   * NOTE: could this be combined with `updateDiscrete` or do these
+   * TODO: could this be combined with `updateDiscrete` or do these
    * definitely need to be separate?
    *
-   * @param values - an assignment to the continuous variables (or subset
-   * thereof).
+   * @param continuousVals - a set of continuous values (or subset thereof).
+   * @param discreteVals - an assignment to the continuous variables
+   * (or subset thereof).
    */
-  void updateDiscreteInfo(const DiscreteValues &discreteVals);
+  void updateDiscreteInfo(const Values &continuousVals,
+                          const DiscreteValues &discreteVals);
 
   /**
    * At the moment, this just calls `isam_.update()` internally
