@@ -112,64 +112,38 @@ class GTSAM_EXPORT DCSAM {
   void update();
 
   /**
-   * Add factors in `graph` to member discrete factor graph `dfg_`, then update
-   * any stored continuous variables using those in `values` by calling
-   * `updateDiscreteInfo(values)`.
+   * Add factors in `dfg` to member discrete factor graph `dfg_`, then update.
    *
-   * NOTE: could this be combined with `updateDiscreteInfo` or do these
-   * definitely need to be separate?
-   *
-   * @param dfg - a discrete factor graph containing the factors to add
-   * @param discreteValues - an assignment to the continuous variables
+   * @param dfg - A discrete factor graph containing the factors to add
+   * @param discreteValues - An assignment to the continuous variables
    * (or subset thereof).
    */
   void updateDiscrete(const DiscreteFactorGraph &dfg = DiscreteFactorGraph(),
                       const DiscreteValues &discreteVals = DiscreteValues());
 
   /**
-   * For any factors in `dfg_`, update their stored local continuous information
-   * with the values from `values`.
-   *
-   * TODO: could this be combined with `updateDiscrete` or do these
-   * definitely need to be separate?
-   *
-   * @param continuousVals - a set of continuous values (or subset thereof).
-   * @param discreteVals - an assignment to the continuous variables
-   * (or subset thereof).
-   */
-  void updateDiscreteInfo(const Values &continuousVals,
-                          const DiscreteValues &discreteVals);
-
-  /**
-   * At the moment, this just calls `isam_.update()` internally
-   * This could, for example, be used if one wanted to hold the discrete
-   * variables constant and perform multiple iterations of updates to the
-   * continuous variables.
-   *
-   * NOTE: this function behaves quite differently from the similarly
-   * named `updateDiscrete` function, maybe we consider refactoring
-   * some of these function names.
-   */
-  void updateContinuous();
-
-  /**
-   * Given the latest discrete values (discreteVals),
+   * Given the latest discrete values (currDiscrete_),
    * a set of new factors (newFactors),
    * and an initial guess for any new keys (initialGuess),
-   * this function marks any affected keys as such, and calls
-   * `isam_.update` with the new factors and initial guess.
+   * this method
+   * 1. Selects the appropriate continuous factors from the hybridfactors
+   * 2. Marks any affected keys as such
+   * 3. Calls `isam_.update` with the new factors and initial guess.
+   *
    * See implementation for more detail.
    */
-  void updateContinuousInfo(const DiscreteValues &discreteVals,
-                            const NonlinearFactorGraph &newFactors,
-                            const Values &initialGuess);
+  void updateContinuous(const NonlinearFactorGraph &newFactors,
+                        const Values &initialGuess);
 
   /**
-   * Solve for discrete variables given continuous variables. Internally, calls
-   * `dfg_.optimize()`
+   * Solve for discrete variables given continuous variables.
    *
-   * @return an assignment (DiscreteValues) to the discrete variables in the
-   * graph.
+   *  Internally, this method computes DiscreteBoundaryFactors from the hybrid
+   * factors using the current continuous estimate `currContinuous_`, and then
+   * calls `dfg_.optimize()` to get the most probable estimate.
+   *
+   * @return An assignment (DiscreteValues) to the discrete variables
+   * in the graph.
    */
   DiscreteValues solveDiscrete() const;
 

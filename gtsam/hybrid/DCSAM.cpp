@@ -85,12 +85,11 @@ void DCSAM::update(const HybridNonlinearFactorGraph &hnfg,
 
   // Only the initialGuess needs to be provided for the continuous solver
   // (not the entire continuous state).
-  updateContinuousInfo(currDiscrete_, continuousCombined,
-                       initialGuess.nonlinear());
+  updateContinuous(continuousCombined, initialGuess.nonlinear());
 
   currContinuous_ = isam_.calculateEstimate();
-  // Update discrete info from last solve and
-  updateDiscreteInfo(currContinuous_, currDiscrete_);
+
+  // Discrete info will be updated when we call update/solveDiscrete again
 }
 
 void DCSAM::update() { update(HybridNonlinearFactorGraph()); }
@@ -100,26 +99,10 @@ void DCSAM::updateDiscrete(const DiscreteFactorGraph &dfg,
   for (auto &factor : dfg) {
     dfg_.push_back(factor);
   }
-  updateDiscreteInfo(currContinuous_, discreteVals);
 }
 
-void DCSAM::updateDiscreteInfo(const Values &continuousVals,
-                               const DiscreteValues &discreteVals) {
-  for (const auto &kv : discreteVals) {
-    // This will update the element with key `kv.first` if one exists, or add a
-    // new element with key `kv.first` if not.
-    currDiscrete_[kv.first] = discreteVals.at(kv.first);
-  }
-}
-
-void DCSAM::updateContinuous() {
-  isam_.update();
-  currContinuous_ = isam_.calculateEstimate();
-}
-
-void DCSAM::updateContinuousInfo(const DiscreteValues &discreteVals,
-                                 const NonlinearFactorGraph &newFactors,
-                                 const Values &initialGuess) {
+void DCSAM::updateContinuous(const NonlinearFactorGraph &newFactors,
+                             const Values &initialGuess) {
   // Initialize continuous factors
   NonlinearFactorGraph graph(newFactors);
 
