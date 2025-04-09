@@ -22,14 +22,7 @@
 
 namespace gtsam {
 
-DCSAM::DCSAM() {
-  // Setup isam
-  ISAM2Params isam_params;
-  isam_params.relinearizeThreshold = 0.01;
-  isam_params.relinearizeSkip = 1;
-  isam_params.setOptimizationParams(ISAM2DoglegParams());
-  isam_ = ISAM2(isam_params);
-}
+DCSAM::DCSAM() : isam_(ISAM2(ISAM2Params())) {}
 
 DCSAM::DCSAM(const ISAM2Params &isam_params) : isam_(ISAM2(isam_params)) {}
 
