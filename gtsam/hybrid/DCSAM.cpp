@@ -147,7 +147,7 @@ void DCSAM::updateContinuousInfo(const DiscreteValues &discreteVals,
   updateParams.newAffectedKeys = std::move(newAffectedKeys);
 
   // Solve for continuous values
-  isam_.update(newFactors, initialGuess, updateParams);
+  isam_.update(graph, initialGuess, updateParams);
 }
 
 DiscreteValues DCSAM::solveDiscrete() const {
@@ -177,7 +177,7 @@ HybridValues DCSAM::calculateEstimate() const {
   // NOTE: if we have these cached from solves, we could presumably just return
   // the cached values.
   Values continuousVals = isam_.calculateEstimate();
-  DiscreteValues discreteVals = dfg_.optimize();
+  DiscreteValues discreteVals = solveDiscrete();
   HybridValues values(VectorValues(), discreteVals, continuousVals);
   return values;
 }
