@@ -38,6 +38,14 @@
 
 namespace gtsam {
 
+/**
+ * @brief Class which implements Discrete-Continuous Smoothing And Mapping,
+ * as detailed in Doherty22ral (https://arxiv.org/abs/2204.11936).
+ *
+ * Performs hybrid optimization by alternatively optimizing
+ * for continous and discrete variables.
+ *
+ */
 class GTSAM_EXPORT DCSAM {
  private:
   /// The factor graph for all continuous factors
@@ -46,6 +54,8 @@ class GTSAM_EXPORT DCSAM {
   DiscreteFactorGraph dfg_;
   /// The factor graph for hybrid factors
   HybridNonlinearFactorGraph hfg_;
+
+  // TODO(Varun): Allow for using other continuous and discrete solvers
 
   /// ISAM2 optimizer for continuous optimization
   ISAM2 isam_;
