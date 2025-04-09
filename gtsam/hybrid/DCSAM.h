@@ -157,7 +157,9 @@ class GTSAM_EXPORT DCSAM {
 
  protected:
   /**
-   * Add factors in `dfg` to member discrete factor graph `dfg_`, then update.
+   * Add factors in `dfg` to member discrete factor graph `dfg_`,
+   * then optimize for most probable explanation and
+   * update the current discrete estimate.
    *
    * @param dfg - A discrete factor graph containing the factors to add
    * @param discreteValues - An assignment to the continuous variables

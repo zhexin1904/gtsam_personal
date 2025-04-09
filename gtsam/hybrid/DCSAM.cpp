@@ -38,17 +38,16 @@ void DCSAM::update(const HybridNonlinearFactorGraph &hnfg,
   for (const auto &kv : initialGuess.discrete()) {
     // This will update the element with key `kv.first` if one exists, or add a
     // new element with key `kv.first` if not.
-    currDiscrete_[kv.first] = initialGuess.discrete().at(kv.first);
+    currDiscrete_[kv.first] = kv.second;
   }
 
-  // We'll combine the nonlinear factors with DCContinuous factors before
-  // passing to the continuous solver; likewise for the discrete factors and
-  // DCDiscreteFactors.
-  NonlinearFactorGraph continuousCombined;
-  DiscreteFactorGraph discreteCombined;
+  // We individually record the continuous-only and discrete-only factors
+  // so we can separately record the hybrid factors and get
+  // corresponding continuous/discrete factors given
+  // the current best discrete/continuous estimates.
+  NonlinearFactorGraph continuousFactors;
+  DiscreteFactorGraph discreteFactors;
 
-  // Each hybrid factor will be split into a separate discrete
-  // and continuous component
   for (auto &factor : hnfg) {
     if (auto hybrid_factor = std::dynamic_pointer_cast<HybridFactor>(factor)) {
       if (auto nonlinear_mixture =
@@ -58,27 +57,20 @@ void DCSAM::update(const HybridNonlinearFactorGraph &hnfg,
 
     } else if (auto cont_factor =
                    std::dynamic_pointer_cast<NonlinearFactor>(factor)) {
-      continuousCombined.push_back(cont_factor);
+      continuousFactors.push_back(cont_factor);
 
     } else if (auto discrete_factor =
                    std::dynamic_pointer_cast<DiscreteFactor>(factor)) {
-      discreteCombined.push_back(discrete_factor);
+      discreteFactors.push_back(discrete_factor);
     }
   }
 
-  // Record the discrete factors.
-  updateDiscrete(discreteCombined);
-
-  // Update current discrete state estimate.
-  if (!initialGuess.nonlinear().empty() && initialGuess.discrete().empty() &&
-      discreteCombined.empty()) {
-  } else {
-    currDiscrete_ = solveDiscrete();
-  }
+  // Record the discrete factors in `dfg_`.
+  updateDiscrete(discreteFactors, initialGuess.discrete());
 
   // Only the initialGuess needs to be provided for the continuous solver
   // (not the entire continuous state).
-  updateContinuous(continuousCombined, initialGuess.nonlinear());
+  updateContinuous(continuousFactors, initialGuess.nonlinear());
 
   currContinuous_ = isam_.calculateEstimate();
 
@@ -91,6 +83,13 @@ void DCSAM::updateDiscrete(const DiscreteFactorGraph &dfg,
                            const DiscreteValues &discreteVals) {
   for (auto &factor : dfg) {
     dfg_.push_back(factor);
+  }
+
+  // Update current discrete state estimate.
+  DiscreteValues mpe = solveDiscrete();
+  // Update the current discrete estimate with the latest solution.
+  for (auto &&kv : mpe) {
+    currDiscrete_[kv.first] = kv.second;
   }
 }
 
