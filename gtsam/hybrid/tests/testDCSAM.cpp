@@ -253,24 +253,8 @@ TEST(DCSAM, ContinuousMixture) {
   NonlinearFactorGraph nfg;
 
   // Create DiscreteFactor from initial guess
-  auto calculateError =
-      [&values](const NonlinearFactorValuePair &pair) -> double {
-    if (pair.first) {
-      auto gaussianNoiseModel = std::dynamic_pointer_cast<noiseModel::Gaussian>(
-          pair.first->noiseModel());
-      // `error` has the following contributions:
-      // - the scalar is the sum of all mode-dependent constants
-      // - factor->error(initial) is the error on the initial values
-      // - negLogK is log normalization constant from the noise model
-      return pair.second + pair.first->error(values);
-    } else {
-      // If the factor has been pruned, return infinite error
-      return std::numeric_limits<double>::infinity();
-    }
-  };
-  AlgebraicDecisionTree<Key> errors(dcMixture.factors(), calculateError);
-  DecisionTreeFactor dtf =
-      DiscreteFactorFromErrors(dcMixture.discreteKeys(), errors);
+  DiscreteBoundaryFactor dtf(dcMixture.discreteKeys(), dcMixture.factors(),
+                             values);
 
   dfg.push_back(dtf);
 
@@ -302,8 +286,8 @@ TEST(DCSAM, ContinuousMixture) {
   values = isam.calculateEstimate();
 
   // Now update the continuous info in the discrete solver
-  errors = AlgebraicDecisionTree<Key>(dcMixture.factors(), calculateError);
-  dtf = DiscreteFactorFromErrors(dcMixture.discreteKeys(), errors);
+  dtf = DiscreteBoundaryFactor(dcMixture.discreteKeys(), dcMixture.factors(),
+                               values);
 
   dfg.resize(0);
   dfg.push_back(dtf);
