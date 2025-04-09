@@ -112,6 +112,41 @@ class GTSAM_EXPORT DCSAM {
   void update();
 
   /**
+   * This is the primary function used to extract an estimate from the solver.
+   * Internally, calls `isam_.calculateEstimate()` and `dfg_.optimize()`
+   * to obtain an estimate for the continuous (resp. discrete) variables
+   * and packages them into a `HybridValues`.
+   *
+   * @return a HybridValues object containing an estimate
+   * of the most probable assignment to the continuous (HybridValues.nonlinear)
+   * and discrete (HybridValues.discrete) variables.
+   */
+  HybridValues calculateEstimate() const;
+
+  /**
+   * Used to obtain the marginals from the solver.
+   *
+   * NOTE: not obviously correct (see DCSAM.cpp implementation) at the moment.
+   * Should perhaps retrieve the marginals for the factor graph obtained as
+   * isam_.getFactorsUnsafe() and `dfg_` rather than taking as a parameter?
+   * I think this was originally intended to mimic the gtsam `Marginals` class.
+   *
+   * @param graph
+   * @param continuousEst
+   * @param dfg
+   */
+  // DCMarginals getMarginals(const NonlinearFactorGraph &graph,
+  //                          const Values &continuousEst,
+  //                          const DiscreteFactorGraph &dfg);
+
+  const DiscreteFactorGraph &getDiscreteFactorGraph() const { return dfg_; }
+
+  const NonlinearFactorGraph &getNonlinearFactorGraph() const {
+    return isam_.getFactorsUnsafe();
+  }
+
+ protected:
+  /**
    * Add factors in `dfg` to member discrete factor graph `dfg_`, then update.
    *
    * @param dfg - A discrete factor graph containing the factors to add
@@ -146,40 +181,6 @@ class GTSAM_EXPORT DCSAM {
    * in the graph.
    */
   DiscreteValues solveDiscrete() const;
-
-  /**
-   * This is the primary function used to extract an estimate from the solver.
-   * Internally, calls `isam_.calculateEstimate()` and `dfg_.optimize()`
-   * to obtain an estimate for the continuous (resp. discrete) variables
-   * and packages them into a `HybridValues`.
-   *
-   * @return a HybridValues object containing an estimate
-   * of the most probable assignment to the continuous (HybridValues.nonlinear)
-   * and discrete (HybridValues.discrete) variables.
-   */
-  HybridValues calculateEstimate() const;
-
-  /**
-   * Used to obtain the marginals from the solver.
-   *
-   * NOTE: not obviously correct (see DCSAM.cpp implementation) at the moment.
-   * Should perhaps retrieve the marginals for the factor graph obtained as
-   * isam_.getFactorsUnsafe() and `dfg_` rather than taking as a parameter?
-   * I think this was originally intended to mimic the gtsam `Marginals` class.
-   *
-   * @param graph
-   * @param continuousEst
-   * @param dfg
-   */
-  // DCMarginals getMarginals(const NonlinearFactorGraph &graph,
-  //                          const Values &continuousEst,
-  //                          const DiscreteFactorGraph &dfg);
-
-  const DiscreteFactorGraph &getDiscreteFactorGraph() const { return dfg_; }
-
-  const NonlinearFactorGraph &getNonlinearFactorGraph() const {
-    return isam_.getFactorsUnsafe();
-  }
 };
 
 }  // namespace gtsam
