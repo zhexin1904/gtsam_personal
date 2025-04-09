@@ -60,10 +60,7 @@ void DCSAM::update(const HybridNonlinearFactorGraph &hnfg,
     if (auto hybrid_factor = std::dynamic_pointer_cast<HybridFactor>(factor)) {
       if (auto nonlinear_mixture =
               std::dynamic_pointer_cast<HybridNonlinearFactor>(hybrid_factor)) {
-        auto discreteFactor = std::make_shared<DiscreteBoundaryFactor>(
-            nonlinear_mixture->discreteKeys(), nonlinear_mixture->factors(),
-            currContinuous_);
-        discreteCombined.push_back(discreteFactor);
+        hfg_.push_back(nonlinear_mixture);
       }
 
     } else if (auto cont_factor =
@@ -86,15 +83,6 @@ void DCSAM::update(const HybridNonlinearFactorGraph &hnfg,
     currDiscrete_ = solveDiscrete();
   }
 
-  for (auto &factor : hnfg) {
-    if (auto nonlinear_mixture =
-            std::dynamic_pointer_cast<HybridNonlinearFactor>(factor)) {
-      auto sharedContinuous = nonlinear_mixture->factors()(currDiscrete_).first;
-      continuousCombined.push_back(sharedContinuous);
-      nfg_.push_back(sharedContinuous);
-    }
-  }
-
   // Only the initialGuess needs to be provided for the continuous solver
   // (not the entire continuous state).
   updateContinuousInfo(currDiscrete_, continuousCombined,
@@ -102,7 +90,7 @@ void DCSAM::update(const HybridNonlinearFactorGraph &hnfg,
 
   currContinuous_ = isam_.calculateEstimate();
   // Update discrete info from last solve and
-  updateDiscreteInfo(currDiscrete_);
+  updateDiscreteInfo(currContinuous_, currDiscrete_);
 }
 
 void DCSAM::update() { update(HybridNonlinearFactorGraph()); }
@@ -144,7 +132,25 @@ void DCSAM::updateContinuousInfo(const DiscreteValues &discreteVals,
 }
 
 DiscreteValues DCSAM::solveDiscrete() const {
-  DiscreteValues discreteVals = dfg_.optimize();
+  // First copy the recorded discrete factors
+  DiscreteFactorGraph dfg(dfg_);
+
+  // Next we add the hybrid factors as DiscreteBoundary factors
+  // This step ensures we use the latest currContinuous_ values
+  // to compute the discrete factors
+  for (auto &factor : hfg_) {
+    auto nonlinear_mixture =
+        std::dynamic_pointer_cast<HybridNonlinearFactor>(factor);
+    if (nonlinear_mixture) {
+      auto discreteFactor = std::make_shared<DiscreteBoundaryFactor>(
+          nonlinear_mixture->discreteKeys(), nonlinear_mixture->factors(),
+          currContinuous_);
+      dfg.push_back(discreteFactor);
+    }
+  }
+
+  // Finally we optimize for the MPE
+  DiscreteValues discreteVals = dfg.optimize();
   return discreteVals;
 }
 
