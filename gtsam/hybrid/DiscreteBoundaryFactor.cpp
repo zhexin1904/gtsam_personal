@@ -35,16 +35,14 @@ DecisionTreeFactor DiscreteBoundaryFactor::ComputeDiscreteBoundary(
     const DiscreteKeys& dkeys,
     const HybridNonlinearFactor::FactorValuePairs& factors,
     const gtsam::Values& values) {
-  auto calculateError = [&](const NonlinearFactorValuePair& pair) -> double {
+  auto calculateError =
+      [&values](const NonlinearFactorValuePair& pair) -> double {
     if (pair.first) {
-      auto gaussianNoiseModel = std::dynamic_pointer_cast<noiseModel::Gaussian>(
-          pair.first->noiseModel());
       // `error` has the following contributions:
-      // - the scalar is the sum of all mode-dependent constants
+      // - the scalar is the sum of all mode-dependent constants (including log
+      // normalization constant)
       // - factor->error(initial) is the error on the initial values
-      // - negLogK is log normalization constant from the noise model
-      return pair.second + pair.first->error(values) +
-             gaussianNoiseModel->negLogConstant();
+      return pair.second + pair.first->error(values);
     } else {
       // If the factor has been pruned, return infinite error
       return std::numeric_limits<double>::infinity();
