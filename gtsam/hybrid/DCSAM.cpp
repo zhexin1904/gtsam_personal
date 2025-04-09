@@ -100,10 +100,11 @@ void DCSAM::updateDiscrete(const DiscreteFactorGraph &dfg,
   for (auto &factor : dfg) {
     dfg_.push_back(factor);
   }
-  updateDiscreteInfo(discreteVals);
+  updateDiscreteInfo(currContinuous_, discreteVals);
 }
 
-void DCSAM::updateDiscreteInfo(const DiscreteValues &discreteVals) {
+void DCSAM::updateDiscreteInfo(const Values &continuousVals,
+                               const DiscreteValues &discreteVals) {
   for (const auto &kv : discreteVals) {
     // This will update the element with key `kv.first` if one exists, or add a
     // new element with key `kv.first` if not.
@@ -119,6 +120,22 @@ void DCSAM::updateContinuous() {
 void DCSAM::updateContinuousInfo(const DiscreteValues &discreteVals,
                                  const NonlinearFactorGraph &newFactors,
                                  const Values &initialGuess) {
+  // Initialize continuous factors
+  NonlinearFactorGraph graph(newFactors);
+
+  // Given the best discrete values estimate,
+  // we get the corresponding continuous factors.
+  for (auto &factor : hfg_) {
+    if (auto nonlinear_mixture =
+            std::dynamic_pointer_cast<HybridNonlinearFactor>(factor)) {
+      auto sharedContinuous = nonlinear_mixture->factors()(currDiscrete_).first;
+      graph.push_back(sharedContinuous);
+      // Record the continuous factor
+      nfg_.push_back(sharedContinuous);
+    }
+  }
+
+  // Mark all affected variables, which are the continuous variables
   ISAM2UpdateParams updateParams;
   FastMap<FactorIndex, KeySet> newAffectedKeys;
   for (size_t j = 0; j < nfg_.size(); j++) {
@@ -128,6 +145,8 @@ void DCSAM::updateContinuousInfo(const DiscreteValues &discreteVals,
     }
   }
   updateParams.newAffectedKeys = std::move(newAffectedKeys);
+
+  // Solve for continuous values
   isam_.update(newFactors, initialGuess, updateParams);
 }
 
