@@ -374,7 +374,7 @@ Pose2 noise(0.01, 0.01, 0.01);
 }  // namespace slam_fixture
 
 /**
- * This is a basic (qualitative) octagonal pose graph SLAM test
+ * This is a basic octagonal pose graph SLAM test
  * to verify that DCSAM works on standard SLAM examples.
  */
 TEST(DCSAM, SimpleSlamBatch) {
@@ -540,7 +540,7 @@ TEST(DCSAM, SimpleDiscrete) {
 }
 
 /**
- * This is a basic qualitative octagonal pose graph SLAM test with two
+ * This is a basic octagonal pose graph SLAM test with two
  * *semantic* landmarks to verify that DCSAM works on standard SLAM
  examples in
  * the *incremental* setting
