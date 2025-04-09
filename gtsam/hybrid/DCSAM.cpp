@@ -38,13 +38,15 @@ void DCSAM::update(const HybridNonlinearFactorGraph &hnfg,
   // First things first: combine currContinuous_ estimate with
   // the new continuous values from initialGuess to
   // produce the full continuous variable state.
-  for (const Key k : initialGuess.nonlinear().keys()) {
-    currContinuous_.insert_or_assign(k, initialGuess.nonlinear().at(k));
-  }
+  currContinuous_.insert_or_assign(initialGuess.nonlinear());
 
   // Also combine currDiscrete_ estimate with new discrete values from
   // initialGuess to give a full discrete variable state.
-  updateDiscreteInfo(initialGuess.discrete());
+  for (const auto &kv : initialGuess.discrete()) {
+    // This will update the element with key `kv.first` if one exists, or add a
+    // new element with key `kv.first` if not.
+    currDiscrete_[kv.first] = initialGuess.discrete().at(kv.first);
+  }
 
   // We'll combine the nonlinear factors with DCContinuous factors before
   // passing to the continuous solver; likewise for the discrete factors and
@@ -52,8 +54,8 @@ void DCSAM::update(const HybridNonlinearFactorGraph &hnfg,
   NonlinearFactorGraph continuousCombined;
   DiscreteFactorGraph discreteCombined;
 
-  // Each hybrid factor will be split into a separate discrete and continuous
-  // component
+  // Each hybrid factor will be split into a separate discrete
+  // and continuous component
   for (auto &factor : hnfg) {
     if (auto hybrid_factor = std::dynamic_pointer_cast<HybridFactor>(factor)) {
       if (auto nonlinear_mixture =
