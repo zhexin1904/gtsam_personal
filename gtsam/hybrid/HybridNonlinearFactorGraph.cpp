@@ -237,12 +237,16 @@ HybridNonlinearFactorGraph HybridNonlinearFactorGraph::restrict(
     if (auto hf = dynamic_pointer_cast<HybridFactor>(f)) {
       result.push_back(hf->restrict(discreteValues));
     } else if (auto df = dynamic_pointer_cast<DiscreteFactor>(f)) {
-      result.push_back(df->restrict(discreteValues));
+      // In the case where all the values have been selected, we ignore the
+      // factor since it doesn't add any information
+      if (df->discreteKeys().size() > 0) {
+        result.push_back(df->restrict(discreteValues));
+      }
     } else {
       result.push_back(f);  // Everything else is just added as is
     }
   }
-  
+
   return result;
 }
 
