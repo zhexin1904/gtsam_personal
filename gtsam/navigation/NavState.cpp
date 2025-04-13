@@ -238,8 +238,7 @@ Matrix9 NavState::ExpmapDerivative(const Vector9& xi) {
 }
 
 //------------------------------------------------------------------------------
-Matrix9 NavState::LogmapDerivative(const NavState& state) {
-  const Vector9 xi = Logmap(state);
+Matrix9 NavState::LogmapDerivative(const Vector9& xi) {
   const Vector3 w = xi.head<3>();
   Vector3 rho = xi.segment<3>(3);
   Vector3 nu = xi.tail<3>();
@@ -268,6 +267,12 @@ Matrix9 NavState::LogmapDerivative(const NavState& state) {
        Qt2,    Jw, Z_3x3,
        Qv2, Z_3x3,    Jw;
   return J;
+}
+
+//------------------------------------------------------------------------------
+Matrix9 NavState::LogmapDerivative(const NavState& state) {
+  const Vector9 xi = Logmap(state);
+  return LogmapDerivative(xi);
 }
 
 //------------------------------------------------------------------------------
