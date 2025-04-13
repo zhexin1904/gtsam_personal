@@ -548,6 +548,9 @@ namespace gtsam {
 DiscreteFactor::shared_ptr DecisionTreeFactor::restrict(
     const DiscreteValues& assignment) const {
   ADT restricted_tree = ADT::restrict(assignment);
+  // Get all the keys that are not restricted by the assignment
+  // This ensures that the new restricted factor doesn't have keys
+  // for which the information has been removed.
   DiscreteKeys restricted_keys = this->discreteKeys();
   for (auto&& kv : assignment) {
     Key key = kv.first;
@@ -557,6 +560,7 @@ DiscreteFactor::shared_ptr DecisionTreeFactor::restrict(
                        [key](const DiscreteKey& k) { return k.first == key; }),
         restricted_keys.end());
   }
+  // Create the restricted factor with the appropriate keys and tree.
   return std::make_shared<DecisionTreeFactor>(restricted_keys, restricted_tree);
 }
 

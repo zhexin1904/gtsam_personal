@@ -237,8 +237,11 @@ HybridNonlinearFactorGraph HybridNonlinearFactorGraph::restrict(
       result.push_back(hf->restrict(discreteValues));
     } else if (auto df = dynamic_pointer_cast<DiscreteFactor>(f)) {
       auto restricted_df = df->restrict(discreteValues);
-      // In the case where all the discrete values have been selected,
-      // we ignore the factor since it doesn't add any information
+      // In the case where all the discrete values in the factor
+      // have been selected, we get a factor without any keys,
+      // and default values of 0.5.
+      // Since this factor no longer adds any information, we ignore it to make
+      // inference faster.
       if (restricted_df->discreteKeys().size() > 0) {
         result.push_back(restricted_df);
       }
