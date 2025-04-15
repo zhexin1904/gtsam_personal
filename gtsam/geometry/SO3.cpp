@@ -250,13 +250,9 @@ Matrix3 SO3::AdjointMap() const {
 template <>
 GTSAM_EXPORT
 SO3 SO3::Expmap(const Vector3& omega, ChartJacobian H) {
-  if (H) {
-    so3::DexpFunctor local(omega);
-    *H = local.dexp();
-    return SO3(local.expmap());
-  } else {
-    return SO3(so3::ExpmapFunctor(omega).expmap());
-  }
+  so3::DexpFunctor local(omega);
+  if (H) *H = local.dexp();
+  return SO3(local.expmap());
 }
 
 template <>
@@ -279,18 +275,8 @@ Matrix3 SO3::ExpmapDerivative(const Vector3& omega) {
 template <>
 GTSAM_EXPORT
 Matrix3 SO3::LogmapDerivative(const Vector3& omega) {
-  using std::cos;
-  using std::sin;
-
-  double theta2 = omega.dot(omega);
-  if (theta2 <= std::numeric_limits<double>::epsilon()) return I_3x3;
-  double theta = std::sqrt(theta2);  // rotation angle
-
-  // element of Lie algebra so(3): W = omega^
-  const Matrix3 W = Hat(omega);
-  return I_3x3 + 0.5 * W +
-         (1 / (theta * theta) - (1 + cos(theta)) / (2 * theta * sin(theta))) *
-             W * W;
+  const bool nearZero = (omega.dot(omega) <= 1e-5);
+  return so3::DexpFunctor(omega, nearZero).rightJacobianInverse();
 }
 
 //******************************************************************************
