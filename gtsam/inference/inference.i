@@ -199,6 +199,9 @@ class VariableIndex {
   VariableIndex(const T& factorGraph);
   VariableIndex(const gtsam::VariableIndex& other);
 
+  const FactorIndices& at(Key variable) const;
+  bool empty(Key variable) const;
+
   // Testable
   bool equals(const gtsam::VariableIndex& other, double tol) const;
   void print(string s = "VariableIndex: ",

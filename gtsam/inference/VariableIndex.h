@@ -84,20 +84,12 @@ class GTSAM_EXPORT VariableIndex {
   size_t nEntries() const { return nEntries_; }
 
   /// Access a list of factors by variable
-  const FactorIndices& operator[](Key variable) const {
-    KeyMap::const_iterator item = index_.find(variable);
-    if(item == index_.end())
-      throw std::invalid_argument("Requested non-existent variable '" +
-                                  DefaultKeyFormatter(variable) +
-                                  "' from VariableIndex");
-    else
-      return item->second;
-  }
+  const FactorIndices& operator[](Key variable) const;
+
+  const FactorIndices& at(Key variable) const;
 
   /// Return true if no factors associated with a variable
-  bool empty(Key variable) const {
-    return (*this)[variable].empty();
-  }
+  bool empty(Key variable) const;
 
   /// @}
   /// @name Testable
