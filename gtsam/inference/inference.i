@@ -122,8 +122,11 @@ class Ordering {
   template <
       FACTOR_GRAPH = {gtsam::NonlinearFactorGraph, gtsam::DiscreteFactorGraph,
                       gtsam::SymbolicFactorGraph, gtsam::GaussianFactorGraph, gtsam::HybridGaussianFactorGraph}>
+  
+  // Can't have both of these Colamd implementations; the second overrides the first.
+  // Python wrapper is for ease of use, so choose the one that is more commonly used.
   static gtsam::Ordering Colamd(const FACTOR_GRAPH& graph);
-  static gtsam::Ordering Colamd(const gtsam::VariableIndex& variableIndex);
+  // static gtsam::Ordering Colamd(const gtsam::VariableIndex& variableIndex);
 
   template <
       FACTOR_GRAPH = {gtsam::NonlinearFactorGraph, gtsam::DiscreteFactorGraph,
