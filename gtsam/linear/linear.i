@@ -687,6 +687,19 @@ virtual class GaussianBayesTree {
   gtsam::GaussianBayesNet* jointBayesNet(size_t key1, size_t key2) const;
 };
 
+#include <gtsam/linear/GaussianEliminationTree.h>
+virtual class GaussianEliminationTree {
+  GaussianEliminationTree(const GaussianFactorGraph& factorGraph,
+    const VariableIndex& structure, const Ordering& order);
+  GaussianEliminationTree(const GaussianFactorGraph& factorGraph,
+    const Ordering& order);
+
+  bool GaussianEliminationTree::equals(const This& other, double tol) const;
+
+  void print(const std::string& name = "GaussianEliminationTree: ",
+    const KeyFormatter& formatter = DefaultKeyFormatter) const;
+}
+
 #include <gtsam/linear/GaussianISAM.h>
 class GaussianISAM {
   //Constructor
