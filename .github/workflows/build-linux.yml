@@ -30,9 +30,9 @@ jobs:
         # Github Actions requires a single row to be added to the build matrix.
         # See https://help.github.com/en/articles/workflow-syntax-for-github-actions.
         name: [
-            # "Bracket" the versions from GCC [9-14] and Clang [9-16]
+            # "Bracket" the versions from GCC [9-14] and Clang [11-16]
             ubuntu-22.04-gcc-9,
-            ubuntu-22.04-clang-9,
+            ubuntu-22.04-clang-11,
             ubuntu-24.04-gcc-14,
             ubuntu-24.04-clang-16,
           ]
@@ -45,10 +45,10 @@ jobs:
             compiler: gcc
             version: "9"
 
-          - name: ubuntu-22.04-clang-9
+          - name: ubuntu-22.04-clang-11
             os: ubuntu-22.04
             compiler: clang
-            version: "9"
+            version: "11"
 
           - name: ubuntu-24.04-gcc-14
             os: ubuntu-24.04
