@@ -689,16 +689,16 @@ virtual class GaussianBayesTree {
 
 #include <gtsam/linear/GaussianEliminationTree.h>
 virtual class GaussianEliminationTree {
-  GaussianEliminationTree(const GaussianFactorGraph& factorGraph,
-    const VariableIndex& structure, const Ordering& order);
-  GaussianEliminationTree(const GaussianFactorGraph& factorGraph,
-    const Ordering& order);
+  GaussianEliminationTree(const gtsam::GaussianFactorGraph& factorGraph,
+    const gtsam::VariableIndex& structure, const gtsam::Ordering& order);
+  GaussianEliminationTree(const gtsam::GaussianFactorGraph& factorGraph,
+    const gtsam::Ordering& order);
 
-  bool GaussianEliminationTree::equals(const This& other, double tol) const;
+  bool equals(const This& other, double tol) const;
 
-  void print(const std::string& name = "GaussianEliminationTree: ",
-    const KeyFormatter& formatter = DefaultKeyFormatter) const;
-}
+  void print(const string name = "GaussianEliminationTree: ",
+    const gtsam::KeyFormatter& formatter = gtsam::DefaultKeyFormatter) const;
+};
 
 #include <gtsam/linear/GaussianISAM.h>
 class GaussianISAM {
