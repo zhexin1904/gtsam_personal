@@ -49,7 +49,8 @@ cmake $PROJECT_DIR \
     -DPYTHON_EXECUTABLE:FILEPATH=$(which $PYTHON) \
     -DGTSAM_ALLOW_DEPRECATED_SINCE_V43=OFF \
     -DCMAKE_INSTALL_PREFIX=$PROJECT_DIR/gtsam_install \
-    -DGTSAM_GENERATE_DOC_XML=1
+    -DGTSAM_GENERATE_DOC_XML=1 \
+    -DGTWRAP_ADD_DOCSTRINGS=ON
 
 # Generate Doxygen XML documentation
 doxygen build/doc/Doxyfile
