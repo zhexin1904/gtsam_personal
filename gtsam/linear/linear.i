@@ -704,11 +704,20 @@ virtual class GaussianEliminationTree {
 class GaussianISAM {
   //Constructor
   GaussianISAM();
+  GaussianISAM(const gtsam::GaussianBayesTree& bayesTree);
+
+  gtsam::VectorValues optimize() const;
+  gtsam::VectorValues optimizeGradientSearch() const;
+
+  gtsam::GaussianConditional* marginalFactor(size_t key) const;
 
   //Standard Interface
   void update(const gtsam::GaussianFactorGraph& newFactors);
   void saveGraph(string s) const;
   void clear();
+
+  void print(const string name = "GaussianISAM: ",
+    const gtsam::KeyFormatter& formatter = gtsam::DefaultKeyFormatter) const;
 };
 
 #include <gtsam/linear/IterativeSolver.h>
