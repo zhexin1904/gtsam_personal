@@ -63,12 +63,12 @@ jobs:
         python_version: [3]
         include:
           - name: ubuntu-22.04-gcc-9
-            os: ubuntu-20.04
+            os: ubuntu-22.04
             compiler: gcc
             version: "9"
 
           - name: ubuntu-22.04-clang-11
-            os: ubuntu-20.04
+            os: ubuntu-22.04
             compiler: clang
             version: "11"
 
