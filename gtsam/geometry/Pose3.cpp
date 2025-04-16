@@ -219,8 +219,7 @@ Pose3 Pose3::Expmap(const Vector6& xi, OptionalJacobian<6, 6> Hxi) {
   const Vector3 w = xi.head<3>(), v = xi.tail<3>();
 
   // Instantiate functor for Dexp-related operations:
-  const bool nearZero = (w.dot(w) <= 1e-5);
-  const so3::DexpFunctor local(w, nearZero);
+  const so3::DexpFunctor local(w);
 
   // Compute rotation using Expmap
 #ifdef GTSAM_USE_QUATERNIONS
@@ -259,8 +258,7 @@ Vector6 Pose3::Logmap(const Pose3& pose, OptionalJacobian<6, 6> Hpose) {
   const Vector3 w = Rot3::Logmap(pose.rotation());
 
   // Instantiate functor for Dexp-related operations:
-  const bool nearZero = (w.dot(w) <= 1e-5);
-  const so3::DexpFunctor local(w, nearZero);
+  const so3::DexpFunctor local(w);
 
   const Vector3 t = pose.translation();
   const Vector3 u = local.applyLeftJacobianInverse(t);
@@ -315,8 +313,7 @@ Matrix6 Pose3::LogmapDerivative(const Vector6& xi) {
   Vector3 v = xi.segment<3>(3);
 
   // Instantiate functor for Dexp-related operations:
-  const bool nearZero = (w.dot(w) <= 1e-5);
-  const so3::DexpFunctor local(w, nearZero);
+  const so3::DexpFunctor local(w);
 
   // Call applyLeftJacobian to get its Jacobians
   Matrix3 H_t_w;

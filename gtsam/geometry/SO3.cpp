@@ -42,6 +42,20 @@ static constexpr double one_180th = 1.0 / 180.0;
 static constexpr double one_720th = 1.0 / 720.0;
 static constexpr double one_1260th = 1.0 / 1260.0;
 
+static constexpr double kPi_inv = 1.0 / M_PI;
+static constexpr double kPi2 = M_PI * M_PI;
+static constexpr double k1_Pi2 = 1.0 / kPi2;
+static constexpr double kPi3 = M_PI * kPi2;
+static constexpr double k1_Pi3 = 1.0 / kPi3;
+static constexpr double k2_Pi3 = 2.0 * k1_Pi3;
+static constexpr double k1_4Pi = 0.25 * kPi_inv; // 1/(4*pi)
+
+// --- Thresholds ---
+// Tolerance for near zero (theta^2)
+static constexpr double kNearZeroThresholdSq = 1e-6;
+// Tolerance for near pi (delta^2 = (pi - theta)^2)
+static constexpr double kNearPiThresholdSq = 1e-6;
+
 GTSAM_EXPORT Matrix99 Dcompose(const SO3& Q) {
   Matrix99 H;
   auto R = Q.matrix();
@@ -58,10 +72,11 @@ GTSAM_EXPORT Matrix3 compose(const Matrix3& M, const SO3& R,
   return MR;
 }
 
-void ExpmapFunctor::init(bool nearZeroApprox) {
-  nearZero =
-      nearZeroApprox || (theta2 <= std::numeric_limits<double>::epsilon());
+void ExpmapFunctor::init(double nearZeroThresholdSq) {
+  nearZero = (theta2 <= nearZeroThresholdSq);
+
   if (!nearZero) {
+    // General case: Use standard stable formulas for A and B
     const double sin_theta = std::sin(theta);
     A = sin_theta / theta;
     const double s2 = std::sin(theta / 2.0);
@@ -69,36 +84,51 @@ void ExpmapFunctor::init(bool nearZeroApprox) {
         2.0 * s2 * s2;  // numerically better than [1 - cos(theta)]
     B = one_minus_cos / theta2;
   } else {
-    // Taylor expansion at 0
+    // Taylor expansion at 0 for A, B (Order theta^2)
     A = 1.0 - theta2 * one_6th;
     B = 0.5 - theta2 * one_24th;
   }
 }
 
-ExpmapFunctor::ExpmapFunctor(const Vector3& omega, bool nearZeroApprox)
+ExpmapFunctor::ExpmapFunctor(const Vector3& omega) :ExpmapFunctor(kNearZeroThresholdSq, omega) {}
+
+ExpmapFunctor::ExpmapFunctor(double nearZeroThresholdSq, const Vector3& omega)
     : theta2(omega.dot(omega)),
       theta(std::sqrt(theta2)),
       W(skewSymmetric(omega)),
       WW(W * W) {
-  init(nearZeroApprox);
+  init(nearZeroThresholdSq);
 }
 
-ExpmapFunctor::ExpmapFunctor(const Vector3& axis, double angle,
-                             bool nearZeroApprox)
+ExpmapFunctor::ExpmapFunctor(const Vector3& axis, double angle)
     : theta2(angle * angle),
       theta(angle),
       W(skewSymmetric(axis * angle)),
       WW(W * W) {
-  init(nearZeroApprox);
+  init(kNearZeroThresholdSq);
 }
+
 
 Matrix3 ExpmapFunctor::expmap() const { return I_3x3 + A * W + B * WW; }
 
-DexpFunctor::DexpFunctor(const Vector3& omega, bool nearZeroApprox)
-    : ExpmapFunctor(omega, nearZeroApprox), omega(omega) {
+DexpFunctor::DexpFunctor(const Vector3& omega, double nearZeroThresholdSq, double nearPiThresholdSq)
+  : ExpmapFunctor(nearZeroThresholdSq, omega), omega(omega) {
   if (!nearZero) {
-    C = (1 - A) / theta2;
-    D = (1.0 - A / (2.0 * B)) / theta2;
+    // General case or nearPi: Use standard stable formulas first
+    C = (1.0 - A) / theta2; // Usually stable, even near pi (1-0)/pi^2
+
+    // Calculate delta = pi - theta (non-negative) for nearPi check
+    const double delta = M_PI > theta ? M_PI - theta : 0.0;
+    const double delta2 = delta * delta;
+    const bool nearPi = (delta2 < nearPiThresholdSq);
+    if (nearPi) {
+      // Taylor expansion near pi *only for D* (Order delta)
+      D = k1_Pi2 + (k2_Pi3 - k1_4Pi) * delta; // D ~ 1/pi^2 + delta*(2/pi^3 - 1/(4*pi))
+    } else {
+      // General case D:
+      D = (1.0 - A / (2.0 * B)) / theta2;
+    }
+    // Calculate E and F using standard formulas (stable near pi)
     E = (2.0 * B - A) / theta2;
     F = (3.0 * C - B) / theta2;
   } else {
@@ -110,6 +140,9 @@ DexpFunctor::DexpFunctor(const Vector3& omega, bool nearZeroApprox)
     F = one_60th - theta2 * one_1260th;
   }
 }
+
+DexpFunctor::DexpFunctor(const Vector3& omega)
+  : DexpFunctor(omega, kNearZeroThresholdSq, kNearPiThresholdSq) {}
 
 Vector3 DexpFunctor::crossB(const Vector3& v, OptionalJacobian<3, 3> H) const {
   // Wv = omega x v
@@ -275,8 +308,7 @@ Matrix3 SO3::ExpmapDerivative(const Vector3& omega) {
 template <>
 GTSAM_EXPORT
 Matrix3 SO3::LogmapDerivative(const Vector3& omega) {
-  const bool nearZero = (omega.dot(omega) <= 1e-5);
-  return so3::DexpFunctor(omega, nearZero).rightJacobianInverse();
+  return so3::DexpFunctor(omega).rightJacobianInverse();
 }
 
 //******************************************************************************
@@ -292,58 +324,36 @@ Vector3 SO3::Logmap(const SO3& Q, ChartJacobian H) {
   const double &R21 = R(1, 0), R22 = R(1, 1), R23 = R(1, 2);
   const double &R31 = R(2, 0), R32 = R(2, 1), R33 = R(2, 2);
 
-  // Get trace(R)
   const double tr = R.trace();
-
   Vector3 omega;
 
   // when trace == -1, i.e., when theta = +-pi, +-3pi, +-5pi, etc.
   // we do something special
-  if (tr + 1.0 < 1e-3) {
-    if (R33 > R22 && R33 > R11) {
-      // R33 is the largest diagonal, a=3, b=1, c=2
-      const double W = R21 - R12;
+  if (tr + 1.0 < so3::kNearPiThresholdSq) {
+    // Used below
+    auto omegaFromQ = [](double W, double r, double w1, double w2, double w3) {
+      const double one_over_r = 1 / r;
+      const double norm = sqrt(w1 * w1 + w2 * w2 + w3 * w3 + W * W);
+      const double sgn_w = W < 0 ? -1.0 : 1.0;
+      const double mag = M_PI - (2 * sgn_w * W) / norm;
+      const double scale = 0.5 * one_over_r * mag;
+      return sgn_w * scale * Vector3(w1, w2, w3);
+      };
+
+    if (R33 > R22 && R33 > R11) { // R33 is the largest diagonal, a=3, b=1, c=2
       const double Q1 = 2.0 + 2.0 * R33;
-      const double Q2 = R31 + R13;
-      const double Q3 = R23 + R32;
-      const double r = sqrt(Q1);
-      const double one_over_r = 1 / r;
-      const double norm = sqrt(Q1*Q1 + Q2*Q2 + Q3*Q3 + W*W);
-      const double sgn_w = W < 0 ? -1.0 : 1.0;
-      const double mag = M_PI - (2 * sgn_w * W) / norm;
-      const double scale = 0.5 * one_over_r * mag;
-      omega = sgn_w * scale * Vector3(Q2, Q3, Q1);
-    } else if (R22 > R11) {
-      // R22 is the largest diagonal, a=2, b=3, c=1
-      const double W = R13 - R31;
+      omega = omegaFromQ(R21 - R12, sqrt(Q1), R31 + R13, R23 + R32, Q1);
+    } else if (R22 > R11) { // R22 is the largest diagonal, a=2, b=3, c=1
       const double Q1 = 2.0 + 2.0 * R22;
-      const double Q2 = R23 + R32;
-      const double Q3 = R12 + R21;
-      const double r = sqrt(Q1);
-      const double one_over_r = 1 / r;
-      const double norm = sqrt(Q1*Q1 + Q2*Q2 + Q3*Q3 + W*W);
-      const double sgn_w = W < 0 ? -1.0 : 1.0;
-      const double mag = M_PI - (2 * sgn_w * W) / norm;
-      const double scale = 0.5 * one_over_r * mag;
-      omega = sgn_w * scale * Vector3(Q3, Q1, Q2);
-    } else {
-      // R11 is the largest diagonal, a=1, b=2, c=3
-      const double W = R32 - R23;
+      omega = omegaFromQ(R13 - R31, sqrt(Q1), R23 + R32, Q1, R12 + R21);
+    } else { // R11 is the largest diagonal, a=1, b=2, c=3
       const double Q1 = 2.0 + 2.0 * R11;
-      const double Q2 = R12 + R21;
-      const double Q3 = R31 + R13;
-      const double r = sqrt(Q1);
-      const double one_over_r = 1 / r;
-      const double norm = sqrt(Q1*Q1 + Q2*Q2 + Q3*Q3 + W*W);
-      const double sgn_w = W < 0 ? -1.0 : 1.0;
-      const double mag = M_PI - (2 * sgn_w * W) / norm;
-      const double scale = 0.5 * one_over_r * mag;
-      omega = sgn_w * scale * Vector3(Q1, Q2, Q3);
+      omega = omegaFromQ(R32 - R23, sqrt(Q1), Q1, R12 + R21, R31 + R13);
     }
   } else {
     double magnitude;
     const double tr_3 = tr - 3.0; // could be non-negative if the matrix is off orthogonal
-    if (tr_3 < -1e-6) {
+    if (tr_3 < -so3::kNearPiThresholdSq) {
       // this is the normal case -1 < trace < 3
       double theta = acos((tr - 1.0) / 2.0);
       magnitude = theta / (2.0 * sin(theta));
@@ -351,7 +361,7 @@ Vector3 SO3::Logmap(const SO3& Q, ChartJacobian H) {
       // when theta near 0, +-2pi, +-4pi, etc. (trace near 3.0)
       // use Taylor expansion: theta \approx 1/2-(t-3)/12 + O((t-3)^2)
       // see https://github.com/borglab/gtsam/issues/746 for details
-      magnitude = 0.5 - tr_3 / 12.0 + tr_3*tr_3/60.0;
+      magnitude = 0.5 - tr_3 * so3::one_12th + tr_3 * tr_3 * so3::one_60th;
     }
     omega = magnitude * Vector3(R32 - R23, R13 - R31, R21 - R12);
   }

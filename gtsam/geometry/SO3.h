@@ -137,23 +137,26 @@ GTSAM_EXPORT Matrix99 Dcompose(const SO3& R);
 struct GTSAM_EXPORT ExpmapFunctor {
   const double theta2, theta;
   const Matrix3 W, WW;
-  bool nearZero;
+  bool nearZero{ false };
 
   // Ethan Eade's constants:
   double A;  // A = sin(theta) / theta
   double B;  // B = (1 - cos(theta))
 
   /// Constructor with element of Lie algebra so(3)
-  explicit ExpmapFunctor(const Vector3& omega, bool nearZeroApprox = false);
+  explicit ExpmapFunctor(const Vector3& omega);
+
+  /// Constructor with threshold (advanced)
+  ExpmapFunctor(double nearZeroThresholdSq, const Vector3& axis);
 
   /// Constructor with axis-angle
-  ExpmapFunctor(const Vector3& axis, double angle, bool nearZeroApprox = false);
+  ExpmapFunctor(const Vector3& axis, double angle);
 
   /// Rodrigues formula
   Matrix3 expmap() const;
 
- protected:
-  void init(bool nearZeroApprox = false);
+protected:
+  void init(double nearZeroThresholdSq);
 };
 
 /// Functor that implements Exponential map *and* its derivatives
@@ -173,7 +176,10 @@ struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   double F;  // (3C - B) / theta2
 
   /// Constructor with element of Lie algebra so(3)
-  explicit DexpFunctor(const Vector3& omega, bool nearZeroApprox = false);
+  explicit DexpFunctor(const Vector3& omega);
+
+  /// Constructor with custom thresholds (advanced)
+  explicit DexpFunctor(const Vector3& omega, double nearZeroThresholdSq, double nearPiThresholdSq);
 
   // NOTE(luca): Right Jacobian for Exponential map in SO(3) - equation
   // (10.86) and following equations in G.S. Chirikjian, "Stochastic Models,
