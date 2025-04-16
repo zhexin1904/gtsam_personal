@@ -83,9 +83,9 @@ class GTSAM_EXPORT VariableIndex {
   /// The number of nonzero blocks, i.e. the number of variable-factor entries
   size_t nEntries() const { return nEntries_; }
 
-  /// Access a list of factors by variable
+  /// Access a list of factors by variable without checking for existence
   const FactorIndices& operator[](Key variable) const;
-
+  /// Access a list of factors by variable
   const FactorIndices& at(Key variable) const;
 
   /// Return true if no factors associated with a variable
