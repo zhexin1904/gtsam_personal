@@ -56,11 +56,6 @@ class XMLDocParser:
         documenting_index = self.determine_documenting_index(
             cpp_class, cpp_method, method_args_names, member_defs)
 
-        if member_defs:
-            self.print_if_verbose(
-                f"Extracted {len(member_defs)} member definitions for {cpp_class}.{cpp_method}."
-            )
-
         # Extract the docs for the function that matches cpp_class.cpp_method(*method_args_names).
         return self.get_formatted_docstring(member_defs[documenting_index],
                                             ignored_params) if member_defs else ""
