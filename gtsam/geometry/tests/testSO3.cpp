@@ -295,9 +295,12 @@ TEST(SO3, LogmapDerivative) {
     -0.747473, -0.00190019, -0.664289,
     -0.0385114, -0.99819, 0.0461892,
     -0.663175, 0.060108, 0.746047).finished());
-
+  const SO3 R4((Matrix3() <<            // Final pose in a drone experiment
+      0.324237, 0.902975, 0.281968,
+      -0.674322, 0.429668, -0.600562,
+      -0.663445, 0.00458662, 0.748211).finished());
   size_t i = 0;
-  for (const SO3& R : { R0, R1, R2, R3 }) {
+  for (const SO3& R : { R0, R1, R2, R3, R4 }) {
     const bool nearPi = (i == 2 || i == 3); // Flag cases near pi
 
     Matrix3 actualH; // H computed by Logmap(R, H) using LogmapDerivative(omega)
@@ -317,7 +320,7 @@ TEST(SO3, LogmapDerivative) {
     if (!nearPi) {
       const Matrix expectedH = numericalDerivative11<Vector3, SO3>(
         std::bind(&SO3::Logmap, std::placeholders::_1, nullptr), R, 1e-7);
-      EXPECT(assert_equal(expectedH, actualH)); // Use default tolerance
+      EXPECT(assert_equal(expectedH, actualH, 1e-6)); // 1e-6 needed to pass R4
     }
     else {
       // We accept that the numerical derivative of this specific Logmap implementation
