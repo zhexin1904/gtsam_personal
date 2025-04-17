@@ -14,9 +14,9 @@ export PYTHON="python${PYTHON_VERSION}"
 
 if [ "$(uname)" == "Linux" ]; then
     # manylinux2014 is based on CentOS 7, so use yum to install dependencies
-    yum install -y wget
+    yum install -y wget doxygen
 elif [ "$(uname)" == "Darwin" ]; then
-    brew install cmake
+    brew install cmake doxygen
 
     # If MACOSX_DEPLOYMENT_TARGET is not explicitly set, default to the version of the host system.
     if [[ -z "${MACOSX_DEPLOYMENT_TARGET}" ]]; then
@@ -78,7 +78,12 @@ cmake $PROJECT_DIR \
     -DGTSAM_PYTHON_VERSION=$PYTHON_VERSION \
     -DPYTHON_EXECUTABLE:FILEPATH=$(which $PYTHON) \
     -DGTSAM_ALLOW_DEPRECATED_SINCE_V43=OFF \
-    -DCMAKE_INSTALL_PREFIX=$PROJECT_DIR/gtsam_install
+    -DCMAKE_INSTALL_PREFIX=$PROJECT_DIR/gtsam_install \
+    -DGTSAM_GENERATE_DOC_XML=1 \
+    -DGTWRAP_ADD_DOCSTRINGS=ON
+
+# Generate Doxygen XML documentation
+doxygen build/doc/Doxyfile
 
 # Install the Python wrapper module and generate Python stubs
 cd $PROJECT_DIR/build/python
