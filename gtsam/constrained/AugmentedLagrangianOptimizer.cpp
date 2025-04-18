@@ -16,17 +16,19 @@
  * @date    Aug 3, 2024
  */
 
-#include <iomanip>
 #include <gtsam/constrained/AugmentedLagrangianOptimizer.h>
 #include <gtsam/constrained/BiasedFactor.h>
 #include <gtsam/slam/AntiFactor.h>
+
+#include <iomanip>
 
 using std::setw, std::cout, std::endl, std::setprecision;
 
 namespace gtsam {
 
 /* ************************************************************************* */
-void AugmentedLagrangianState::initializeLagrangeMultipliers(const ConstrainedOptProblem& problem) {
+void AugmentedLagrangianState::initializeLagrangeMultipliers(
+    const ConstrainedOptProblem& problem) {
   lambda_e = std::vector<Vector>();
   lambda_e.reserve(problem.eConstraints().size());
   for (const auto& constraint : problem.eConstraints()) {
@@ -37,8 +39,7 @@ void AugmentedLagrangianState::initializeLagrangeMultipliers(const ConstrainedOp
 
 /* ************************************************************************* */
 std::tuple<AugmentedLagrangianOptimizer::State, double, double>
-AugmentedLagrangianOptimizer::iterate(const State& state,
-                                      const double mu_e,
+AugmentedLagrangianOptimizer::iterate(const State& state, const double mu_e,
                                       const double mu_i) const {
   State new_state(state.iteration + 1);
   new_state.mu_e = mu_e;
@@ -118,8 +119,8 @@ NonlinearFactorGraph AugmentedLagrangianOptimizer::LagrangeDualFunction(
 }
 
 /* ************************************************************************* */
-void AugmentedLagrangianOptimizer::updateLagrangeMultiplier(const State& prev_state,
-                                                            State& state) const {
+void AugmentedLagrangianOptimizer::updateLagrangeMultiplier(
+    const State& prev_state, State& state) const {
   // Perform dual ascent on Lagrange multipliers for e-constriants.
   const NonlinearEqualityConstraints& e_constraints = problem_.eConstraints();
   state.lambda_e.resize(e_constraints.size());
@@ -127,8 +128,8 @@ void AugmentedLagrangianOptimizer::updateLagrangeMultiplier(const State& prev_st
     const auto& constraint = e_constraints.at(i);
     // Compute constraint violation as the gradient of the dual function.
     Vector violation = constraint->whitenedError(prev_state.values);
-    double step_size =
-        std::min(p_->max_dual_step_size_e, prev_state.mu_e * p_->dual_step_size_factor_e);
+    double step_size = std::min(p_->max_dual_step_size_e,
+                                prev_state.mu_e * p_->dual_step_size_factor_e);
     state.lambda_e[i] = prev_state.lambda_e[i] + step_size * violation;
   }
 
@@ -139,9 +140,10 @@ void AugmentedLagrangianOptimizer::updateLagrangeMultiplier(const State& prev_st
   for (size_t i = 0; i < i_constraints.size(); i++) {
     const auto& constraint = i_constraints.at(i);
     double violation = constraint->whitenedExpr(prev_state.values)(0);
-    double step_size =
-        std::min(p_->max_dual_step_size_i, prev_state.mu_i * p_->dual_step_size_factor_i);
-    state.lambda_i[i] = std::max(0.0, prev_state.lambda_i[i] + step_size * violation);
+    double step_size = std::min(p_->max_dual_step_size_i,
+                                prev_state.mu_i * p_->dual_step_size_factor_i);
+    state.lambda_i[i] =
+        std::max(0.0, prev_state.lambda_i[i] + step_size * violation);
   }
 }
 
@@ -163,10 +165,12 @@ std::pair<double, double> AugmentedLagrangianOptimizer::updatePenaltyParameter(
 }
 
 /* ************************************************************************* */
-ConstrainedOptimizer::SharedOptimizer AugmentedLagrangianOptimizer::createUnconstrainedOptimizer(
+ConstrainedOptimizer::SharedOptimizer
+AugmentedLagrangianOptimizer::createUnconstrainedOptimizer(
     const NonlinearFactorGraph& graph, const Values& values) const {
   // TODO(yetong): make compatible with all NonlinearOptimizers.
-  return std::make_shared<LevenbergMarquardtOptimizer>(graph, values, p_->lm_params);
+  return std::make_shared<LevenbergMarquardtOptimizer>(graph, values,
+                                                       p_->lm_params);
 }
 
 /* ************************************************************************* */

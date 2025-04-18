@@ -24,7 +24,7 @@
 namespace gtsam {
 
 /// Parameters for Augmented Lagrangian method
-class AugmentedLagrangianParams : public PenaltyOptimizerParams {
+class GTSAM_EXPORT AugmentedLagrangianParams : public PenaltyOptimizerParams {
  public:
   typedef PenaltyOptimizerParams Base;
   typedef AugmentedLagrangianParams This;
@@ -40,14 +40,14 @@ class AugmentedLagrangianParams : public PenaltyOptimizerParams {
 };
 
 /// Details for each iteration.
-class AugmentedLagrangianState : public PenaltyOptimizerState {
+class GTSAM_EXPORT AugmentedLagrangianState : public PenaltyOptimizerState {
  public:
   typedef PenaltyOptimizerState Base;
   typedef AugmentedLagrangianState This;
   typedef std::shared_ptr<This> shared_ptr;
 
-  std::vector<Vector> lambda_e;  // Lagrange multipliers for e
-  std::vector<double> lambda_i;  // Lagrange multipliers for i
+  std::vector<Vector> lambda_e;  // Lagrange multipliers for e-constraints
+  std::vector<double> lambda_i;  // Lagrange multipliers for i-constraints
 
   /** Initialize Lagrange multipliers as zeros. */
   void initializeLagrangeMultipliers(const ConstrainedOptProblem& problem);
@@ -55,13 +55,14 @@ class AugmentedLagrangianState : public PenaltyOptimizerState {
   using Base::Base;
 };
 
-/** Augmented Lagrangian method to solve constrained nonlinear least squares problems. The
- * implementation follows https://www.seas.ucla.edu/~vandenbe/133B/lectures/nllseq.pdf for problems
- * with equality constraints only. We further generalize the implementation to incorporate
- * inequality constraints with reference to
+/** Augmented Lagrangian method to solve constrained nonlinear least squares
+ * problems. The implementation follows
+ * https://www.seas.ucla.edu/~vandenbe/133B/lectures/nllseq.pdf for problems
+ * with equality constraints only. We further generalize the implementation to
+ * incorporate inequality constraints with reference to
  * https://www.stat.cmu.edu/~ryantibs/convexopt/scribes/dual-decomp-scribed.pdf.
  */
-class AugmentedLagrangianOptimizer : public ConstrainedOptimizer {
+class GTSAM_EXPORT AugmentedLagrangianOptimizer : public ConstrainedOptimizer {
  public:
   typedef ConstrainedOptimizer Base;
   typedef PenaltyOptimizer This;
@@ -77,15 +78,15 @@ class AugmentedLagrangianOptimizer : public ConstrainedOptimizer {
 
  public:
   /// Constructor.
-  AugmentedLagrangianOptimizer(const ConstrainedOptProblem& problem,
-                               const Values& init_values,
-                               Params::shared_ptr p = std::make_shared<Params>())
+  AugmentedLagrangianOptimizer(
+      const ConstrainedOptProblem& problem, const Values& init_values,
+      Params::shared_ptr p = std::make_shared<Params>())
       : Base(problem, init_values), p_(p), progress_() {}
 
   /// Constructor that packs costs and constraints into a single factor graph.
-  AugmentedLagrangianOptimizer(const NonlinearFactorGraph& graph,
-                               const Values& init_values,
-                               Params::shared_ptr p = std::make_shared<Params>())
+  AugmentedLagrangianOptimizer(
+      const NonlinearFactorGraph& graph, const Values& init_values,
+      Params::shared_ptr p = std::make_shared<Params>())
       : Base(graph, init_values), p_(p), progress_() {}
 
   /// Run optimization with equality constraints only.
@@ -118,11 +119,12 @@ class AugmentedLagrangianOptimizer : public ConstrainedOptimizer {
    * multiplier terms in the nonlinear least squares form, with d very small.
    * @return: factor graph representing m(x) + 0.5d * ||g(x)||^2 + c
    */
-  NonlinearFactorGraph LagrangeDualFunction(const State& state, const double epsilon = 1.0) const;
+  NonlinearFactorGraph LagrangeDualFunction(const State& state,
+                                            const double epsilon = 1.0) const;
 
  protected:
-  SharedOptimizer createUnconstrainedOptimizer(const NonlinearFactorGraph& graph,
-                                               const Values& values) const;
+  SharedOptimizer createUnconstrainedOptimizer(
+      const NonlinearFactorGraph& graph, const Values& values) const;
 
   /** Update the Lagrange multipliers using dual ascent. */
   void updateLagrangeMultiplier(const State& prev_state, State& state) const;
