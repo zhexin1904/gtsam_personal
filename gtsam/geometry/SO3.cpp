@@ -144,71 +144,60 @@ DexpFunctor::DexpFunctor(const Vector3& omega, double nearZeroThresholdSq, doubl
 DexpFunctor::DexpFunctor(const Vector3& omega)
   : DexpFunctor(omega, kNearZeroThresholdSq, kNearPiThresholdSq) {}
 
-Vector3 DexpFunctor::crossB(const Vector3& v, OptionalJacobian<3, 3> H) const {
-  // Wv = omega x v
-  const Vector3 Wv = gtsam::cross(omega, v);
-  if (H) {
-    // Apply product rule to (B Wv)
-    // - E * omega.transpose() is 1x3 Jacobian of B with respect to omega
-    // - skewSymmetric(v) is 3x3 Jacobian of Wv = gtsam::cross(omega, v)
-    *H = - Wv * E * omega.transpose() - B * skewSymmetric(v);
-  }
-  return B * Wv;
-}
-
-Vector3 DexpFunctor::doubleCrossC(const Vector3& v,
-                                  OptionalJacobian<3, 3> H) const {
-  // WWv = omega x (omega x * v)
-  Matrix3 doubleCrossJacobian;
-  const Vector3 WWv =
-      gtsam::doubleCross(omega, v, H ? &doubleCrossJacobian : nullptr);
-  if (H) {
-    // Apply product rule to (C WWv)
-    // - F * omega.transpose() is 1x3 Jacobian of C with respect to omega
-    // doubleCrossJacobian is 3x3 Jacobian of WWv = gtsam::doubleCross(omega, v)
-    *H = - WWv * F * omega.transpose() + C * doubleCrossJacobian;
-  }
-  return C * WWv;
-}
-
 // Multiplies v with left Jacobian through vector operations only.
-Vector3 DexpFunctor::applyDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
-                               OptionalJacobian<3, 3> H2) const {
-  Matrix3 D_BWv_w, D_CWWv_w;
-  const Vector3 BWv = crossB(v, H1 ? &D_BWv_w : nullptr);
-  const Vector3 CWWv = doubleCrossC(v, H1 ? &D_CWWv_w : nullptr);
-  if (H1) *H1 = -D_BWv_w + D_CWWv_w;
+Vector3 DexpFunctor::applyRightJacobian(const Vector3& v, OptionalJacobian<3, 3> H1,
+  OptionalJacobian<3, 3> H2) const {
+  const Vector3 Wv = gtsam::cross(omega, v);
+
+  Matrix3 WWv_H_w;
+  const Vector3 WWv = gtsam::doubleCross(omega, v, H1 ? &WWv_H_w : nullptr);
+
+  if (H1) {
+    // - E * omega.transpose() is 1x3 Jacobian of B with respect to omega
+    Matrix3 BWv_H_w = -Wv * E * omega.transpose() - B * skewSymmetric(v);
+    // - F * omega.transpose() is 1x3 Jacobian of C with respect to omega
+    Matrix3 CWWv_H_w = -WWv * F * omega.transpose() + C * WWv_H_w;
+    *H1 = -BWv_H_w + CWWv_H_w;
+  }
+
   if (H2) *H2 = rightJacobian();
-  return v - BWv + CWWv;
+  return v - B * Wv + C * WWv;
 }
 
-Vector3 DexpFunctor::applyInvDexp(const Vector3& v, OptionalJacobian<3, 3> H1,
-                                  OptionalJacobian<3, 3> H2) const {
+Vector3 DexpFunctor::applyRightJacobianInverse(const Vector3& v, OptionalJacobian<3, 3> H1,
+  OptionalJacobian<3, 3> H2) const {
   const Matrix3 invJr = rightJacobianInverse();
   const Vector3 c = invJr * v;
   if (H1) {
     Matrix3 H;
-    applyDexp(c, H);  // get derivative H of forward mapping
+    applyRightJacobian(c, H);  // get derivative H of forward mapping
     *H1 = -invJr * H;
   }
   if (H2) *H2 = invJr;
   return c;
 }
 
-Vector3 DexpFunctor::applyLeftJacobian(const Vector3& v,
-                                       OptionalJacobian<3, 3> H1,
-                                       OptionalJacobian<3, 3> H2) const {
-  Matrix3 D_BWv_w, D_CWWv_w;
-  const Vector3 BWv = crossB(v, H1 ? &D_BWv_w : nullptr);
-  const Vector3 CWWv = doubleCrossC(v, H1 ? &D_CWWv_w : nullptr);
-  if (H1) *H1 = D_BWv_w + D_CWWv_w;
+Vector3 so3::DexpFunctor::applyLeftJacobian(const Vector3& v,
+  OptionalJacobian<3, 3> H1, OptionalJacobian<3, 3> H2) const {
+  const Vector3 Wv = gtsam::cross(omega, v);
+
+  Matrix3 WWv_H_w;
+  const Vector3 WWv = gtsam::doubleCross(omega, v, H1 ? &WWv_H_w : nullptr);
+
+  if (H1) {
+    // - E * omega.transpose() is 1x3 Jacobian of B with respect to omega
+    Matrix3 BWv_H_w = -Wv * E * omega.transpose() - B * skewSymmetric(v);
+    // - F * omega.transpose() is 1x3 Jacobian of C with respect to omega
+    Matrix3 CWWv_H_w = -WWv * F * omega.transpose() + C * WWv_H_w;
+    *H1 = BWv_H_w + CWWv_H_w;
+  }
+
   if (H2) *H2 = leftJacobian();
-  return v + BWv + CWWv;
+  return v + B * Wv + C * WWv;
 }
 
-Vector3 DexpFunctor::applyLeftJacobianInverse(const Vector3& v,
-                                              OptionalJacobian<3, 3> H1,
-                                              OptionalJacobian<3, 3> H2) const {
+Vector3 so3::DexpFunctor::applyLeftJacobianInverse(const Vector3& v,
+  OptionalJacobian<3, 3> H1, OptionalJacobian<3, 3> H2) const {
   const Matrix3 invJl = leftJacobianInverse();
   const Vector3 c = invJl * v;
   if (H1) {
@@ -284,34 +273,23 @@ template <>
 GTSAM_EXPORT
 SO3 SO3::Expmap(const Vector3& omega, ChartJacobian H) {
   so3::DexpFunctor local(omega);
-  if (H) *H = local.dexp();
+  if (H) *H = local.rightJacobian();
   return SO3(local.expmap());
 }
 
 template <>
 GTSAM_EXPORT
 Matrix3 SO3::ExpmapDerivative(const Vector3& omega) {
-  return so3::DexpFunctor(omega).dexp();
+  return so3::DexpFunctor(omega).rightJacobian();
 }
 
 //******************************************************************************
-/* Right Jacobian for Log map in SO(3) - equation (10.86) and following
- equations in G.S. Chirikjian, "Stochastic Models, Information Theory, and Lie
- Groups", Volume 2, 2008.
-
-   logmap( Rhat * expmap(omega) ) \approx logmap(Rhat) + Jrinv * omega
-
- where Jrinv = LogmapDerivative(omega). This maps a perturbation on the
- manifold (expmap(omega)) to a perturbation in the tangent space (Jrinv *
- omega)
- */
 template <>
 GTSAM_EXPORT
 Matrix3 SO3::LogmapDerivative(const Vector3& omega) {
   return so3::DexpFunctor(omega).rightJacobianInverse();
 }
 
-//******************************************************************************
 template <>
 GTSAM_EXPORT
 Vector3 SO3::Logmap(const SO3& Q, ChartJacobian H) {

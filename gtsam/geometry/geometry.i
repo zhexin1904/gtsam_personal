@@ -224,9 +224,10 @@ namespace so3 {
     gtsam::Matrix3 leftJacobian() const;
     gtsam::Matrix3 rightJacobianInverse() const;
     gtsam::Matrix3 leftJacobianInverse() const;
-    
-    gtsam::Matrix3 dexp() const;
-    gtsam::Matrix3 invDexp() const;
+    gtsam::Vector3 applyRightJacobian(const gtsam::Vector3& v) const;
+    gtsam::Vector3 applyRightJacobianInverse(const gtsam::Vector3& v) const;
+    gtsam::Vector3 applyLeftJacobian(const gtsam::Vector3& v) const;
+    gtsam::Vector3 applyLeftJacobianInverse(const gtsam::Vector3& v) const;
   };  
 }
 

@@ -192,40 +192,35 @@ struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   // Compute the left Jacobian for Exponential map in SO(3)
   Matrix3 leftJacobian() const { return I_3x3 + B * W + C * WW; }
 
-  /// Differential of expmap == right Jacobian
-  inline Matrix3 dexp() const { return rightJacobian(); }
-
   /// Inverse of right Jacobian
   Matrix3 rightJacobianInverse() const { return I_3x3 + 0.5 * W + D * WW; }
 
   // Inverse of left Jacobian
   Matrix3 leftJacobianInverse() const { return I_3x3 - 0.5 * W + D * WW; }
 
-  /// Synonym for rightJacobianInverse
-  inline Matrix3 invDexp() const { return rightJacobianInverse(); }
+  /// Multiplies with rightJacobian(), with optional derivatives
+  Vector3 applyRightJacobian(const Vector3& v,
+    OptionalJacobian<3, 3> H1 = {}, OptionalJacobian<3, 3> H2 = {}) const;
 
-  /// Computes B * (omega x v).
-  Vector3 crossB(const Vector3& v, OptionalJacobian<3, 3> H = {}) const;
-
-  /// Computes C * (omega x (omega x v)).
-  Vector3 doubleCrossC(const Vector3& v, OptionalJacobian<3, 3> H = {}) const;
-
-  /// Multiplies with dexp(), with optional derivatives
-  Vector3 applyDexp(const Vector3& v, OptionalJacobian<3, 3> H1 = {},
-                    OptionalJacobian<3, 3> H2 = {}) const;
-
-  /// Multiplies with dexp().inverse(), with optional derivatives
-  Vector3 applyInvDexp(const Vector3& v, OptionalJacobian<3, 3> H1 = {},
-                       OptionalJacobian<3, 3> H2 = {}) const;
+  /// Multiplies with rightJacobian().inverse(), with optional derivatives
+  Vector3 applyRightJacobianInverse(const Vector3& v,
+    OptionalJacobian<3, 3> H1 = {}, OptionalJacobian<3, 3> H2 = {}) const;
 
   /// Multiplies with leftJacobian(), with optional derivatives
-  Vector3 applyLeftJacobian(const Vector3& v, OptionalJacobian<3, 3> H1 = {},
-                            OptionalJacobian<3, 3> H2 = {}) const;
+  Vector3 applyLeftJacobian(const Vector3& v,
+    OptionalJacobian<3, 3> H1 = {}, OptionalJacobian<3, 3> H2 = {}) const;
 
   /// Multiplies with leftJacobianInverse(), with optional derivatives
   Vector3 applyLeftJacobianInverse(const Vector3& v,
-                                   OptionalJacobian<3, 3> H1 = {},
-                                   OptionalJacobian<3, 3> H2 = {}) const;
+    OptionalJacobian<3, 3> H1 = {}, OptionalJacobian<3, 3> H2 = {}) const;
+
+#ifdef GTSAM_ALLOW_DEPRECATED_SINCE_V43
+  /// @deprecated: use rightJacobian
+  inline Matrix3 dexp() const { return rightJacobian(); }
+
+  /// @deprecated: use rightJacobianInverse
+  inline Matrix3 invDexp() const { return rightJacobianInverse(); }
+#endif
 };
 }  //  namespace so3
 
