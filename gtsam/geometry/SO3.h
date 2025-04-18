@@ -193,10 +193,12 @@ struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   Matrix3 leftJacobian() const { return I_3x3 + B * W + C * WW; }
 
   /// Inverse of right Jacobian
-  Matrix3 rightJacobianInverse() const { return I_3x3 + 0.5 * W + D * WW; }
+  /// For |omega|>pi uses rightJacobian().inverse(), as unstable beyond pi!
+  Matrix3 rightJacobianInverse() const;
 
   // Inverse of left Jacobian
-  Matrix3 leftJacobianInverse() const { return I_3x3 - 0.5 * W + D * WW; }
+  /// For |omega|>pi uses leftJacobian().inverse(), as unstable beyond pi!
+  Matrix3 leftJacobianInverse() const;
 
   /// Multiplies with rightJacobian(), with optional derivatives
   Vector3 applyRightJacobian(const Vector3& v,

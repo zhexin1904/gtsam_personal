@@ -144,6 +144,16 @@ DexpFunctor::DexpFunctor(const Vector3& omega, double nearZeroThresholdSq, doubl
 DexpFunctor::DexpFunctor(const Vector3& omega)
   : DexpFunctor(omega, kNearZeroThresholdSq, kNearPiThresholdSq) {}
 
+Matrix3 DexpFunctor::rightJacobianInverse() const {
+  if (theta > M_PI) return rightJacobian().inverse();
+  return I_3x3 + 0.5 * W + D * WW;
+}
+
+Matrix3 DexpFunctor::leftJacobianInverse() const {
+  if (theta > M_PI) return leftJacobian().inverse();
+  return I_3x3 - 0.5 * W + D * WW;
+}
+
 // Multiplies v with left Jacobian through vector operations only.
 Vector3 DexpFunctor::applyRightJacobian(const Vector3& v, OptionalJacobian<3, 3> H1,
   OptionalJacobian<3, 3> H2) const {
@@ -177,7 +187,7 @@ Vector3 DexpFunctor::applyRightJacobianInverse(const Vector3& v, OptionalJacobia
   return c;
 }
 
-Vector3 so3::DexpFunctor::applyLeftJacobian(const Vector3& v,
+Vector3 DexpFunctor::applyLeftJacobian(const Vector3& v,
   OptionalJacobian<3, 3> H1, OptionalJacobian<3, 3> H2) const {
   const Vector3 Wv = gtsam::cross(omega, v);
 
@@ -196,7 +206,7 @@ Vector3 so3::DexpFunctor::applyLeftJacobian(const Vector3& v,
   return v + B * Wv + C * WWv;
 }
 
-Vector3 so3::DexpFunctor::applyLeftJacobianInverse(const Vector3& v,
+Vector3 DexpFunctor::applyLeftJacobianInverse(const Vector3& v,
   OptionalJacobian<3, 3> H1, OptionalJacobian<3, 3> H2) const {
   const Matrix3 invJl = leftJacobianInverse();
   const Vector3 c = invJl * v;
