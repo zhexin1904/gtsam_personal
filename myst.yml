@@ -33,7 +33,7 @@ site:
     - title: C++ reference
       url: https://gtsam.org/doxygen/
   options:
-    logo_text: GTSAM
+    logo_text: GTSAM 
   template: book-theme
 
   # TODO: Graphics for favicon, site logo
