@@ -333,7 +333,7 @@ Vector3 SO3::Logmap(const SO3& Q, ChartJacobian H) {
       omega = omegaFromQ(R21 - R12, sqrt(Q1), R31 + R13, R23 + R32, Q1);
     } else if (R22 > R11) { // R22 is the largest diagonal, a=2, b=3, c=1
       const double Q1 = 2.0 + 2.0 * R22;
-      omega = omegaFromQ(R13 - R31, sqrt(Q1), R23 + R32, Q1, R12 + R21);
+      omega = omegaFromQ(R13 - R31, sqrt(Q1), R12 + R21, Q1, R23 + R32);
     } else { // R11 is the largest diagonal, a=1, b=2, c=3
       const double Q1 = 2.0 + 2.0 * R11;
       omega = omegaFromQ(R32 - R23, sqrt(Q1), Q1, R12 + R21, R31 + R13);
@@ -341,7 +341,7 @@ Vector3 SO3::Logmap(const SO3& Q, ChartJacobian H) {
   } else {
     double magnitude;
     const double tr_3 = tr - 3.0; // could be non-negative if the matrix is off orthogonal
-    if (tr_3 < -so3::kNearPiThresholdSq) {
+    if (tr_3 < -so3::kNearZeroThresholdSq) {
       // this is the normal case -1 < trace < 3
       double theta = acos((tr - 1.0) / 2.0);
       magnitude = theta / (2.0 * sin(theta));
