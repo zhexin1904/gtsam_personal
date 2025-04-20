@@ -891,14 +891,14 @@ TEST(Pose3, ExpmapDerivative) {
 
 //******************************************************************************
 namespace test_cases {
-std::vector<Vector3> small{{0, 0, 0},                                 //
-                           {1e-5, 0, 0}, {0, 1e-5, 0}, {0, 0, 1e-5},  //,
-                           {1e-4, 0, 0}, {0, 1e-4, 0}, {0, 0, 1e-4}};
-std::vector<Vector3> large{{0, 0, 0}, {1, 0, 0},    {0, 1, 0},
-                           {0, 0, 1}, {.1, .2, .3}, {1, -2, 3}};
-auto omegas = [](bool nearZero) { return nearZero ? small : large; };
-std::vector<Vector3> vs{{1, 0, 0},    {0, 1, 0}, {0, 0, 1},
-                        {.4, .3, .2}, {4, 5, 6}, {-10, -20, 30}};
+  static const std::vector<Vector3> small{ {0, 0, 0},                                 //
+                             {1e-5, 0, 0}, {0, 1e-5, 0}, {0, 0, 1e-5},  //,
+                             {1e-4, 0, 0}, {0, 1e-4, 0}, {0, 0, 1e-4} };
+  static const std::vector<Vector3> large{ {0, 0, 0}, {1, 0, 0},    {0, 1, 0},
+  {0, 0, 1}, {.1, .2, .3}, {1, -2, 3} };
+  auto omegas = [](bool nearZero) -> std::vector<Vector3>&{ return nearZero ? small : large; };
+  static const std::vector<Vector3> vs{ {1, 0, 0},    {0, 1, 0}, {0, 0, 1},
+                          {.4, .3, .2}, {4, 5, 6}, {-10, -20, 30} };
 }  // namespace test_cases
 
 //******************************************************************************
