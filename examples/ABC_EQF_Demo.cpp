@@ -262,8 +262,11 @@ void processDataWithEqF(EqF& filter, const std::vector<Data>& data_list, int pri
             totalMeasurements++;
 
             // Skip invalid measurements
-            if (y.y.hasNaN() || y.d.hasNaN()) {
-                continue;
+            Vector3 y_vec = y.y.unitVector();
+            Vector3 d_vec = y.d.unitVector();
+            if (std::isnan(y_vec[0]) || std::isnan(y_vec[1]) || std::isnan(y_vec[2]) ||
+              std::isnan(d_vec[0]) || std::isnan(d_vec[1]) || std::isnan(d_vec[2])) {
+              continue;
             }
 
             try {
