@@ -896,7 +896,7 @@ namespace test_cases {
                              {1e-4, 0, 0}, {0, 1e-4, 0}, {0, 0, 1e-4} };
   static const std::vector<Vector3> large{ {0, 0, 0}, {1, 0, 0},    {0, 1, 0},
   {0, 0, 1}, {.1, .2, .3}, {1, -2, 3} };
-  auto omegas = [](bool nearZero) -> std::vector<Vector3>&{ return nearZero ? small : large; };
+  auto omegas = [](bool nearZero) -> const std::vector<Vector3>&{ return nearZero ? small : large; };
   static const std::vector<Vector3> vs{ {1, 0, 0},    {0, 1, 0}, {0, 0, 1},
                           {.4, .3, .2}, {4, 5, 6}, {-10, -20, 30} };
 }  // namespace test_cases
