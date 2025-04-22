@@ -73,7 +73,7 @@ Matrix numericalDifferential(std::function<Vector(const Vector&)> f, const Vecto
 
 
 
-/// Input class for the Biased Attitude System
+/// Input struct for the Biased Attitude System
 
 struct Input {
     Vector3 w;               /// Angular velocity (3-vector)
@@ -96,15 +96,22 @@ struct Input {
     }
 };
 
-/// Measurement class
+/// Measurement struct
 
 struct Measurement {
     Unit3 y;        /// Measurement direction in sensor frame
     Unit3 d;        /// Known direction in global frame
     Matrix3 Sigma;      /// Covariance matrix of the measurement
     int cal_idx = -1;   /// Calibration index (-1 for calibrated sensor)
-    Measurement(const Vector3& y_vec, const Vector3& d_vec,
-                const Matrix3& Sigma, int i = -1);
+    static Measurement create(const Unit3& y_vec, const Unit3& d_vec, /// Initialize measurement
+                          const Matrix3& Sigma_in, int i) {
+        /// Check positive semi-definite
+        Eigen::SelfAdjointEigenSolver<Matrix3> eigensolver(Sigma_in);
+        if (eigensolver.eigenvalues().minCoeff() < -1e-10) {
+            throw std::invalid_argument("Covariance matrix must be semi-positive definite");
+        }
+        return Measurement{y_vec, Unit3(d_vec), Sigma_in, i};  // Brace initialization
+    }
 };
 
 /// State class representing the state of the Biased Attitude System
@@ -115,10 +122,17 @@ public:
     Vector3 b;               // Gyroscope bias b
     std::vector<Rot3> S;     // Sensor calibrations S
 
+    /// Constructor
     State(const Rot3& R = Rot3::Identity(),
           const Vector3& b = Vector3::Zero(),
-          const std::vector<Rot3>& S = std::vector<Rot3>());
+          const std::vector<Rot3>& S = std::vector<Rot3>())
+        : R(R), b(b), S(S) {}
 
+    /// Identity function
+    static State identity(int n) {
+        std::vector<Rot3> calibrations(n, Rot3::Identity());
+        return State(Rot3::Identity(), Vector3::Zero(), calibrations);
+    }
     /**
      * Compute Local coordinates in the state relative to another state.
      * @param other The other state
@@ -165,34 +179,24 @@ public:
 
         return State(newR, newB, newS);
     }
-
-    static State identity(int n);
 };
 
 /// Data structure for ground-truth, input and output data
 
 struct Data {
-    State xi;                         // Ground-truth state
-    int n_cal;                        // Number of calibration states
-    Input u;                          // Input measurements
-    std::vector<Measurement> y;       // Output measurements
-    int n_meas;                       // Number of measurements
-    double t;                         // Time
-    double dt;                        // Time step
+    State xi;                         /// Ground-truth state
+    int n_cal;                        /// Number of calibration states
+    Input u;                          /// Input measurements
+    std::vector<Measurement> y;       /// Output measurements
+    int n_meas;                       /// Number of measurements
+    double t;                         /// Time
+    double dt;                        /// Time step
 
-    /**
-     * Initialize Data
-     * @param xi Ground-truth state
-     * @param n_cal Number of calibration states
-     * @param u Input measurements
-     * @param y Output measurements
-     * @param n_meas Number of measurements
-     * @param t Time
-     * @param dt Time step
-     */
-    Data(const State& xi, int n_cal, const Input& u,
-         const std::vector<Measurement>& y, int n_meas,
-         double t, double dt);
+    static Data create(const State& xi, int n_cal, const Input& u, /// Initialize Data
+                          const std::vector<Measurement>& y, int n_meas,
+                          double t, double dt) {
+           return Data{xi, n_cal, u, y, n_meas, t, dt}; /// Bracket initialization
+       }
 };
 
 //========================================================================
@@ -205,46 +209,70 @@ struct Data {
  */
 class G {
 public:
-    Rot3 A;                 // First SO(3) element
-    Matrix3 a;              // so(3) element (skew-symmetric matrix)
-    std::vector<Rot3> B;    // List of SO(3) elements for calibration
+    Rot3 A;                 /// First SO(3) element
+    Matrix3 a;              /// so(3) element (skew-symmetric matrix)
+    std::vector<Rot3> B;    /// List of SO(3) elements for calibration
 
-    /**
-     * Initialize the symmetry group G
-     * @param A SO3 element
-     * @param a so(3) element (skew symmetric matrix)
-     * @param B list of SO3 elements
-     */
+    /// Initialize the symmetry group G
     G(const Rot3& A = Rot3::Identity(),
-       const Matrix3& a = Matrix3::Zero(),
-       const std::vector<Rot3>& B = std::vector<Rot3>());
+      const Matrix3& a = Matrix3::Zero(),
+      const std::vector<Rot3>& B = std::vector<Rot3>())
+        : A(A), a(a), B(B) {}
 
-    /**
-     * Define the group operation (multiplication)
-     * @param other Another group element
-     * @return The product of this and other
-     */
-    G operator*(const G& other) const;
+    /// Group multiplication
+    G operator*(const G& other) const {
+        if (B.size() != other.B.size()) {
+            throw std::invalid_argument("Group elements must have the same number of calibration elements");
+        }
 
-    /**
-     * Return the inverse element of the symmetry group
-     * @return The inverse of this group element
-     */
-    G inv() const;
+        std::vector<Rot3> new_B;
+        for (size_t i = 0; i < B.size(); i++) {
+            new_B.push_back(B[i] * other.B[i]);
+        }
 
-    /**
-     * Return the identity of the symmetry group
-     * @param n Number of calibration elements
-     * @return The identity element with n calibration components
-     */
-    static G identity(int n);
+        return G(A * other.A,
+                 a + Rot3::Hat(A.matrix() * Rot3::Vee(other.a)),
+                 new_B);
+    }
 
-    /**
-     * Return a group element X given by X = exp(x)
-     * @param x Vector representation of Lie algebra element
-     * @return Group element given by the exponential of x
-     */
-    static G exp(const Vector& x);
+    /// Group inverse
+    G inv() const {
+        Matrix3 A_inv = A.inverse().matrix();
+        std::vector<Rot3> B_inv;
+        for (const auto& b : B) {
+            B_inv.push_back(b.inverse());
+        }
+
+        return G(A.inverse(),
+                 -Rot3::Hat(A_inv * Rot3::Vee(a)),
+                 B_inv);
+    }
+
+    /// Identity element
+    static G identity(int n) {
+        std::vector<Rot3> B(n, Rot3::Identity());
+        return G(Rot3::Identity(), Matrix3::Zero(), B);
+    }
+
+    /// Exponential map of the tangent space elements to the group
+    static G exp(const Vector& x) {
+        if (x.size() < 6 || x.size() % 3 != 0) {
+            throw std::invalid_argument("Wrong size, a vector with size multiple of 3 and at least 6 must be provided");
+        }
+
+        int n = (x.size() - 6) / 3;
+        Rot3 A = Rot3::Expmap(x.head<3>());
+
+        Vector3 a_vee = Rot3::ExpmapDerivative(-x.head<3>()) * x.segment<3>(3);
+        Matrix3 a = Rot3::Hat(a_vee);
+
+        std::vector<Rot3> B;
+        for (int i = 0; i < n; i++) {
+            B.push_back(Rot3::Expmap(x.segment<3>(6 + 3 * i)));
+        }
+
+        return G(A, a, B);
+    }
 };
 
 //========================================================================
@@ -462,213 +490,6 @@ Matrix numericalDifferential(std::function<Vector(const Vector&)> f, const Vecto
     }
 
     return Df;
-}
-
-//========================================================================
-// Direction Class Implementation
-//========================================================================
-
-/**
- * @brief Initializes a direction object vector from a provided 3D vector input
- * @param d_vec A 3-D vector that should have a unit norm(This represents a
- * direction in 3D space) Uses Unit3's constructor which normalizes vectors
- */
-
-//========================================================================
-// Input Class Implementation
-//========================================================================
-/**
- * @brief Constructs an input object using the Angular velocity vector and the
- * covariance matrix
- * @param w Angular vector
- * @param Sigma 6X6 covariance matrix
- * Uses Matrix's rows(), cols() and Eigen's SelfAdjointEigenSolver
- */
-// Input::Input(const Vector3& w, const Matrix& Sigma) : w(w), Sigma(Sigma) {
-//     if (Sigma.rows() != 6 || Sigma.cols() != 6) {
-//         throw std::invalid_argument("Input measurement noise covariance must be 6x6");
-//     }
-//
-//     // Check positive semi-definite
-//     Eigen::SelfAdjointEigenSolver<Matrix> eigensolver(Sigma);
-//     if (eigensolver.eigenvalues().minCoeff() < -1e-10) {
-//         throw std::invalid_argument("Covariance matrix must be semi-positive definite");
-//     }
-// }
-/**
- *
- * @return 3X3 skey symmetric matrix when called
- * Uses Rot3's Hat() to create skew-symmetric matrix
- */
-// Matrix3 Input::W() const {
-//     return Rot3::Hat(w);
-// }
-
-
-//========================================================================
-// Measurement Class Implementation
-//========================================================================
-/**
- * @brief Constructs measurement with directions and covariance.
- * @param y_vec A 3D vector representing the measured direction in the sensor frame
- * @param d_vec A 3D vector representing the known reference direction in the global frame aka ground truth direction
- * @param Sigma 3x3 positive definite covariance vector representing the uncertainty in the measurements
- * @param i Calibration index - A non-negative integer specifies the element in the calibration vector
- * that corresponds to the sensor of interest. A value of -1 indicates that all the sensors have been calibrated
- *
- * Creates a measurement object that stores the measured direction(y), reference direction(d), measurement noise covariance(Sigma)
- * and Calibration Index cal_idx
- *
- * Uses Eigen's SelfAdjointEigenSolver
- *
- */
-
-Measurement::Measurement(const Vector3& y_vec, const Vector3& d_vec,
-                         const Matrix3& Sigma, int i)
-    : y(y_vec), d(d_vec), Sigma(Sigma), cal_idx(i) {
-
-    // Check positive semi-definite
-    Eigen::SelfAdjointEigenSolver<Matrix3> eigensolver(Sigma);
-    if (eigensolver.eigenvalues().minCoeff() < -1e-10) {
-        throw std::invalid_argument("Covariance matrix must be semi-positive definite");
-    }
-}
-
-//========================================================================
-// State Class Implementation
-//========================================================================
-/**
- *
- * @param R Rot3 (Attitude)
- * @param b Vector (Bias)
- * @param S Vector (Rot 3 calibration states)
- * Combines the navigation and the calibration states together and provides a
- * mechanism to represent the complete system
- *
- */
-State::State(const Rot3& R, const Vector3& b, const std::vector<Rot3>& S)
-    : R(R), b(b), S(S) {}
-
-/**
- *
- * @param n Number of Calibration states
- * @return State object intitialized to identity
- * Creates a default/ initial state
- * Uses GTSAM's Rot3::identity and Vector3 zero function
- */
-State State::identity(int n) {
-    std::vector<Rot3> calibrations(n, Rot3::Identity());
-    return State(Rot3::Identity(), Vector3::Zero(), calibrations);
-}
-
-//========================================================================
-// Data Struct Implementation
-//========================================================================
-
-/**
- *
- * @param xi Ground Truth state
- * @param n_cal Number of calibration states
- * @param u Input measurements
- * @param y Vector of y measurements
- * @param n_meas number of measurements
- * @param t timestamp
- * @param dt time step
- * Used to organize the state, input and measurement data with timestamps for
- * testing Uses Rot3, Vector 3 and Unit3 classes
- */
-Data::Data(const State& xi, int n_cal, const Input& u,
-           const std::vector<Measurement>& y, int n_meas,
-           double t, double dt)
-    : xi(xi), n_cal(n_cal), u(u), y(y), n_meas(n_meas), t(t), dt(dt) {}
-
-//========================================================================
-// Symmetry Group Implementation - Group Elements and actions
-//========================================================================
-/**
- *
- * @param A Attitude element of Rot3 type
- * @param a Matrix3 bias element
- * @param B Rot3 vector containing calibration elements
- * Ouptuts a G object using Rot3 for rotation representation
- */
-G::G(const Rot3& A, const Matrix3& a, const std::vector<Rot3>& B)
-    : A(A), a(a), B(B) {}
-
-/**
- * Defines the group operation (multiplication)
- * @param other Another Group element
- * @return G a product of two group elements
- * Uses Rot3 Hat, Rot3 Vee for multiplication
- *
- */
-G G::operator*(const G& other) const {
-    if (B.size() != other.B.size()) {
-        throw std::invalid_argument("Group elements must have the same number of calibration elements");
-    }
-
-    std::vector<Rot3> new_B;
-    for (size_t i = 0; i < B.size(); i++) {
-        new_B.push_back(B[i] * other.B[i]);
-    }
-
-    return G(A * other.A,
-            a + Rot3::Hat(A.matrix() * Rot3::Vee(other.a)),
-            new_B);
-}
-
-/**
- * Used to compute the Group inverse
- * @return The inverse of group element
- * Uses Rot3 inverse, Rot3 matrix, hat and vee functions
- * The left invariant  property of the semi-direct product group structure is implemented here by using the -ve sign
- */
-G G::inv() const {
-    Matrix3 A_inv = A.inverse().matrix();
-
-    std::vector<Rot3> B_inv;
-    for (const auto& b : B) {
-        B_inv.push_back(b.inverse());
-    }
-
-    return G(A.inverse(),
-            -Rot3::Hat(A_inv * Rot3::Vee(a)),
-            B_inv);
-}
-
-/**
- * Creates the identity element of the group
- * @param n Number of calibration elements
- * @return the identity element
- * Uses Rot3 Identity and Matrix zero
- */
-G G::identity(int n) {
-    std::vector<Rot3> B(n, Rot3::Identity());
-    return G(Rot3::Identity(), Matrix3::Zero(), B);
-}
-/**
- * Maps the tangent space elements to the group
- * @param x Vector in lie algebra
- * @return the group element G
- * Uses Rot3 expmap and Expmapderivative function
- */
-G G::exp(const Vector& x) {
-    if (x.size() < 6 || x.size() % 3 != 0) {
-        throw std::invalid_argument("Wrong size, a vector with size multiple of 3 and at least 6 must be provided");
-    }
-
-    int n = (x.size() - 6) / 3;
-    Rot3 A = Rot3::Expmap(x.head<3>());
-
-    Vector3 a_vee = Rot3::ExpmapDerivative(-x.head<3>()) * x.segment<3>(3);
-    Matrix3 a = Rot3::Hat(a_vee);
-
-    std::vector<Rot3> B;
-    for (int i = 0; i < n; i++) {
-        B.push_back(Rot3::Expmap(x.segment<3>(6 + 3*i)));
-    }
-
-    return G(A, a, B);
 }
 
 //========================================================================

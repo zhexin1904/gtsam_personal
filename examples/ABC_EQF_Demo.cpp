@@ -174,7 +174,7 @@ std::vector<Data> loadDataFromCSV(const std::string& filename,
         covY0(2, 2) = values[29] * values[29]; // std_y_z_0^2
 
         // Create measurement
-        measurements.push_back(Measurement(y0, d0, covY0, 0));
+        measurements.push_back(Measurement{Unit3(y0), Unit3(d0), covY0, 0});
 
         // Second measurement (calibrated sensor, cal_idx = -1)
         Vector3 y1(values[24], values[25], values[26]);
@@ -191,10 +191,10 @@ std::vector<Data> loadDataFromCSV(const std::string& filename,
         covY1(2, 2) = values[32] * values[32]; // std_y_z_1^2
 
         // Create measurement
-        measurements.push_back(Measurement(y1, d1, covY1, -1));
+        measurements.push_back(Measurement{Unit3(y1), Unit3(d1), covY1, -1});
 
         // Create Data object and add to list
-        data_list.push_back(Data(xi, 1, u, measurements, 2, t, dt));
+        data_list.push_back(Data{xi, 1, u, measurements, 2, t, dt});
 
         rowCount++;
 
