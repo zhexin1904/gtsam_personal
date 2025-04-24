@@ -1,39 +1,25 @@
-# gtsam_plotly_modular.py
+# gtsam_plotly_modular_v2.py
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 import numpy as np
 import plotly.graph_objects as go
-from tqdm.notebook import tqdm  # Progress bar
-from typing import List, Optional, Tuple, Dict, Any
+from tqdm.notebook import tqdm
 
 import gtsam
 
-# --- Ellipse Calculation Helpers (Mostly unchanged) ---
+# --- Core Ellipse Calculations ---
 
 
 def ellipse_path(
     cx: float, cy: float, sizex: float, sizey: float, angle: float, N: int = 60
 ) -> str:
-    """
-    Generates an SVG path string for an ellipse.
-
-    Args:
-        cx: Center x-coordinate.
-        cy: Center y-coordinate.
-        sizex: Full width of the ellipse along its major axis.
-        sizey: Full height of the ellipse along its minor axis.
-        angle: Rotation angle in degrees.
-        N: Number of points to approximate the ellipse.
-
-    Returns:
-        SVG path string.
-    """
+    """Generates SVG path string for a rotated ellipse."""
     angle_rad = np.radians(angle)
     t = np.linspace(0, 2 * np.pi, N)
-    x = (sizex / 2) * np.cos(t)
-    y = (sizey / 2) * np.sin(t)
-
-    x_rot = cx + x * np.cos(angle_rad) - y * np.sin(angle_rad)
-    y_rot = cy + x * np.sin(angle_rad) + y * np.cos(angle_rad)
-
+    x_unit = (sizex / 2) * np.cos(t)
+    y_unit = (sizey / 2) * np.sin(t)
+    x_rot = cx + x_unit * np.cos(angle_rad) - y_unit * np.sin(angle_rad)
+    y_rot = cy + x_unit * np.sin(angle_rad) + y_unit * np.cos(angle_rad)
     path = (
         f"M {x_rot[0]},{y_rot[0]} "
         + " ".join(f"L{x_},{y_}" for x_, y_ in zip(x_rot[1:], y_rot[1:]))
@@ -45,125 +31,150 @@ def ellipse_path(
 def gtsam_cov_to_plotly_ellipse(
     cov_matrix: np.ndarray, scale: float = 2.0
 ) -> Tuple[float, float, float]:
-    """
-    Calculates ellipse parameters (angle, width, height) from a 2x2 covariance matrix.
-
-    Args:
-        cov_matrix: The 2x2 covariance matrix (or larger, only top-left 2x2 used).
-        scale: Scaling factor for the ellipse size (e.g., 2.0 for 2-sigma).
-
-    Returns:
-        Tuple containing (angle_degrees, width, height).
-    """
-    # Ensure positive definite - add small epsilon if needed
-    cov = cov_matrix[:2, :2] + np.eye(2) * 1e-9
+    """Calculates ellipse angle (deg), width, height from 2x2 covariance."""
+    cov = cov_matrix[:2, :2] + np.eye(2) * 1e-9  # Ensure positive definite
     try:
         eigvals, eigvecs = np.linalg.eigh(cov)
-        # Ensure eigenvalues are positive for sqrt
-        eigvals = np.maximum(eigvals, 1e-9)
+        eigvals = np.maximum(eigvals, 1e-9)  # Ensure positive eigenvalues
     except np.linalg.LinAlgError:
-        # print("Warning: Covariance matrix SVD failed, using default ellipse.") # Optional warning
-        return 0, 0.1 * scale, 0.1 * scale  # Default small ellipse
+        return 0, 0.1 * scale, 0.1 * scale  # Default on failure
 
-    # Width/Height are 2*scale*sqrt(eigenvalue) (using full width/height)
-    width = (
-        2 * scale * np.sqrt(eigvals[1])
-    )  # Major axis corresponds to largest eigenvalue
-    height = (
-        2 * scale * np.sqrt(eigvals[0])
-    )  # Minor axis corresponds to smallest eigenvalue
-
-    # Angle of the major axis (eigenvector corresponding to largest eigenvalue eigvals[1])
-    angle_rad = np.arctan2(eigvecs[1, 1], eigvecs[0, 1])
+    width = 2 * scale * np.sqrt(eigvals[1])  # Major axis (largest eigenvalue)
+    height = 2 * scale * np.sqrt(eigvals[0])  # Minor axis (smallest eigenvalue)
+    angle_rad = np.arctan2(
+        eigvecs[1, 1], eigvecs[0, 1]
+    )  # Angle of major axis eigenvector
     angle_deg = np.degrees(angle_rad)
-
     return angle_deg, width, height
 
 
-# --- Plotting Element Creation Helpers ---
+# --- Plotly Element Generators ---
 
 
-def _add_ground_truth_traces(
-    fig: go.Figure, landmarks_gt_array: np.ndarray, poses_gt: List[gtsam.Pose2]
-) -> None:
-    """Adds static ground truth landmark and path traces to the figure."""
-    # Ground Truth Landmarks
-    if landmarks_gt_array is not None and landmarks_gt_array.size > 0:
-        fig.add_trace(
-            go.Scatter(
-                x=landmarks_gt_array[0, :],
-                y=landmarks_gt_array[1, :],
-                mode="markers",
-                marker=dict(color="black", size=8, symbol="star"),
-                name="Landmarks GT",
-            )
-        )
+def create_gt_landmarks_trace(landmarks_gt_array: np.ndarray) -> Optional[go.Scatter]:
+    """Creates scatter trace for ground truth landmarks."""
+    if landmarks_gt_array is None or landmarks_gt_array.size == 0:
+        return None
+    return go.Scatter(
+        x=landmarks_gt_array[0, :],
+        y=landmarks_gt_array[1, :],
+        mode="markers",
+        marker=dict(color="black", size=8, symbol="star"),
+        name="Landmarks GT",
+    )
 
-    # Ground Truth Path
-    if poses_gt:
-        gt_path_x = [p.x() for p in poses_gt]
-        gt_path_y = [p.y() for p in poses_gt]
-        fig.add_trace(
-            go.Scatter(
-                x=gt_path_x,
-                y=gt_path_y,
-                mode="lines",
-                line=dict(color="gray", width=1, dash="dash"),
-                name="Path GT",
-            )
-        )
+
+def create_gt_path_trace(poses_gt: List[gtsam.Pose2]) -> Optional[go.Scatter]:
+    """Creates line trace for ground truth path."""
+    if not poses_gt:
+        return None
+    gt_path_x = [p.x() for p in poses_gt]
+    gt_path_y = [p.y() for p in poses_gt]
+    return go.Scatter(
+        x=gt_path_x,
+        y=gt_path_y,
+        mode="lines",
+        line=dict(color="gray", width=1, dash="dash"),
+        name="Path GT",
+    )
+
+
+def create_est_path_trace(
+    est_path_x: List[float], est_path_y: List[float]
+) -> go.Scatter:
+    """Creates scatter/line trace for the estimated path up to current step."""
+    return go.Scatter(
+        x=est_path_x,
+        y=est_path_y,
+        mode="lines+markers",
+        line=dict(color="red", width=2),
+        marker=dict(size=4, color="red"),
+        name="Path Est",  # This name applies to the trace in the specific frame
+    )
+
+
+def create_est_landmarks_trace(
+    est_landmarks_x: List[float], est_landmarks_y: List[float]
+) -> Optional[go.Scatter]:
+    """Creates scatter trace for currently estimated landmarks."""
+    if not est_landmarks_x:
+        return None
+    return go.Scatter(
+        x=est_landmarks_x,
+        y=est_landmarks_y,
+        mode="markers",
+        marker=dict(color="blue", size=6, symbol="x"),
+        name="Landmarks Est",  # Applies to landmarks in the specific frame
+    )
 
 
 def _create_ellipse_shape_dict(
-    cx: float,
-    cy: float,
-    angle: float,
-    width: float,
-    height: float,
-    fillcolor: str,
-    line_color: str,
-    name: str,
+    cx, cy, angle, width, height, fillcolor, line_color, name_suffix
 ) -> Dict[str, Any]:
-    """Creates the dictionary required for a Plotly ellipse shape."""
+    """Helper to create the dictionary for a Plotly ellipse shape."""
     return dict(
         type="path",
-        path=ellipse_path(cx=cx, cy=cy, sizex=width, sizey=height, angle=angle, N=60),
+        path=ellipse_path(cx=cx, cy=cy, sizex=width, sizey=height, angle=angle),
         xref="x",
         yref="y",
         fillcolor=fillcolor,
         line_color=line_color,
-        name=name,  # Note: name isn't directly displayed for shapes, but good for metadata
+        # name=f"{name_suffix} Cov", # Name isn't really used by Plotly for shapes
     )
 
 
-def _create_single_frame_data(
+def create_pose_ellipse_shape(
+    pose_mean_xy: np.ndarray, pose_cov: np.ndarray, k: int, scale: float
+) -> Dict[str, Any]:
+    """Creates shape dictionary for a pose covariance ellipse."""
+    angle, width, height = gtsam_cov_to_plotly_ellipse(pose_cov, scale)
+    return _create_ellipse_shape_dict(
+        cx=pose_mean_xy[0],
+        cy=pose_mean_xy[1],
+        angle=angle,
+        width=width,
+        height=height,
+        fillcolor="rgba(255,0,255,0.2)",
+        line_color="rgba(255,0,255,0.5)",
+        name_suffix=f"Pose {k}",
+    )
+
+
+def create_landmark_ellipse_shape(
+    lm_mean_xy: np.ndarray, lm_cov: np.ndarray, lm_index: int, scale: float
+) -> Dict[str, Any]:
+    """Creates shape dictionary for a landmark covariance ellipse."""
+    angle, width, height = gtsam_cov_to_plotly_ellipse(lm_cov, scale)
+    return _create_ellipse_shape_dict(
+        cx=lm_mean_xy[0],
+        cy=lm_mean_xy[1],
+        angle=angle,
+        width=width,
+        height=height,
+        fillcolor="rgba(0,0,255,0.1)",
+        line_color="rgba(0,0,255,0.3)",
+        name_suffix=f"LM {lm_index}",
+    )
+
+
+# --- Frame Content Generation ---
+
+
+def generate_frame_content(
     k: int,
     step_results: gtsam.Values,
     step_marginals: Optional[gtsam.Marginals],
-    X: callable,
-    L: callable,
+    X: Callable[[int], int],
+    L: Callable[[int], int],
+    max_landmark_index: int,  # Need to know the potential range of landmarks
     ellipse_scale: float = 2.0,
     verbose: bool = False,
 ) -> Tuple[List[go.Scatter], List[Dict[str, Any]]]:
-    """
-    Creates the traces and shapes for a single animation frame.
+    """Generates all dynamic traces and shapes for a single animation frame `k`."""
+    frame_traces: List[go.Scatter] = []
+    frame_shapes: List[Dict[str, Any]] = []
 
-    Args:
-        k: The current step index.
-        step_results: gtsam.Values for this step.
-        step_marginals: gtsam.Marginals for this step (or None).
-        X: Symbol function for poses.
-        L: Symbol function for landmarks.
-        ellipse_scale: Scaling factor for covariance ellipses.
-        verbose: If True, print warnings for covariance errors.
-
-    Returns:
-        A tuple containing (list_of_traces, list_of_shapes).
-    """
-    traces = []
-    shapes = []
-
-    # 1. Estimated Path up to step k
+    # 1. Gather Estimated Path Data
     est_path_x = []
     est_path_y = []
     for i in range(k + 1):
@@ -172,115 +183,70 @@ def _create_single_frame_data(
             pose = step_results.atPose2(pose_key)
             est_path_x.append(pose.x())
             est_path_y.append(pose.y())
+    frame_traces.append(create_est_path_trace(est_path_x, est_path_y))
 
-    traces.append(
-        go.Scatter(
-            x=est_path_x,
-            y=est_path_y,
-            mode="lines+markers",
-            line=dict(color="red", width=2),
-            marker=dict(size=4, color="red"),
-            name="Path Est",  # Legend entry for the whole path
-        )
-    )
-
-    # 2. Estimated Landmarks known at step k
+    # 2. Gather Estimated Landmark Data
     est_landmarks_x = []
     est_landmarks_y = []
     landmark_keys_in_frame = []
-    all_keys = step_results.keys()
-    for key_val in all_keys:
-        symbol = gtsam.Symbol(key_val)
-        if symbol.chr() == ord("l"):  # Check if it's a landmark symbol
-            # Check existence again (though keys() implies existence)
-            if step_results.exists(key_val):
-                lm_point = step_results.atPoint2(key_val)
-                est_landmarks_x.append(lm_point[0])
-                est_landmarks_y.append(lm_point[1])
-                landmark_keys_in_frame.append(key_val)
+    # Check all potential landmark keys up to max_landmark_index
+    for j in range(max_landmark_index + 1):
+        lm_key = L(j)
+        if step_results.exists(lm_key):
+            lm_point = step_results.atPoint2(lm_key)
+            est_landmarks_x.append(lm_point[0])
+            est_landmarks_y.append(lm_point[1])
+            landmark_keys_in_frame.append(lm_key)
 
-    if est_landmarks_x:
-        traces.append(
-            go.Scatter(
-                x=est_landmarks_x,
-                y=est_landmarks_y,
-                mode="markers",
-                marker=dict(color="blue", size=6, symbol="x"),
-                name="Landmarks Est",  # Legend entry for all estimated landmarks
-            )
-        )
+    lm_trace = create_est_landmarks_trace(est_landmarks_x, est_landmarks_y)
+    if lm_trace:
+        frame_traces.append(lm_trace)
 
-    # 3. Covariance Ellipses (if marginals available)
+    # 3. Generate Covariance Ellipses (if marginals available)
     if step_marginals is not None:
-        # Current Pose Covariance Ellipse
+        # Pose ellipse
         current_pose_key = X(k)
         if step_results.exists(current_pose_key):
             try:
                 pose_cov = step_marginals.marginalCovariance(current_pose_key)
                 pose_mean = step_results.atPose2(current_pose_key).translation()
-                angle, width, height = gtsam_cov_to_plotly_ellipse(
-                    pose_cov, scale=ellipse_scale
-                )
-                shapes.append(
-                    _create_ellipse_shape_dict(
-                        cx=pose_mean[0],
-                        cy=pose_mean[1],
-                        angle=angle,
-                        width=width,
-                        height=height,
-                        fillcolor="rgba(255,0,255,0.2)",
-                        line_color="rgba(255,0,255,0.5)",
-                        name=f"Pose {k} Cov",
-                    )
+                frame_shapes.append(
+                    create_pose_ellipse_shape(pose_mean, pose_cov, k, ellipse_scale)
                 )
             except Exception as e:
                 if verbose:
-                    print(
-                        f"Warning: Failed getting pose {k} cov ellipse at step {k}: {e}"
-                    )
+                    print(f"Warn: Pose {k} cov err @ step {k}: {e}")
 
-        # Landmark Covariance Ellipses
+        # Landmark ellipses
         for lm_key in landmark_keys_in_frame:
             try:
                 lm_cov = step_marginals.marginalCovariance(lm_key)
                 lm_mean = step_results.atPoint2(lm_key)
-                angle, width, height = gtsam_cov_to_plotly_ellipse(
-                    lm_cov, scale=ellipse_scale
-                )
-                symbol = gtsam.Symbol(lm_key)
-                shapes.append(
-                    _create_ellipse_shape_dict(
-                        cx=lm_mean[0],
-                        cy=lm_mean[1],
-                        angle=angle,
-                        width=width,
-                        height=height,
-                        fillcolor="rgba(0,0,255,0.1)",
-                        line_color="rgba(0,0,255,0.3)",
-                        name=f"LM {symbol.index()} Cov",
+                lm_index = gtsam.Symbol(lm_key).index()
+                frame_shapes.append(
+                    create_landmark_ellipse_shape(
+                        lm_mean, lm_cov, lm_index, ellipse_scale
                     )
                 )
             except Exception as e:
-                symbol = gtsam.Symbol(lm_key)
+                lm_index = gtsam.Symbol(lm_key).index()
                 if verbose:
-                    print(
-                        f"Warning: Failed getting landmark {symbol.index()} cov ellipse at step {k}: {e}"
-                    )
+                    print(f"Warn: LM {lm_index} cov err @ step {k}: {e}")
 
-    return traces, shapes
+    return frame_traces, frame_shapes
 
 
-def _configure_figure_layout(
+# --- Figure Configuration ---
+
+
+def configure_figure_layout(
     fig: go.Figure,
     num_steps: int,
     world_size: float,
     initial_shapes: List[Dict[str, Any]],
 ) -> None:
-    """Configures the Plotly figure's layout, axes, slider, and buttons."""
-
+    """Configures Plotly figure layout, axes, slider, buttons."""
     steps = list(range(num_steps + 1))
-
-    # Slider
     sliders = [
         dict(
             active=0,
@@ -291,12 +257,10 @@ def _configure_figure_layout(
                     label=str(k),
                     method="animate",
                     args=[
-                        [str(k)],  # Frame name
+                        [str(k)],
                         dict(
                             mode="immediate",
-                            frame=dict(
-                                duration=100, redraw=True
-                            ),  # Redraw needed for shapes
+                            frame=dict(duration=100, redraw=True),
                             transition=dict(duration=0),
                         ),
                     ],
@@ -305,18 +269,22 @@ def _configure_figure_layout(
             ],
         )
     ]
-
-    # Buttons
     updatemenus = [
         dict(
             type="buttons",
             showactive=False,
+            direction="left",
+            pad={"r": 10, "t": 87},
+            x=0.1,
+            xanchor="right",
+            y=0,
+            yanchor="top",
             buttons=[
                 dict(
                     label="Play",
                     method="animate",
                     args=[
-                        None,  # Animate all frames
+                        None,
                         dict(
                             mode="immediate",
                             frame=dict(duration=100, redraw=True),
@@ -329,7 +297,7 @@ def _configure_figure_layout(
                     label="Pause",
                     method="animate",
                     args=[
-                        [None],  # Stop animation
+                        [None],
                         dict(
                             mode="immediate",
                             frame=dict(duration=0, redraw=False),
@@ -338,25 +306,15 @@ def _configure_figure_layout(
                     ],
                 ),
             ],
-            direction="left",
-            pad={"r": 10, "t": 87},
-            x=0.1,
-            xanchor="right",
-            y=0,
-            yanchor="top",
         )
     ]
 
-    # Layout settings
     fig.update_layout(
         title="Iterative Factor Graph SLAM Animation",
-        xaxis=dict(
-            range=[-world_size / 2 - 2, world_size / 2 + 2],
-            constrain="domain",  # Keep aspect ratio when zooming
-        ),
+        xaxis=dict(range=[-world_size / 2 - 2, world_size / 2 + 2], constrain="domain"),
         yaxis=dict(
             range=[-world_size / 2 - 2, world_size / 2 + 2],
-            scaleanchor="x",  # Ensure square aspect ratio
+            scaleanchor="x",
             scaleratio=1,
         ),
         width=800,
@@ -364,8 +322,7 @@ def _configure_figure_layout(
         hovermode="closest",
         updatemenus=updatemenus,
         sliders=sliders,
-        shapes=initial_shapes,  # Set initial shapes from frame 0
-        # Add legend if desired
+        shapes=initial_shapes,
         legend=dict(
             traceorder="reversed",
             title_text="Legend",
@@ -378,90 +335,79 @@ def _configure_figure_layout(
     )
 
 
-# --- Main Animation Function (Orchestrator) ---
+# --- Main Animation Orchestrator ---
 
 
 def create_slam_animation(
     results_history: List[gtsam.Values],
     marginals_history: List[Optional[gtsam.Marginals]],
     num_steps: int,
-    X: callable,
-    L: callable,
+    X: Callable[[int], int],
+    L: Callable[[int], int],
+    max_landmark_index: int,  # Required to iterate potential landmarks
     landmarks_gt_array: Optional[np.ndarray] = None,
     poses_gt: Optional[List[gtsam.Pose2]] = None,
     world_size: float = 20.0,
     ellipse_scale: float = 2.0,
     verbose_cov_errors: bool = False,
 ) -> go.Figure:
-    """
-    Creates a Plotly animation of the SLAM results in a modular way.
-
-    Args:
-        results_history: List of gtsam.Values, one per step.
-        marginals_history: List of gtsam.Marginals or None, one per step.
-        num_steps: The total number of steps (results_history should have length num_steps + 1).
-        X: Symbol function for poses (e.g., lambda i: gtsam.symbol('x', i)).
-        L: Symbol function for landmarks (e.g., lambda j: gtsam.symbol('l', j)).
-        landmarks_gt_array: Optional Nx2 numpy array of ground truth landmark positions.
-        poses_gt: Optional list of gtsam.Pose2 ground truth poses.
-        world_size: Approximate size of the world for axis scaling.
-        ellipse_scale: Scaling factor for covariance ellipses (e.g., 2.0 for 2-sigma).
-        verbose_cov_errors: If True, print warnings for covariance calculation errors.
-
-    Returns:
-        A plotly.graph_objects.Figure containing the animation.
-    """
+    """Creates a modular Plotly SLAM animation."""
     print("Generating Plotly animation...")
-
     fig = go.Figure()
 
-    # 1. Add static ground truth elements
-    _add_ground_truth_traces(fig, landmarks_gt_array, poses_gt)
+    # 1. Add static ground truth traces to the base figure (visible always)
+    gt_lm_trace = create_gt_landmarks_trace(landmarks_gt_array)
+    if gt_lm_trace:
+        fig.add_trace(gt_lm_trace)
+    gt_path_trace = create_gt_path_trace(poses_gt)
+    if gt_path_trace:
+        fig.add_trace(gt_path_trace)
 
-    # 2. Create frames for animation
+    # 2. Generate frames with dynamic content
     frames = []
     steps_iterable = range(num_steps + 1)
-
-    # Use tqdm for progress bar if available
     try:
         steps_iterable = tqdm(steps_iterable, desc="Creating Frames")
     except NameError:
-        pass  # tqdm not installed or not in notebook env
+        pass  # tqdm optional
 
     for k in steps_iterable:
         step_results = results_history[k]
         step_marginals = marginals_history[k] if marginals_history else None
 
-        # Create traces and shapes for this specific frame
-        frame_traces, frame_shapes = _create_single_frame_data(
-            k, step_results, step_marginals, X, L, ellipse_scale, verbose_cov_errors
+        frame_traces, frame_shapes = generate_frame_content(
+            k,
+            step_results,
+            step_marginals,
+            X,
+            L,
+            max_landmark_index,
+            ellipse_scale,
+            verbose_cov_errors,
         )
-
-        # Create the Plotly frame object
         frames.append(
             go.Frame(
-                data=frame_traces,
-                name=str(k),  # Name used by slider/buttons
-                layout=go.Layout(
-                    shapes=frame_shapes
-                ),  # Shapes are part of layout per frame
+                data=frame_traces, name=str(k), layout=go.Layout(shapes=frame_shapes)
             )
         )
 
-    # 3. Set initial figure state (using data from frame 0)
+    # 3. Set initial dynamic data (from frame 0) onto the base figure
+    initial_dynamic_traces = []
+    initial_shapes = []
     if frames:
-        # Add traces from the first frame as the initial state
-        for trace in frames[0].data:
-            fig.add_trace(trace)
+        # Important: Add *copies* or ensure traces are regenerated if needed,
+        # though Plotly usually handles this ok with frame data.
+        initial_dynamic_traces = frames[0].data
         initial_shapes = frames[0].layout.shapes if frames[0].layout else []
-    else:
-        initial_shapes = []
+        for trace in initial_dynamic_traces:
+            fig.add_trace(trace)  # Add Est Path[0], Est Landmarks[0] traces
 
     # 4. Assign frames to the figure
     fig.update(frames=frames)
 
-    # 5. Configure overall layout, slider, buttons
-    _configure_figure_layout(fig, num_steps, world_size, initial_shapes)
+    # 5. Configure layout, axes, controls
+    # Pass initial_shapes for the layout's starting state
+    configure_figure_layout(fig, num_steps, world_size, initial_shapes)
 
     print("Plotly animation generated.")
     return fig
