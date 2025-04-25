@@ -103,7 +103,7 @@ def generate_simulation_data(
                 # Check sensor limits (range and Field of View - e.g. +/- 45 degrees)
                 if (
                     true_range <= max_sensor_range
-                    and abs(true_bearing.theta()) < np.pi / 4
+                    and abs(true_bearing.theta()) < np.pi / 2
                 ):
                     # Sample noise
                     noise_vec = measurement_noise_sampler.sample()
