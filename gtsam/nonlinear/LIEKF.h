@@ -20,6 +20,7 @@
  * @date April 24, 2025
  * @author Scott Baker
  * @author Matt Kielo
+ * @author Frank Dellaert
  */
 
 #pragma once
