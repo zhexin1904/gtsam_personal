@@ -2,282 +2,51 @@
  * @file ABC_EQF.h
  * @brief Header file for the Attitude-Bias-Calibration Equivariant Filter
  *
- * This file contains declarations for the Equivariant Filter (EqF) for attitude estimation
- * with both gyroscope bias and sensor extrinsic calibration, based on the paper:
- * "Overcoming Bias: Equivariant Filter Design for Biased Attitude Estimation
- * with Online Calibration" by Fornasier et al.
- * Authors: Darshan Rajasekaran & Jennifer Oum
+ * This file contains declarations for the Equivariant Filter (EqF) for attitude
+ * estimation with both gyroscope bias and sensor extrinsic calibration, based
+ * on the paper: "Overcoming Bias: Equivariant Filter Design for Biased Attitude
+ * Estimation with Online Calibration" by Fornasier et al. Authors: Darshan
+ * Rajasekaran & Jennifer Oum
  */
-
 
 #ifndef ABC_EQF_H
 #define ABC_EQF_H
 #pragma once
-
 #include <gtsam/base/Matrix.h>
 #include <gtsam/base/Vector.h>
 #include <gtsam/geometry/Rot3.h>
 #include <gtsam/geometry/Unit3.h>
-#include <gtsam/nonlinear/Values.h>
 #include <gtsam/inference/Symbol.h>
-#include <gtsam/slam/dataset.h>
 #include <gtsam/navigation/ImuBias.h>
+#include <gtsam/nonlinear/Values.h>
+#include <gtsam/slam/dataset.h>
 
-#include <iostream>
+#include <chrono>
+#include <cmath>
 #include <fstream>
+#include <functional>
+#include <iostream>
+#include <numeric>  // For std::accumulate
 #include <string>
 #include <vector>
-#include <cmath>
-#include <functional>
-#include <chrono>
-#include <numeric>  // For std::accumulate
+
+#include "ABC.h"
 
 // All implementations are wrapped in this namespace to avoid conflicts
+namespace gtsam {
 namespace abc_eqf_lib {
 
 using namespace std;
 using namespace gtsam;
 
-// Global configuration
-// Define coordinate type: "EXPONENTIAL" or "NORMAL"
-extern const std::string COORDINATE;
-
-//========================================================================
-// Utility Functions
-//========================================================================
-
-
-/// Check if a vector is a unit vector
-
-bool checkNorm(const Vector3& x, double tol = 1e-3);
-
-/// Check if vector contains NaN values
-
-bool hasNaN(const Vector3& vec);
-
-/// Create a block diagonal matrix from two matrices
-
-Matrix blockDiag(const Matrix& A, const Matrix& B);
-
-/// Repeat a block matrix n times along the diagonal
-
-Matrix repBlock(const Matrix& A, int n);
-
-/// Calculate numerical differential
-
-Matrix numericalDifferential(std::function<Vector(const Vector&)> f, const Vector& x);
-
-//========================================================================
-// Core Data Types
-//========================================================================
-
-
-
-/// Input struct for the Biased Attitude System
-
-struct Input {
-    Vector3 w;               /// Angular velocity (3-vector)
-    Matrix Sigma;            /// Noise covariance (6x6 matrix)
-    static Input random();   /// Random input
-    Matrix3 W() const {      /// Return w as a skew symmetric matrix
-        return Rot3::Hat(w);
-    }
-    static Input create(const Vector3& w, const Matrix& Sigma) { /// Initialize w and Sigma
-       if (Sigma.rows() != 6 || Sigma.cols() != 6) {
-           throw std::invalid_argument("Input measurement noise covariance must be 6x6");
-       }
-       /// Check positive semi-definite
-       Eigen::SelfAdjointEigenSolver<Matrix> eigensolver(Sigma);
-       if (eigensolver.eigenvalues().minCoeff() < -1e-10) {
-           throw std::invalid_argument("Covariance matrix must be semi-positive definite");
-       }
-
-       return Input{w, Sigma};  // use brace initialization
-    }
-};
-
-/// Measurement struct
-
-struct Measurement {
-    Unit3 y;        /// Measurement direction in sensor frame
-    Unit3 d;        /// Known direction in global frame
-    Matrix3 Sigma;      /// Covariance matrix of the measurement
-    int cal_idx = -1;   /// Calibration index (-1 for calibrated sensor)
-    static Measurement create(const Unit3& y_vec, const Unit3& d_vec, /// Initialize measurement
-                          const Matrix3& Sigma_in, int i) {
-        /// Check positive semi-definite
-        Eigen::SelfAdjointEigenSolver<Matrix3> eigensolver(Sigma_in);
-        if (eigensolver.eigenvalues().minCoeff() < -1e-10) {
-            throw std::invalid_argument("Covariance matrix must be semi-positive definite");
-        }
-        return Measurement{y_vec, Unit3(d_vec), Sigma_in, i};  // Brace initialization
-    }
-};
-
-/// State class representing the state of the Biased Attitude System
-
-class State {
-public:
-    Rot3 R;                  // Attitude rotation matrix R
-    Vector3 b;               // Gyroscope bias b
-    std::vector<Rot3> S;     // Sensor calibrations S
-
-    /// Constructor
-    State(const Rot3& R = Rot3::Identity(),
-          const Vector3& b = Vector3::Zero(),
-          const std::vector<Rot3>& S = std::vector<Rot3>())
-        : R(R), b(b), S(S) {}
-
-    /// Identity function
-    static State identity(int n) {
-        std::vector<Rot3> calibrations(n, Rot3::Identity());
-        return State(Rot3::Identity(), Vector3::Zero(), calibrations);
-    }
-    /**
-     * Compute Local coordinates in the state relative to another state.
-     * @param other The other state
-     * @return Local coordinates in the tangent space
-     */
-      Vector localCoordinates(const State& other) const {
-        Vector eps(6 + 3 * S.size());
-
-        // First 3 elements - attitude
-        eps.head<3>() = Rot3::Logmap(R.between(other.R));
-        // Next 3 elements - bias
-        // Next 3 elements - bias
-        eps.segment<3>(3) = other.b - b;
-
-        // Remaining elements - calibrations
-        for (size_t i = 0; i < S.size(); i++) {
-          eps.segment<3>(6 + 3*i) = Rot3::Logmap(S[i].between(other.S[i]));
-        }
-
-      return eps;
-    }
-
-    /**
-     * Retract from tangent space back to the manifold
-     * @param v Vector in the tangent space
-     * @return New state
-     */
-    State retract(const Vector& v) const {
-        if (v.size() < 6 || v.size() % 3 != 0 || v.size() != 6 + 3 * static_cast<Eigen::Index>(S.size())) {
-          throw std::invalid_argument("Vector size does not match state dimensions");
-        }
-
-        // Modify attitude
-        Rot3 newR = R * Rot3::Expmap(v.head<3>());
-
-        // Modify bias
-        Vector3 newB = b + v.segment<3>(3);
-
-        // Modify calibrations
-        std::vector<Rot3> newS;
-        for (size_t i = 0; i < S.size(); i++) {
-          newS.push_back(S[i] * Rot3::Expmap(v.segment<3>(6 + 3*i)));
-        }
-
-        return State(newR, newB, newS);
-    }
-};
-
-/// Data structure for ground-truth, input and output data
-
-struct Data {
-    State xi;                         /// Ground-truth state
-    int n_cal;                        /// Number of calibration states
-    Input u;                          /// Input measurements
-    std::vector<Measurement> y;       /// Output measurements
-    int n_meas;                       /// Number of measurements
-    double t;                         /// Time
-    double dt;                        /// Time step
-
-    static Data create(const State& xi, int n_cal, const Input& u, /// Initialize Data
-                          const std::vector<Measurement>& y, int n_meas,
-                          double t, double dt) {
-           return Data{xi, n_cal, u, y, n_meas, t, dt}; /// Bracket initialization
-       }
-};
-
-//========================================================================
-// Symmetry Group
-//========================================================================
-
-/**
- * Symmetry group (SO(3) |x so(3)) x SO(3) x ... x SO(3)
- * Each element of the B list is associated with a calibration state
- */
-class G {
-public:
-    Rot3 A;                 /// First SO(3) element
-    Matrix3 a;              /// so(3) element (skew-symmetric matrix)
-    std::vector<Rot3> B;    /// List of SO(3) elements for calibration
-
-    /// Initialize the symmetry group G
-    G(const Rot3& A = Rot3::Identity(),
-      const Matrix3& a = Matrix3::Zero(),
-      const std::vector<Rot3>& B = std::vector<Rot3>())
-        : A(A), a(a), B(B) {}
-
-    /// Group multiplication
-    G operator*(const G& other) const {
-        if (B.size() != other.B.size()) {
-            throw std::invalid_argument("Group elements must have the same number of calibration elements");
-        }
-
-        std::vector<Rot3> new_B;
-        for (size_t i = 0; i < B.size(); i++) {
-            new_B.push_back(B[i] * other.B[i]);
-        }
-
-        return G(A * other.A,
-                 a + Rot3::Hat(A.matrix() * Rot3::Vee(other.a)),
-                 new_B);
-    }
-
-    /// Group inverse
-    G inv() const {
-        Matrix3 A_inv = A.inverse().matrix();
-        std::vector<Rot3> B_inv;
-        for (const auto& b : B) {
-            B_inv.push_back(b.inverse());
-        }
-
-        return G(A.inverse(),
-                 -Rot3::Hat(A_inv * Rot3::Vee(a)),
-                 B_inv);
-    }
-
-    /// Identity element
-    static G identity(int n) {
-        std::vector<Rot3> B(n, Rot3::Identity());
-        return G(Rot3::Identity(), Matrix3::Zero(), B);
-    }
-
-    /// Exponential map of the tangent space elements to the group
-    static G exp(const Vector& x) {
-        if (x.size() < 6 || x.size() % 3 != 0) {
-            throw std::invalid_argument("Wrong size, a vector with size multiple of 3 and at least 6 must be provided");
-        }
-
-        int n = (x.size() - 6) / 3;
-        Rot3 A = Rot3::Expmap(x.head<3>());
-
-        Vector3 a_vee = Rot3::ExpmapDerivative(-x.head<3>()) * x.segment<3>(3);
-        Matrix3 a = Rot3::Hat(a_vee);
-
-        std::vector<Rot3> B;
-        for (int i = 0; i < n; i++) {
-            B.push_back(Rot3::Expmap(x.segment<3>(6 + 3 * i)));
-        }
-
-        return G(A, a, B);
-    }
-};
-
 //========================================================================
 // Helper Functions for EqF
 //========================================================================
+
+/// Calculate numerical differential
+
+Matrix numericalDifferential(std::function<Vector(const Vector&)> f,
+                             const Vector& x);
 
 /**
  * Compute the lift of the system (Theorem 3.8, Equation 7)
@@ -285,7 +54,8 @@ public:
  * @param u Input
  * @return Lift vector
  */
-Vector lift(const State& xi, const Input& u);
+template <size_t N>
+Vector lift(const State<N>& xi, const Input& u);
 
 /**
  * Action of the symmetry group on the state space (Equation 4)
@@ -293,7 +63,8 @@ Vector lift(const State& xi, const Input& u);
  * @param xi State
  * @return New state after group action
  */
-State stateAction(const G& X, const State& xi);
+template <size_t N>
+State<N> operator*(const G<N>& X, const State<N>& xi);
 
 /**
  * Action of the symmetry group on the input space (Equation 5)
@@ -301,7 +72,8 @@ State stateAction(const G& X, const State& xi);
  * @param u Input
  * @return New input after group action
  */
-Input velocityAction(const G& X, const Input& u);
+template <size_t N>
+Input velocityAction(const G<N>& X, const Input& u);
 
 /**
  * Action of the symmetry group on the output space (Equation 6)
@@ -310,187 +82,95 @@ Input velocityAction(const G& X, const Input& u);
  * @param idx Calibration index
  * @return New direction after group action
  */
-Vector3 outputAction(const G& X, const Unit3& y, int idx);
+template <size_t N>
+Vector3 outputAction(const G<N>& X, const Unit3& y, int idx);
 
 /**
  * Differential of the phi action at E = Id in local coordinates
  * @param xi State
  * @return Differential matrix
  */
-Matrix stateActionDiff(const State& xi);
+template <size_t N>
+Matrix stateActionDiff(const State<N>& xi);
 
 //========================================================================
 // Equivariant Filter (EqF)
 //========================================================================
 
 /// Equivariant Filter (EqF) implementation
-
+template <size_t N>
 class EqF {
-private:
-    int dof;                 // Degrees of freedom
-    int n_cal;               // Number of calibration states
-    G X_hat;                 // Filter state
-    Matrix Sigma;            // Error covariance
-    State xi_0;              // Origin state
-    Matrix Dphi0;            // Differential of phi at origin
-    Matrix InnovationLift;   // Innovation lift matrix
+ private:
+  int dof;                // Degrees of freedom
+  G<N> X_hat;             // Filter state
+  Matrix Sigma;           // Error covariance
+  State<N> xi_0;          // Origin state
+  Matrix Dphi0;           // Differential of phi at origin
+  Matrix InnovationLift;  // Innovation lift matrix
 
-    /**
-     * Return the state matrix A0t (Equation 14a)
-     * @param u Input
-     * @return State matrix A0t
-     */
-    Matrix stateMatrixA(const Input& u) const;
+  /**
+   * Return the state matrix A0t (Equation 14a)
+   * @param u Input
+   * @return State matrix A0t
+   */
+  Matrix stateMatrixA(const Input& u) const;
 
-    /**
-     * Return the state transition matrix Phi (Equation 17)
-     * @param u Input
-     * @param dt Time step
-     * @return State transition matrix Phi
-     */
-    Matrix stateTransitionMatrix(const Input& u, double dt) const;
+  /**
+   * Return the state transition matrix Phi (Equation 17)
+   * @param u Input
+   * @param dt Time step
+   * @return State transition matrix Phi
+   */
+  Matrix stateTransitionMatrix(const Input& u, double dt) const;
 
-    /**
-     * Return the Input matrix Bt
-     * @return Input matrix Bt
-     */
-    Matrix inputMatrixBt() const;
+  /**
+   * Return the Input matrix Bt
+   * @return Input matrix Bt
+   */
+  Matrix inputMatrixBt() const;
 
-    /**
-     * Return the measurement matrix C0 (Equation 14b)
-     * @param d Known direction
-     * @param idx Calibration index
-     * @return Measurement matrix C0
-     */
-    Matrix measurementMatrixC(const Unit3& d, int idx) const;
+  /**
+   * Return the measurement matrix C0 (Equation 14b)
+   * @param d Known direction
+   * @param idx Calibration index
+   * @return Measurement matrix C0
+   */
+  Matrix measurementMatrixC(const Unit3& d, int idx) const;
 
-    /**
-     * Return the measurement output matrix Dt
-     * @param idx Calibration index
-     * @return Measurement output matrix Dt
-     */
-    Matrix outputMatrixDt(int idx) const;
+  /**
+   * Return the measurement output matrix Dt
+   * @param idx Calibration index
+   * @return Measurement output matrix Dt
+   */
+  Matrix outputMatrixDt(int idx) const;
 
-public:
-    /**
-     * Initialize EqF
-     * @param Sigma Initial covariance
-     * @param n Number of calibration states
-     * @param m Number of sensors
-     */
-    EqF(const Matrix& Sigma, int n, int m);
+ public:
+  /**
+   * Initialize EqF
+   * @param Sigma Initial covariance
+   * @param m Number of sensors
+   */
+  EqF(const Matrix& Sigma, int m);
 
-    /**
-     * Return estimated state
-     * @return Current state estimate
-     */
-    State stateEstimate() const;
+  /**
+   * Return estimated state
+   * @return Current state estimate
+   */
+  State<N> stateEstimate() const;
 
-    /**
-     * Propagate the filter state
-     * @param u Angular velocity measurement
-     * @param dt Time step
-     */
-    void propagation(const Input& u, double dt);
+  /**
+   * Propagate the filter state
+   * @param u Angular velocity measurement
+   * @param dt Time step
+   */
+  void propagation(const Input& u, double dt);
 
-    /**
-     * Update the filter state with a measurement
-     * @param y Direction measurement
-     */
-    void update(const Measurement& y);
+  /**
+   * Update the filter state with a measurement
+   * @param y Direction measurement
+   */
+  void update(const Measurement& y);
 };
-
-// Global configuration
-const std::string COORDINATE = "EXPONENTIAL";  // Denotes how the states are mapped to the vector representations
-
-//========================================================================
-// Utility Functions
-//========================================================================
-/**
- * @brief Verifies if a vector has unit norm within tolerance
- * @param x 3d vector
- * @param tol optional tolerance
- * @return Bool indicating that the vector norm is approximately 1
- * Uses Vector3 norm() method to calculate vector magnitude
- */
-bool checkNorm(const Vector3& x, double tol) {
-    return abs(x.norm() - 1) < tol || std::isnan(x.norm());
-}
-
-/**
- * @brief Checks if the input vector has any NaNs
- * @param vec A 3-D vector
- * @return true if present, false otherwise
- */
-bool hasNaN(const Vector3& vec) {
-    return std::isnan(vec[0]) || std::isnan(vec[1]) || std::isnan(vec[2]);
-}
-
-/**
- * @brief Creates a block diagonal matrix from input matrices
- * @param A Matrix A
- * @param B Matrix B
- * @return A single consolidated matrix with A in the top left and B in the
- * bottom right
- * Uses Matrix's rows(), cols(), setZero(), and block() methods
- */
-
-Matrix blockDiag(const Matrix& A, const Matrix& B) {
-    if (A.size() == 0) {
-        return B;
-    } else if (B.size() == 0) {
-        return A;
-    } else {
-        Matrix result(A.rows() + B.rows(), A.cols() + B.cols());
-        result.setZero();
-        result.block(0, 0, A.rows(), A.cols()) = A;
-        result.block(A.rows(), A.cols(), B.rows(), B.cols()) = B;
-        return result;
-    }
-}
-/**
- * @brief Creates a block diagonal matrix by repeating a matrix 'n' times
- * @param A A  matrix
- * @param n Number of times to be repeated
- * @return Block diag matrix with A repeated 'n' times
- * Recursively uses blockDiag() function
- */
-Matrix repBlock(const Matrix& A, int n) {
-    if (n <= 0) return Matrix();
-
-    Matrix result = A;
-    for (int i = 1; i < n; i++) {
-        result = blockDiag(result, A);
-    }
-    return result;
-}
-
-/**
- * @brief Calculates the Jacobian matrix using central difference approximation
- * @param f Vector function f
- * @param x The point at which Jacobian is evaluated
- * @return Matrix containing numerical partial derivatives of f at x
- * Uses Vector's size() and Zero(), Matrix's Zero() and col() methods
- */
-Matrix numericalDifferential(std::function<Vector(const Vector&)> f, const Vector& x) {
-    double h = 1e-6;
-    Vector fx = f(x);
-    int n = fx.size();
-    int m = x.size();
-    Matrix Df = Matrix::Zero(n, m);
-
-    for (int j = 0; j < m; j++) {
-        Vector ej = Vector::Zero(m);
-        ej(j) = 1.0;
-
-        Vector fplus = f(x + h * ej);
-        Vector fminus = f(x - h * ej);
-
-        Df.col(j) = (fplus - fminus) / (2*h);
-    }
-
-    return Df;
-}
 
 //========================================================================
 // Helper Functions Implementation
@@ -503,22 +183,22 @@ Matrix numericalDifferential(std::function<Vector(const Vector&)> f, const Vecto
  * @return Lifted input in Lie Algebra
  * Uses Vector zero & Rot3 inverse, matrix functions
  */
-Vector lift(const State& xi, const Input& u) {
-    int n = xi.S.size();
-    Vector L = Vector::Zero(6 + 3 * n);
+template <size_t N>
+Vector lift(const State<N>& xi, const Input& u) {
+  Vector L = Vector::Zero(6 + 3 * N);
 
-    // First 3 elements
-    L.head<3>() = u.w - xi.b;
+  // First 3 elements
+  L.head<3>() = u.w - xi.b;
 
-    // Next 3 elements
-    L.segment<3>(3) = -u.W() * xi.b;
+  // Next 3 elements
+  L.segment<3>(3) = -u.W() * xi.b;
 
-    // Remaining elements
-    for (int i = 0; i < n; i++) {
-        L.segment<3>(6 + 3*i) = xi.S[i].inverse().matrix() * L.head<3>();
-    }
+  // Remaining elements
+  for (size_t i = 0; i < N; i++) {
+    L.segment<3>(6 + 3 * i) = xi.S[i].inverse().matrix() * L.head<3>();
+  }
 
-    return L;
+  return L;
 }
 /**
  * Implements group actions on the states
@@ -533,19 +213,16 @@ Vector lift(const State& xi, const Input& u) {
  * @return Transformed state
  * Uses the Rot3 inverse and Vee functions
  */
-State stateAction(const G& X, const State& xi) {
-    if (xi.S.size() != X.B.size()) {
-        throw std::invalid_argument("Number of calibration states and B elements must match");
-    }
+template <size_t N>
+State<N> operator*(const G<N>& X, const State<N>& xi) {
+  std::array<Rot3, N> new_S;
 
-    std::vector<Rot3> new_S;
-    for (size_t i = 0; i < X.B.size(); i++) {
-        new_S.push_back(X.A.inverse() * xi.S[i] * X.B[i]);
-    }
+  for (size_t i = 0; i < N; i++) {
+    new_S[i] = X.A.inverse() * xi.S[i] * X.B[i];
+  }
 
-    return State(xi.R * X.A,
-                X.A.inverse().matrix() * (xi.b - Rot3::Vee(X.a)),
-                new_S);
+  return State<N>(xi.R * X.A, X.A.inverse().matrix() * (xi.b - Rot3::Vee(X.a)),
+                  new_S);
 }
 /**
  * Transforms the angular velocity measurements b/w frames
@@ -555,8 +232,9 @@ State stateAction(const G& X, const State& xi) {
  * Uses Rot3 Inverse, matrix and Vee functions and is critical for maintaining
  * the input equivariance
  */
-Input velocityAction(const G& X, const Input& u) {
-    return Input{X.A.inverse().matrix() * (u.w - Rot3::Vee(X.a)), u.Sigma};
+template <size_t N>
+Input velocityAction(const G<N>& X, const Input& u) {
+  return Input{X.A.inverse().matrix() * (u.w - Rot3::Vee(X.a)), u.Sigma};
 }
 /**
  * Transforms the Direction measurements based on the calibration type ( Eqn 6)
@@ -566,64 +244,46 @@ Input velocityAction(const G& X, const Input& u) {
  * @return Transformed direction
  * Uses Rot3 inverse, matric and Unit3 unitvector functions
  */
-Vector3 outputAction(const G& X, const Unit3& y, int idx) {
-    if (idx == -1) {
-        return X.A.inverse().matrix() * y.unitVector();
-    } else {
-        if (idx >= static_cast<int>(X.B.size())) {
-            throw std::out_of_range("Calibration index out of range");
-        }
-        return X.B[idx].inverse().matrix() * y.unitVector();
+template <size_t N>
+Vector3 outputAction(const G<N>& X, const Unit3& y, int idx) {
+  if (idx == -1) {
+    return X.A.inverse().matrix() * y.unitVector();
+  } else {
+    if (idx >= static_cast<int>(N)) {
+      throw std::out_of_range("Calibration index out of range");
     }
+    return X.B[idx].inverse().matrix() * y.unitVector();
+  }
 }
 
 /**
- * Maps the error states to vector representations through exponential
- * coordinates
- * @param e error state
- * @return Vector with local coordinates
- * Uses Rot3 logamo for mapping rotations to the tangent space
+ * @brief Calculates the Jacobian matrix using central difference approximation
+ * @param f Vector function f
+ * @param x The point at which Jacobian is evaluated
+ * @return Matrix containing numerical partial derivatives of f at x
+ * Uses Vector's size() and Zero(), Matrix's Zero() and col() methods
  */
-// Vector local_coords(const State& e) {
-//     if (COORDINATE == "EXPONENTIAL") {
-//         Vector eps(6 + 3 * e.S.size());
-//
-//         // First 3 elements
-//         eps.head<3>() = Rot3::Logmap(e.R);
-//
-//         // Next 3 elements
-//         eps.segment<3>(3) = e.b;
-//
-//         // Remaining elements
-//         for (size_t i = 0; i < e.S.size(); i++) {
-//             eps.segment<3>(6 + 3*i) = Rot3::Logmap(e.S[i]);
-//         }
-//
-//         return eps;
-//     } else if (COORDINATE == "NORMAL") {
-//         throw std::runtime_error("Normal coordinate representation is not implemented yet");
-//     } else {
-//         throw std::invalid_argument("Invalid coordinate representation");
-//     }
-// }
-/**
- * Used to convert the vectorized errors back to state space
- * @param eps Local coordinates in the exponential parameterization
- * @return State object corresponding to these coordinates
- * Uses Rot3 expmap through the G::exp() function
- */
-// State local_coords_inv(const Vector& eps) {
-//     G X = G::exp(eps);
-//
-//     if (COORDINATE == "EXPONENTIAL") {
-//         std::vector<Rot3> S = X.B;
-//         return State(X.A, eps.segment<3>(3), S);
-//     } else if (COORDINATE == "NORMAL") {
-//         throw std::runtime_error("Normal coordinate representation is not implemented yet");
-//     } else {
-//         throw std::invalid_argument("Invalid coordinate representation");
-//     }
-// }
+Matrix numericalDifferential(std::function<Vector(const Vector&)> f,
+                             const Vector& x) {
+  double h = 1e-6;
+  Vector fx = f(x);
+  int n = fx.size();
+  int m = x.size();
+  Matrix Df = Matrix::Zero(n, m);
+
+  for (int j = 0; j < m; j++) {
+    Vector ej = Vector::Zero(m);
+    ej(j) = 1.0;
+
+    Vector fplus = f(x + h * ej);
+    Vector fminus = f(x - h * ej);
+
+    Df.col(j) = (fplus - fminus) / (2 * h);
+  }
+
+  return Df;
+}
+
 /**
  * Computes the differential of a state action at the identity of the symmetry
  * group
@@ -632,17 +292,17 @@ Vector3 outputAction(const G& X, const Unit3& y, int idx) {
  * @return A matrix representing the jacobian of the state action
  * Uses numericalDifferential, and Rot3 expmap, logmap
  */
-Matrix stateActionDiff(const State& xi) {
-    std::function<Vector(const Vector&)> coordsAction =
-        [&xi](const Vector& U) {
-          G groupElement = G::exp(U);
-          State transformed = stateAction(groupElement, xi);
-          return xi.localCoordinates(transformed);
-        };
+template <size_t N>
+Matrix stateActionDiff(const State<N>& xi) {
+  std::function<Vector(const Vector&)> coordsAction = [&xi](const Vector& U) {
+    G<N> groupElement = G<N>::exp(U);
+    State<N> transformed = groupElement * xi;
+    return xi.localCoordinates(transformed);
+  };
 
-    Vector zeros = Vector::Zero(6 + 3 * xi.S.size());
-    Matrix differential = numericalDifferential(coordsAction, zeros);
-    return differential;
+  Vector zeros = Vector::Zero(6 + 3 * N);
+  Matrix differential = numericalDifferential(coordsAction, zeros);
+  return differential;
 }
 
 //========================================================================
@@ -656,38 +316,45 @@ Matrix stateActionDiff(const State& xi) {
  * @param m Number of sensors
  * Uses SelfAdjointSolver, completeOrthoganalDecomposition().pseudoInverse()
  */
-EqF::EqF(const Matrix& Sigma, int n, int m)
-    : dof(6 + 3 * n), n_cal(n),  X_hat(G::identity(n)),
-      Sigma(Sigma), xi_0(State::identity(n)) {
+template <size_t N>
+EqF<N>::EqF(const Matrix& Sigma, int m)
+    : dof(6 + 3 * N),
+      X_hat(G<N>::identity(N)),
+      Sigma(Sigma),
+      xi_0(State<N>::identity()) {
+  if (Sigma.rows() != dof || Sigma.cols() != dof) {
+    throw std::invalid_argument(
+        "Initial covariance dimensions must match the degrees of freedom");
+  }
 
-    if (Sigma.rows() != dof || Sigma.cols() != dof) {
-        throw std::invalid_argument("Initial covariance dimensions must match the degrees of freedom");
-    }
+  // Check positive semi-definite
+  Eigen::SelfAdjointEigenSolver<Matrix> eigensolver(Sigma);
+  if (eigensolver.eigenvalues().minCoeff() < -1e-10) {
+    throw std::invalid_argument(
+        "Covariance matrix must be semi-positive definite");
+  }
 
-    // Check positive semi-definite
-    Eigen::SelfAdjointEigenSolver<Matrix> eigensolver(Sigma);
-    if (eigensolver.eigenvalues().minCoeff() < -1e-10) {
-        throw std::invalid_argument("Covariance matrix must be semi-positive definite");
-    }
+  if (N < 0) {
+    throw std::invalid_argument(
+        "Number of calibration states must be non-negative");
+  }
 
-    if (n < 0) {
-        throw std::invalid_argument("Number of calibration states must be non-negative");
-    }
+  if (m <= 1) {
+    throw std::invalid_argument(
+        "Number of direction sensors must be at least 2");
+  }
 
-    if (m <= 1) {
-        throw std::invalid_argument("Number of direction sensors must be at least 2");
-    }
-
-    // Compute differential of phi
-    Dphi0 = stateActionDiff(xi_0);
-    InnovationLift = Dphi0.completeOrthogonalDecomposition().pseudoInverse();
+  // Compute differential of phi
+  Dphi0 = stateActionDiff(xi_0);
+  InnovationLift = Dphi0.completeOrthogonalDecomposition().pseudoInverse();
 }
 /**
  * Computes the internal group state to a physical state estimate
  * @return Current state estimate
  */
-State EqF::stateEstimate() const {
-    return stateAction(X_hat, xi_0);
+template <size_t N>
+State<N> EqF<N>::stateEstimate() const {
+  return X_hat * xi_0;
 }
 /**
  * Implements the prediction step of the EqF using system dynamics and
@@ -697,19 +364,19 @@ State EqF::stateEstimate() const {
  * @param dt time steps
  * Updated internal state and covariance
  */
-void EqF::propagation(const Input& u, double dt) {
-    State state_est = stateEstimate();
-    Vector L = lift(state_est, u);
+template <size_t N>
+void EqF<N>::propagation(const Input& u, double dt) {
+  State<N> state_est = stateEstimate();
+  Vector L = lift(state_est, u);
 
-    Matrix Phi_DT = stateTransitionMatrix(u, dt);
-    Matrix Bt = inputMatrixBt();
+  Matrix Phi_DT = stateTransitionMatrix(u, dt);
+  Matrix Bt = inputMatrixBt();
 
-    Matrix tempSigma = blockDiag(u.Sigma,
-                                repBlock(1e-9 * Matrix3::Identity(), n_cal));
-    Matrix M_DT = (Bt * tempSigma * Bt.transpose()) * dt;
+  Matrix tempSigma = blockDiag(u.Sigma, repBlock(1e-9 * I_3x3, N));
+  Matrix M_DT = (Bt * tempSigma * Bt.transpose()) * dt;
 
-    X_hat = X_hat * G::exp(L * dt);
-    Sigma = Phi_DT * Sigma * Phi_DT.transpose() + M_DT;
+  X_hat = X_hat * G<N>::exp(L * dt);
+  Sigma = Phi_DT * Sigma * Phi_DT.transpose() + M_DT;
 }
 /**
  * Implements the correction step of the filter using discrete measurements
@@ -718,8 +385,9 @@ void EqF::propagation(const Input& u, double dt) {
  *
  * @param y Measurements
  */
-void EqF::update(const Measurement& y) {
-  if (y.cal_idx > n_cal) {
+template <size_t N>
+void EqF<N>::update(const Measurement& y) {
+  if (y.cal_idx > static_cast<int>(N)) {
     throw std::invalid_argument("Calibration index out of range");
   }
 
@@ -740,7 +408,7 @@ void EqF::update(const Measurement& y) {
   Matrix S = Ct * Sigma * Ct.transpose() + Dt * y.Sigma * Dt.transpose();
   Matrix K = Sigma * Ct.transpose() * S.inverse();
   Vector Delta = InnovationLift * K * delta_vec;
-  X_hat = G::exp(Delta) * X_hat;
+  X_hat = G<N>::exp(Delta) * X_hat;
   Sigma = (Matrix::Identity(dof, dof) - K * Ct) * Sigma;
 }
 /**
@@ -749,20 +417,14 @@ void EqF::update(const Measurement& y) {
  * @return Linearized state matrix
  * Uses Matrix zero and Identity functions
  */
-Matrix EqF::stateMatrixA(const Input& u) const {
-    Matrix3 W0 = velocityAction(X_hat.inv(), u).W();
-    Matrix A1 = Matrix::Zero(6, 6);
-
-    if (COORDINATE == "EXPONENTIAL") {
-        A1.block<3, 3>(0, 3) = -Matrix3::Identity();
-        A1.block<3, 3>(3, 3) = W0;
-        Matrix A2 = repBlock(W0, n_cal);
-        return blockDiag(A1, A2);
-    } else if (COORDINATE == "NORMAL") {
-        throw std::runtime_error("Normal coordinate representation is not implemented yet");
-    } else {
-        throw std::invalid_argument("Invalid coordinate representation");
-    }
+template <size_t N>
+Matrix EqF<N>::stateMatrixA(const Input& u) const {
+  Matrix3 W0 = velocityAction(X_hat.inv(), u).W();
+  Matrix A1 = Matrix::Zero(6, 6);
+  A1.block<3, 3>(0, 3) = -I_3x3;
+  A1.block<3, 3>(3, 3) = W0;
+  Matrix A2 = repBlock(W0, N);
+  return blockDiag(A1, A2);
 }
 
 /**
@@ -771,49 +433,35 @@ Matrix EqF::stateMatrixA(const Input& u) const {
  * @param dt time step
  * @return State transition matrix in discrete time
  */
-Matrix EqF::stateTransitionMatrix(const Input& u, double dt) const {
-    Matrix3 W0 = velocityAction(X_hat.inv(), u).W();
-    Matrix Phi1 = Matrix::Zero(6, 6);
+template <size_t N>
+Matrix EqF<N>::stateTransitionMatrix(const Input& u, double dt) const {
+  Matrix3 W0 = velocityAction(X_hat.inv(), u).W();
+  Matrix Phi1 = Matrix::Zero(6, 6);
 
-    Matrix3 Phi12 = -dt * (Matrix3::Identity() + (dt / 2) * W0 + ((dt*dt) / 6) * W0 * W0);
-    Matrix3 Phi22 = Matrix3::Identity() + dt * W0 + ((dt*dt) / 2) * W0 * W0;
+  Matrix3 Phi12 = -dt * (I_3x3 + (dt / 2) * W0 + ((dt * dt) / 6) * W0 * W0);
+  Matrix3 Phi22 = I_3x3 + dt * W0 + ((dt * dt) / 2) * W0 * W0;
 
-    if (COORDINATE == "EXPONENTIAL") {
-        Phi1.block<3, 3>(0, 0) = Matrix3::Identity();
-        Phi1.block<3, 3>(0, 3) = Phi12;
-        Phi1.block<3, 3>(3, 3) = Phi22;
-        Matrix Phi2 = repBlock(Phi22, n_cal);
-        return blockDiag(Phi1, Phi2);
-    } else if (COORDINATE == "NORMAL") {
-        throw std::runtime_error("Normal coordinate representation is not implemented yet");
-    } else {
-        throw std::invalid_argument("Invalid coordinate representation");
-    }
+  Phi1.block<3, 3>(0, 0) = I_3x3;
+  Phi1.block<3, 3>(0, 3) = Phi12;
+  Phi1.block<3, 3>(3, 3) = Phi22;
+  Matrix Phi2 = repBlock(Phi22, N);
+  return blockDiag(Phi1, Phi2);
 }
 /**
  * Computes the input uncertainty propagation matrix
  * @return
  * Uses the blockdiag matrix
  */
-Matrix EqF::inputMatrixBt() const {
-    if (COORDINATE == "EXPONENTIAL") {
-        Matrix B1 = blockDiag(X_hat.A.matrix(), X_hat.A.matrix());
-        Matrix B2;
+template <size_t N>
+Matrix EqF<N>::inputMatrixBt() const {
+  Matrix B1 = blockDiag(X_hat.A.matrix(), X_hat.A.matrix());
+  Matrix B2(3 * N, 3 * N);
 
-        for (const auto& B : X_hat.B) {
-            if (B2.size() == 0) {
-                B2 = B.matrix();
-            } else {
-                B2 = blockDiag(B2, B.matrix());
-            }
-        }
+  for (size_t i = 0; i < N; ++i) {
+    B2.block<3, 3>(3 * i, 3 * i) = X_hat.B[i].matrix();
+  }
 
-        return blockDiag(B1, B2);
-    } else if (COORDINATE == "NORMAL") {
-        throw std::runtime_error("Normal coordinate representation is not implemented yet");
-    } else {
-        throw std::invalid_argument("Invalid coordinate representation");
-    }
+  return blockDiag(B1, B2);
 }
 /**
  * Computes the linearized measurement matrix. The structure depends on whether
@@ -823,45 +471,49 @@ Matrix EqF::inputMatrixBt() const {
  * @return Measurement matrix
  * Uses the matrix zero, Rot3 hat and the Unitvector functions
  */
-Matrix EqF::measurementMatrixC(const Unit3& d, int idx) const {
-    Matrix Cc = Matrix::Zero(3, 3 * n_cal);
+template <size_t N>
+Matrix EqF<N>::measurementMatrixC(const Unit3& d, int idx) const {
+  Matrix Cc = Matrix::Zero(3, 3 * N);
 
-    // If the measurement is related to a sensor that has a calibration state
-    if (idx >= 0) {
-        // Set the correct 3x3 block in Cc
-        Cc.block<3, 3>(0, 3 * idx) = Rot3::Hat(d.unitVector());
-    }
+  // If the measurement is related to a sensor that has a calibration state
+  if (idx >= 0) {
+    // Set the correct 3x3 block in Cc
+    Cc.block<3, 3>(0, 3 * idx) = Rot3::Hat(d.unitVector());
+  }
 
-    Matrix3 wedge_d = Rot3::Hat(d.unitVector());
+  Matrix3 wedge_d = Rot3::Hat(d.unitVector());
 
-    // Create the combined matrix
-    Matrix temp(3, 6 + 3 * n_cal);
-    temp.block<3, 3>(0, 0) = wedge_d;
-    temp.block<3, 3>(0, 3) = Matrix3::Zero();
-    temp.block(0, 6, 3, 3 * n_cal) = Cc;
+  // Create the combined matrix
+  Matrix temp(3, 6 + 3 * N);
+  temp.block<3, 3>(0, 0) = wedge_d;
+  temp.block<3, 3>(0, 3) = Matrix3::Zero();
+  temp.block(0, 6, 3, 3 * N) = Cc;
 
-    return wedge_d * temp;
+  return wedge_d * temp;
 }
 /**
  * Computes the measurement uncertainty propagation matrix
  * @param idx Calibration index
  * @return Returns B[idx] for calibrated sensors, A for uncalibrated
  */
-Matrix EqF::outputMatrixDt(int idx) const {
-    // If the measurement is related to a sensor that has a calibration state
-    if (idx >= 0) {
-        if (idx >= static_cast<int>(X_hat.B.size())) {
-            throw std::out_of_range("Calibration index out of range");
-        }
-        return X_hat.B[idx].matrix();
-    } else {
-        return X_hat.A.matrix();
+template <size_t N>
+Matrix EqF<N>::outputMatrixDt(int idx) const {
+  // If the measurement is related to a sensor that has a calibration state
+  if (idx >= 0) {
+    if (idx >= static_cast<int>(N)) {
+      throw std::out_of_range("Calibration index out of range");
     }
+    return X_hat.B[idx].matrix();
+  } else {
+    return X_hat.A.matrix();
+  }
 }
 
+}  // namespace abc_eqf_lib
 
+template <size_t N>
+struct traits<abc_eqf_lib::EqF<N>>
+    : internal::LieGroupTraits<abc_eqf_lib::EqF<N>> {};
+}  // namespace gtsam
 
-
-} // namespace abc_eqf_lib
-
-#endif // ABC_EQF_H
+#endif  // ABC_EQF_H
