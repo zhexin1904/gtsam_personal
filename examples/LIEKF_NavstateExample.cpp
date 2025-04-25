@@ -1,14 +1,43 @@
-//
-// Created by Scott on 4/18/2025.
-//
-#include <gtsam/nonlinear/LIEKF.h>
+/* ----------------------------------------------------------------------------
+
+ * GTSAM Copyright 2010, Georgia Tech Research Corporation,
+ * Atlanta, Georgia 30332-0415
+ * All Rights Reserved
+ * Authors: Frank Dellaert, et al. (see THANKS for the full author list)
+
+ * See LICENSE for the license information
+
+ * -------------------------------------------------------------------------- */
+
+/**
+ * @file LIEKF_NavstateExample.cpp
+ * @brief A left invariant Extended Kalman Filter example using the GeneralLIEKF
+ * on NavState using IMU/GPS measurements.
+ *
+ * This example uses the templated GeneralLIEKF class to estimate the state of
+ * an object using IMU/GPS measurements. The prediction stage of the LIEKF uses
+ * a generic dynamics function to predict the state. This simulates a navigation
+ * state of (pose, velocity, position)
+ *
+ * @date Apr 25, 2025
+ * @author Scott Baker
+ * @author Matt Kielo
+ * @author Frank Dellaert
+ */
 #include <gtsam/navigation/NavState.h>
+#include <gtsam/nonlinear/LIEKF.h>
+
 #include <iostream>
 
 using namespace std;
 using namespace gtsam;
 
-// define dynamics
+// Define a dynamics function.
+// The dynamics function for NavState returns a result vector of
+// size 9 of [angular_velocity, 0, 0, 0, linear_acceleration] as well as
+// a Jacobian of the dynamics function with respect to the state X.
+// Since this is a left invariant EKF, the error dynamics do not rely on the
+// state
 Vector9 dynamics(const NavState& X, const Vector6& imu,
                  OptionalJacobian<9, 9> H = {}) {
   const auto a = imu.head<3>();
@@ -21,68 +50,74 @@ Vector9 dynamics(const NavState& X, const Vector6& imu,
   return result;
 }
 
-// define measurement processor
-  Vector3 h_gps(const NavState& X,
-                        OptionalJacobian<3,9> H = {}) {
-    if (H) *H << Z_3x3, Z_3x3, X.R();
-    return X.t();
-    }
+// define a GPS measurement processor. The GPS measurement processor returns
+// the expected measurement h(x) = translation of X with a Jacobian H used in
+// the update stage of the LIEKF.
+Vector3 h_gps(const NavState& X, OptionalJacobian<3, 9> H = {}) {
+  if (H) *H << Z_3x3, Z_3x3, X.R();
+  return X.t();
+}
 
-  int main() {
-    // Initialization
-    NavState X0;
-    Matrix9 P0 = Matrix9::Identity() * 0.1;
-    double dt = 1.0;
+int main() {
+  // Initialize the filter's state, covariance, and time interval values.
+  NavState X0;
+  Matrix9 P0 = Matrix9::Identity() * 0.1;
+  double dt = 1.0;
 
-    // Create measurement function h_func
-    GeneralLIEKF<NavState, Vector3, 6>::MeasurementFunction h_func =
-        [](const NavState& X, OptionalJacobian<3, 9> H) { return h_gps(X, H); };
+  // Create the measurement function h_func that wraps h_gps
+  GeneralLIEKF<NavState, Vector3, 6>::MeasurementFunction h_func =
+      [](const NavState& X, OptionalJacobian<3, 9> H) { return h_gps(X, H); };
 
-    // Create dynamics
-    GeneralLIEKF<NavState, Vector3, 6>::Dynamics dynamics_func = dynamics;
+  // Create the dynamics function dynamics_func
+  GeneralLIEKF<NavState, Vector3, 6>::Dynamics dynamics_func = dynamics;
 
-    // Initialize filter
-    GeneralLIEKF<NavState, Vector3, 6> ekf(X0, P0, dynamics_func, h_func);
+  // Create the filter with the initial state, covariance, and dynamics and
+  // measurement functions.
+  GeneralLIEKF<NavState, Vector3, 6> ekf(X0, P0, dynamics_func, h_func);
 
-    // Covariances
-    Matrix9 Q = Matrix9::Identity() * 0.1;
-    Matrix3 R = Matrix3::Identity()*0.01;
+  // Create the process covariance and measurement covariance matrices Q and R.
+  Matrix9 Q = Matrix9::Identity() * 0.01;
+  Matrix3 R = Matrix3::Identity() * 0.5;
 
-    // IMU measurements
-    Vector6 imu1, imu2;
-    imu1 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-    imu2 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+  // Create the IMU measurements of the form (linear_acceleration,
+  // angular_velocity)
+  Vector6 imu1, imu2;
+  imu1 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+  imu2 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 
-    // GPS measurements
-    Vector3 z1, z2;
-    z1 << 0.0, 0.0, 0.0;
-    z2 << 0.0, 0.0, 0.0;
+  // Create the GPS measurements of the form (px, py, pz)
+  Vector3 z1, z2;
+  z1 << 0.0, 0.0, 0.0;
+  z2 << 0.0, 0.0, 0.0;
 
-    // Predict / update stages
-    cout << "\nInitialization:\n";
-    cout << "X0: " << ekf.getState() << endl;
-    cout << "P0: " <<  ekf.getCovariance()  << endl;
+  // Run the predict and update stages, and print their results.
+  cout << "\nInitialization:\n";
+  cout << "X0: " << ekf.state() << endl;
+  cout << "P0: " << ekf.covariance() << endl;
 
+  // First prediction stage
+  ekf.predict(imu1, dt, Q);
+  cout << "\nFirst Prediction:\n";
+  cout << "X: " << ekf.state() << endl;
+  cout << "P: " << ekf.covariance() << endl;
 
-    ekf.predict(imu1, dt, Q);
-    cout << "\nFirst Prediction:\n";
-    cout << "X: " << ekf.getState() << endl;
-    cout << "P: " << ekf.getCovariance() << endl;
+  // First update stage
+  ekf.update(z1, R);
+  cout << "\nFirst Update:\n";
+  cout << "X: " << ekf.state() << endl;
+  cout << "P: " << ekf.covariance() << endl;
 
-    ekf.update(z1, R);
-    cout << "\nFirst Update:\n";
-    cout << "X: " << ekf.getState() << endl;
-    cout << "P: " << ekf.getCovariance() << endl;
+  // Second prediction stage
+  ekf.predict(imu2, dt, Q);
+  cout << "\nSecond Prediction:\n";
+  cout << "X: " << ekf.state() << endl;
+  cout << "P: " << ekf.covariance() << endl;
 
-    ekf.predict(imu2, dt, Q);
-    cout << "\nSecond Prediction:\n";
-    cout << "X: " << ekf.getState() << endl;
-    cout << "P: " << ekf.getCovariance() << endl;
+  // Second update stage
+  ekf.update(z2, R);
+  cout << "\nSecond Update:\n";
+  cout << "X: " << ekf.state() << endl;
+  cout << "P: " << ekf.covariance() << endl;
 
-    ekf.update(z2, R);
-    cout << "\nSecond Update:\n";
-    cout << "X: " << ekf.getState() << endl;
-    cout << "P: " << ekf.getCovariance() << endl;
-
-    return 0;
-   }
+  return 0;
+}
