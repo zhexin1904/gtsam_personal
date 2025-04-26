@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------------
 
-* GTSAM Copyright 2010, Georgia Tech Research Corporation,
+ * GTSAM Copyright 2010, Georgia Tech Research Corporation,
  * Atlanta, Georgia 30332-0415
  * All Rights Reserved
  * Authors: Frank Dellaert, et al. (see THANKS for the full author list)
@@ -10,82 +10,82 @@
  * -------------------------------------------------------------------------- */
 
 /**
- * @file LIEKF.h
- * @brief Base and classes for Left Invariant Extended Kalman Filters
+ * @file    LIEKF.h
+ * @brief   Left-Invariant Extended Kalman Filter (LIEKF) implementation
  *
- * Templates are implemented for a Left Invariant Extended Kalman Filter
- * operating on Lie Groups.
+ * This file defines the LIEKF class template for performing prediction and
+ * update steps of an Extended Kalman Filter on states residing in a Lie group.
+ * The class supports state evolution via group composition and dynamics
+ * functions, along with measurement updates using tangent-space corrections.
  *
- *
- * @date April 24, 2025
- * @author Scott Baker
- * @author Matt Kielo
- * @author Frank Dellaert
+ * @date    April 24, 2025
+ * @authors Scott Baker, Matt Kielo, Frank Dellaert
  */
 
 #pragma once
+
 #include <gtsam/base/Matrix.h>
 #include <gtsam/base/OptionalJacobian.h>
 #include <gtsam/base/Vector.h>
 
 #include <Eigen/Dense>
-#include <functional>
+
+
 namespace gtsam {
 
 /**
- * @brief Base class for Left Invariant Extended Kalman Filter (LIEKF)
+ * @class LIEKF
+ * @brief Left-Invariant Extended Kalman Filter (LIEKF) on a Lie group G
  *
- * This class provides the prediction and update structure based on control
- * inputs and a measurement function.
+ * @tparam G  Lie group type providing:
+ *           - static int dimension = tangent dimension
+ *           - using TangentVector = Eigen::Vector...
+ *           - using Jacobian    = Eigen::Matrix...
+ *           - methods: Expmap(), expmap(), compose(), inverse().AdjointMap()
  *
- * @tparam G  Lie group used for state representation (e.g., Pose2,
- * Pose3, NavState)
- * @tparam Measurement Type of measurement (e.g. Vector3 for a GPS measurement
- * for 3D position)
+ * This filter maintains a state X in the group G and covariance P in the
+ * tangent space. Prediction steps are performed via group composition or a
+ * user-supplied dynamics function. Updates apply a measurement function h
+ * returning both predicted measurement and its Jacobian H, and correct state
+ * using the left-invariant error in the tangent space.
  */
-
 template <typename G>
 class LIEKF {
  public:
-  static constexpr int n = traits<G>::dimension;  ///< Dimension of the state.
+  /// Tangent-space dimension
+  static constexpr int n = traits<G>::dimension;
 
-  using MatrixN =
-      Eigen::Matrix<double, n, n>;  ///< Typedef for the identity matrix.
+  /// Square matrix of size n for covariance and Jacobians
+  using MatrixN = Eigen::Matrix<double, n, n>;
 
-  /**
-   * @brief Construct with a measurement function
-   * @param X0 Initial State
-   * @param P0 Initial Covariance
-   * @param h Measurement function
-   */
-  LIEKF(const G& X0, const Matrix& P0) : X(X0), P(P0) {}
+  /// Constructor: initialize with state and covariance
+  LIEKF(const G& X0, const Matrix& P0) : X_(X0), P_(P0) {}
 
-  /**
-   * @brief Get current state estimate.
-   * @return Const reference to the state estimate.
-   */
-  const G& state() const { return X; }
+  /// @return current state estimate
+  const G& state() const { return X_; }
+
+  /// @return current covariance estimate
+  const Matrix& covariance() const { return P_; }
 
   /**
-   * @brief Get current covariance estimate.
-   * @return Const reference to the covariance estimate.
-   */
-  const Matrix& covariance() const { return P; }
-
-  /**
-   * @brief Prediction stage with a Lie group element U.
-   * @param U Lie group control input
-   * @param Q Process noise covariance matrix.
+   * Predict step via group composition:
+   *   X_{k+1} = X_k * U
+   *   P_{k+1} = A P_k A^T + Q
+   * where A = Ad_{U^{-1}}. i.e., d(X.compose(U))/dX evaluated at X_k.
+   *
+   * @param U  Lie group increment (e.g., Expmap of control * dt)
+   * @param Q  process noise covariance in tangent space
    */
   void predict(const G& U, const Matrix& Q) {
     typename G::Jacobian A;
-    X = X.compose(U, A);
-    P = A * P * A.transpose() + Q;
+    X_ = X_.compose(U, A);
+    P_ = A * P_ * A.transpose() + Q;
   }
 
   /**
-   * @brief Prediction stage with a tangent vector xi and a time interval dt.
-   * @param u Control vector element
+   * Predict step via tangent control vector:
+   *   U = Expmap(u * dt)
+   * @param u tangent control vector
    * @param dt Time interval
    * @param Q Process noise covariance matrix.
    *
@@ -97,52 +97,66 @@ class LIEKF {
   }
 
   /**
-   * @brief Prediction stage with a dynamics function that calculates the
-   * tangent vector xi that *depends on the state*.
-   * @tparam Control The control input type
-   * @tparam Dynamics : (G, Control, OptionalJacobian<n,n>) -> TangentVector
-   * @param f Dynamics function that depends on state and control input
-   * @param u Control input
-   * @param dt Time interval
-   * @param Q Process noise covariance matrix.
+   * Predict step with state-dependent dynamics:
+   *   xi = f(X, u, F)
+   *   U  = Expmap(xi * dt)
+   *   A  = Ad_{U^{-1}} * F
+   *
+   * @tparam Control   control input type
+   * @tparam Dynamics  signature: G f(const G&, const Control&,
+   *                                  OptionalJacobian<n,n>&)
+   *
+   * @param f   dynamics functor depending on state and control
+   * @param u   control input
+   * @param dt  time step
+   * @param Q   process noise covariance
    */
   template <typename Control, typename Dynamics>
   void predict(Dynamics&& f, const Control& u, double dt, const Matrix& Q) {
     typename G::Jacobian F;
-    const typename G::TangentVector xi = f(X, u, F);
+    auto xi = f(X_, u, F);
     G U = G::Expmap(xi * dt);
-    auto A = U.inverse().AdjointMap() * F;  // chain rule for compose and f
-    X = X.compose(U);
-    P = A * P * A.transpose() + Q;
+    auto A = U.inverse().AdjointMap() * F;
+    X_ = X_.compose(U);
+    P_ = A * P_ * A.transpose() + Q;
   }
 
   /**
-   * @brief Update stage using a measurement and measurement covariance.
-   * @tparam Measurement The measurement output type
-   * @tparam Prediction : (G, OptionalJacobian<m,n>) -> Measurement
-   * @param z Measurement
-   * @param R Measurement noise covariance matrix.
+   * Measurement update:
+   *   z_pred, H = h(X)
+   *   K = P H^T (H P H^T + R)^{-1}
+   *   X <- Expmap(-K (z_pred - z)) * X
+   *   P <- (I - K H) P
+   *
+   * @tparam Measurement  measurement type (e.g., Vector)
+   * @tparam Prediction   functor signature: Measurement h(const G&,
+   * OptionalJacobian<m,n>&)
+   *
+   * @param h  measurement model returning predicted z and Jacobian H
+   * @param z  observed measurement
+   * @param R  measurement noise covariance
    */
   template <typename Measurement, typename Prediction>
   void update(Prediction&& h, const Measurement& z, const Matrix& R) {
     Eigen::Matrix<double, traits<Measurement>::dimension, n> H;
-    Vector y = h(X, H) - z;
-    Matrix S = H * P * H.transpose() + R;
-    Matrix K = P * H.transpose() * S.inverse();
-    X = X.expmap(-K * y);
-    P = (I_n - K * H) * P;  // move Identity to be a constant.
+    auto z_pred = h(X_, H);
+    auto y = z_pred - z;
+    Matrix S = H * P_ * H.transpose() + R;
+    Matrix K = P_ * H.transpose() * S.inverse();
+    X_ = X_.expmap(-K * y);
+    P_ = (I_n - K * H) * P_;
   }
 
  protected:
-  G X;       ///< Current state estimate.
-  Matrix P;  ///< Current covariance estimate.
+  G X_;       ///< group state estimate
+  Matrix P_;  ///< covariance in tangent space
 
  private:
-  static const MatrixN
-      I_n;  ///< A nxn identity matrix used in the update stage of the LIEKF.
+  /// Identity matrix of size n
+  static const MatrixN I_n;
 };
 
-/// Create the static identity matrix I_n of size nxn for use in update
+// Define static identity I_n
 template <typename G>
 const typename LIEKF<G>::MatrixN LIEKF<G>::I_n = LIEKF<G>::MatrixN::Identity();
 
