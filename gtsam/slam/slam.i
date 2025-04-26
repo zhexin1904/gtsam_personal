@@ -396,9 +396,12 @@ template <T = {gtsam::Point2, gtsam::Rot2, gtsam::Pose2, gtsam::Point3,
                gtsam::SO3, gtsam::SO4, gtsam::Rot3, gtsam::Pose3}>
 virtual class KarcherMeanFactor : gtsam::NonlinearFactor {
   KarcherMeanFactor(const gtsam::KeyVector& keys);
+  KarcherMeanFactor(const gtsam::KeyVector& keys, int d, double beta);
 };
 
-gtsam::Rot3 FindKarcherMean(const gtsam::Rot3Vector& rotations);
+template <T = {gtsam::Point2, gtsam::Rot2, gtsam::Pose2, gtsam::Point3,
+  gtsam::SO3, gtsam::SO4, gtsam::Rot3, gtsam::Pose3}>
+T FindKarcherMean(const std::vector<T>& elements);
 
 #include <gtsam/slam/FrobeniusFactor.h>
 gtsam::noiseModel::Isotropic* ConvertNoiseModel(gtsam::noiseModel::Base* model,
@@ -464,6 +467,7 @@ typedef gtsam::TriangulationFactor<gtsam::PinholePose<gtsam::Cal3Unified>>
 namespace lago {
   gtsam::Values initialize(const gtsam::NonlinearFactorGraph& graph, bool useOdometricPath = true);
   gtsam::Values initialize(const gtsam::NonlinearFactorGraph& graph, const gtsam::Values& initialGuess);
+  gtsam::VectorValues initializeOrientations(const gtsam::NonlinearFactorGraph& graph, bool useOdometricPath = true);
 }
 
 }  // namespace gtsam
