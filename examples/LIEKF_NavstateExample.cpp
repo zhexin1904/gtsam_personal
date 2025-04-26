@@ -11,10 +11,10 @@
 
 /**
  * @file LIEKF_NavstateExample.cpp
- * @brief A left invariant Extended Kalman Filter example using the GeneralLIEKF
+ * @brief A left invariant Extended Kalman Filter example using the LIEKF
  * on NavState using IMU/GPS measurements.
  *
- * This example uses the templated GeneralLIEKF class to estimate the state of
+ * This example uses the templated LIEKF class to estimate the state of
  * an object using IMU/GPS measurements. The prediction stage of the LIEKF uses
  * a generic dynamics function to predict the state. This simulates a navigation
  * state of (pose, velocity, position)
@@ -64,16 +64,9 @@ int main() {
   Matrix9 P0 = Matrix9::Identity() * 0.1;
   double dt = 1.0;
 
-  // Create the measurement function h_func that wraps h_gps
-  GeneralLIEKF<NavState, Vector3, 6>::MeasurementFunction h_func =
-      [](const NavState& X, OptionalJacobian<3, 9> H) { return h_gps(X, H); };
-
-  // Create the dynamics function dynamics_func
-  GeneralLIEKF<NavState, Vector3, 6>::Dynamics dynamics_func = dynamics;
-
   // Create the filter with the initial state, covariance, and dynamics and
   // measurement functions.
-  GeneralLIEKF<NavState, Vector3, 6> ekf(X0, P0, dynamics_func, h_func);
+  LIEKF<NavState> ekf(X0, P0);
 
   // Create the process covariance and measurement covariance matrices Q and R.
   Matrix9 Q = Matrix9::Identity() * 0.01;
@@ -96,25 +89,25 @@ int main() {
   cout << "P0: " << ekf.covariance() << endl;
 
   // First prediction stage
-  ekf.predict(imu1, dt, Q);
+  ekf.predict<6>(dynamics, imu1, dt, Q);
   cout << "\nFirst Prediction:\n";
   cout << "X: " << ekf.state() << endl;
   cout << "P: " << ekf.covariance() << endl;
 
   // First update stage
-  ekf.update(z1, R);
+  ekf.update(h_gps, z1, R);
   cout << "\nFirst Update:\n";
   cout << "X: " << ekf.state() << endl;
   cout << "P: " << ekf.covariance() << endl;
 
   // Second prediction stage
-  ekf.predict(imu2, dt, Q);
+  ekf.predict<6>(dynamics, imu2, dt, Q);
   cout << "\nSecond Prediction:\n";
   cout << "X: " << ekf.state() << endl;
   cout << "P: " << ekf.covariance() << endl;
 
   // Second update stage
-  ekf.update(z2, R);
+  ekf.update(h_gps, z2, R);
   cout << "\nSecond Update:\n";
   cout << "X: " << ekf.state() << endl;
   cout << "P: " << ekf.covariance() << endl;

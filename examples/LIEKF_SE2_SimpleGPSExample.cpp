@@ -53,14 +53,10 @@ int main() {
   // // Initialize the filter's state, covariance, and time interval values.
   Pose2 X0(0.0, 0.0, 0.0);
   Matrix3 P0 = Matrix3::Identity() * 0.1;
-  double dt = 1.0;
 
-  // Create the function measurement_function that wraps h_gps.
-  std::function<Vector2(const Pose2&, gtsam::OptionalJacobian<2, 3>)>
-      measurement_function = h_gps;
   // Create the filter with the initial state, covariance, and measurement
   // function.
-  LIEKF<Pose2, Vector2> ekf(X0, P0, measurement_function);
+  LIEKF<Pose2> ekf(X0, P0);
 
   // Define the process covariance and measurement covariance matrices Q and R.
   Matrix3 Q = (Vector3(0.05, 0.05, 0.001)).asDiagonal();
@@ -100,7 +96,7 @@ int main() {
        << endl;
 
   // First update stage
-  ekf.update(z1, R);
+  ekf.update(h_gps, z1, R);
   cout << "\nFirst Update:\n";
   cout << "X: " << ekf.state() << endl;
   cout << "P: " << TransformP * ekf.covariance() * TransformP.transpose()
@@ -114,7 +110,7 @@ int main() {
        << endl;
 
   // Second update stage
-  ekf.update(z2, R);
+  ekf.update(h_gps, z2, R);
   cout << "\nSecond Update:\n";
   cout << "X: " << ekf.state() << endl;
   cout << "P: " << TransformP * ekf.covariance() * TransformP.transpose()
