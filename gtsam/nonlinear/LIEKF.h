@@ -84,10 +84,13 @@ class LIEKF {
   }
 
   /**
-   * @brief Prediction stage with a control vector u and a time interval dt.
+   * @brief Prediction stage with a tangent vector xi and a time interval dt.
    * @param u Control vector element
    * @param dt Time interval
    * @param Q Process noise covariance matrix.
+   *
+   * @note Use this if your dynamics does not depend on the state, e.g.
+   * predict(f(u), dt, q) where u is a control input
    */
   void predict(const Vector& u, double dt, const Matrix& Q) {
     predict(G::Expmap(u * dt), Q);
@@ -95,28 +98,27 @@ class LIEKF {
 
   /**
    * @brief Prediction stage with a dynamics function that calculates the
-   * tangent vector xi in the tangent space.
-   * @tparam _p The dimension of the control vector.
-   * @tparam Dynamics : (G, VectorP, OptionalJacobian<n,n>) -> TangentVector
-   * @param f Dynamics function that depends on state and control vector
-   * @param u Control vector element
+   * tangent vector xi that *depends on the state*.
+   * @tparam Control The control input type
+   * @tparam Dynamics : (G, Control, OptionalJacobian<n,n>) -> TangentVector
+   * @param f Dynamics function that depends on state and control input
+   * @param u Control input
    * @param dt Time interval
    * @param Q Process noise covariance matrix.
    */
-  template <size_t _p, typename Dynamics>
-  void predict(Dynamics&& f, const Eigen::Matrix<double, _p, 1>& u, double dt,
-               const Matrix& Q) {
+  template <typename Control, typename Dynamics>
+  void predict(Dynamics&& f, const Control& u, double dt, const Matrix& Q) {
     typename G::Jacobian F;
     const typename G::TangentVector xi = f(X, u, F);
     G U = G::Expmap(xi * dt);
-    auto A = U.inverse().AdjointMap() * F;
+    auto A = U.inverse().AdjointMap() * F;  // chain rule for compose and f
     X = X.compose(U);
     P = A * P * A.transpose() + Q;
   }
 
   /**
    * @brief Update stage using a measurement and measurement covariance.
-   * @tparam Measurement
+   * @tparam Measurement The measurement output type
    * @tparam Prediction : (G, OptionalJacobian<m,n>) -> Measurement
    * @param z Measurement
    * @param R Measurement noise covariance matrix.

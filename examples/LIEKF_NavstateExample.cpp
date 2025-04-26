@@ -89,7 +89,7 @@ int main() {
   cout << "P0: " << ekf.covariance() << endl;
 
   // First prediction stage
-  ekf.predict<6>(dynamics, imu1, dt, Q);
+  ekf.predict(dynamics, imu1, dt, Q);
   cout << "\nFirst Prediction:\n";
   cout << "X: " << ekf.state() << endl;
   cout << "P: " << ekf.covariance() << endl;
@@ -101,7 +101,7 @@ int main() {
   cout << "P: " << ekf.covariance() << endl;
 
   // Second prediction stage
-  ekf.predict<6>(dynamics, imu2, dt, Q);
+  ekf.predict(dynamics, imu2, dt, Q);
   cout << "\nSecond Prediction:\n";
   cout << "X: " << ekf.state() << endl;
   cout << "P: " << ekf.covariance() << endl;
