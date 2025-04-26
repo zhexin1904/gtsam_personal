@@ -20,7 +20,7 @@
 #include <gtsam/base/Matrix.h>
 #include <gtsam/base/OptionalJacobian.h>
 #include <gtsam/navigation/NavState.h>
-#include <gtsam/nonlinear/LIEKF.h>
+#include <gtsam/navigation/LIEKF.h>
 
 #include <iostream>
 

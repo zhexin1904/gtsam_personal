@@ -29,12 +29,10 @@
  * Beard, and Joshua G. Mangelson
  *
  * @date Apr 25, 2025
- * @author Scott Baker
- * @author Matt Kielo
- * @author Frank Dellaert
+ * @authors Scott Baker, Matt Kielo, Frank Dellaert
  */
 #include <gtsam/geometry/Pose2.h>
-#include <gtsam/nonlinear/LIEKF.h>
+#include <gtsam/navigation/LIEKF.h>
 
 #include <iostream>
 
