@@ -467,6 +467,7 @@ typedef gtsam::TriangulationFactor<gtsam::PinholePose<gtsam::Cal3Unified>>
 namespace lago {
   gtsam::Values initialize(const gtsam::NonlinearFactorGraph& graph, bool useOdometricPath = true);
   gtsam::Values initialize(const gtsam::NonlinearFactorGraph& graph, const gtsam::Values& initialGuess);
+  gtsam::VectorValues initializeOrientations(const gtsam::NonlinearFactorGraph& graph, bool useOdometricPath = true);
 }
 
 }  // namespace gtsam
