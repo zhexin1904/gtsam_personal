@@ -342,7 +342,7 @@ typedef gtsam::GenericStereoFactor<gtsam::Pose3, gtsam::Point3>
     GenericStereoFactor3D;
 
 #include <gtsam/slam/ReferenceFrameFactor.h>
-template<LANDMARK, POSE>
+template<LANDMARK = {gtsam::Point3}, POSE = {gtsam::Pose3}>
 class ReferenceFrameFactor : gtsam::NoiseModelFactor {
   ReferenceFrameFactor(gtsam::Key globalKey, gtsam::Key transKey, 
                        gtsam::Key localKey, const gtsam::noiseModel::Base* model);
