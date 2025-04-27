@@ -1317,7 +1317,7 @@ class Similarity3 {
   double scale() const;
 };
 
-template <T>
+template <T = {gtsam::PinholePoseCal3_S2}>
 class CameraSet {
   CameraSet();
 
