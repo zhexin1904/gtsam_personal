@@ -21,35 +21,33 @@
 
 using namespace gtsam;
 
-// Duplicate the dynamics function under test:
+// Duplicate the dynamics function in LIEKF_Rot3Example
 namespace example {
-Vector9 dynamics(const NavState& X, const Vector6& imu,
-                 OptionalJacobian<9, 9> H = {}) {
-  auto a = imu.head<3>();
-  auto w = imu.tail<3>();
-  Vector9 xi;
-  xi << w, Vector3::Zero(), a;
-  if (H) *H = Matrix9::Zero();
-  return xi;
+static constexpr double k = 0.5;
+Vector3 dynamics(const Rot3& X, OptionalJacobian<3, 3> H = {}) {
+  // φ = Logmap(R), Dφ = ∂φ/∂δR
+  Matrix3 Dφ;
+  Vector3 φ = Rot3::Logmap(X, Dφ);
+  // zero out yaw
+  φ[2] = 0.0;
+  Dφ.row(2).setZero();
+
+  if (H) *H = -k * Dφ;  // ∂(–kφ)/∂δR
+  return -k * φ;        // xi ∈ 𝔰𝔬(3)
 }
 }  // namespace example
 
 TEST(LIEKFNavState, dynamicsJacobian) {
   // Construct a nontrivial state and IMU input
-  NavState X(Rot3::RzRyRx(0.1, -0.2, 0.3), Point3(1.0, 2.0, 3.0),
-             Vector3(0.5, -0.5, 0.5));
-  Vector6 imu;
-  imu << 0.1, -0.1, 0.2,  // acceleration
-      0.01, -0.02, 0.03;  // angular velocity
+  Rot3 R = Rot3::RzRyRx(0.1, -0.2, 0.3);
 
   // Analytic Jacobian (always zero for left-invariant dynamics)
-  OptionalJacobian<9, 9> H_analytic;
-  example::dynamics(X, imu, H_analytic);
-  Matrix actualH = *H_analytic;
+  Matrix3 actualH;
+  example::dynamics(R, actualH);
 
   // Numeric Jacobian w.r.t. the state X
-  auto f = [&](const NavState& X_) { return example::dynamics(X_, imu); };
-  Matrix expectedH = numericalDerivative11<Vector9, NavState>(f, X, 1e-6);
+  auto f = [&](const Rot3& X_) { return example::dynamics(X_); };
+  Matrix3 expectedH = numericalDerivative11<Vector3, Rot3>(f, R, 1e-6);
 
   // Compare
   EXPECT(assert_equal(expectedH, actualH, 1e-8));

@@ -98,6 +98,28 @@ class LIEKF {
 
   /**
    * Predict step with state-dependent dynamics:
+   *   xi = f(X, F)
+   *   U  = Expmap(xi * dt)
+   *   A  = Ad_{U^{-1}} * F
+   *
+   * @tparam Dynamics  signature: G f(const G&,  OptionalJacobian<n,n>&)
+   *
+   * @param f   dynamics functor depending on state and control
+   * @param dt  time step
+   * @param Q   process noise covariance
+   */
+  template <typename Dynamics>
+  void predict(Dynamics&& f, double dt, const Matrix& Q) {
+    typename G::Jacobian F;
+    auto xi = f(X_, F);
+    G U = G::Expmap(xi * dt);
+    auto A = U.inverse().AdjointMap() * F;
+    X_ = X_.compose(U);
+    P_ = A * P_ * A.transpose() + Q;
+  }
+
+  /**
+   * Predict step with state and control input dynamics:
    *   xi = f(X, u, F)
    *   U  = Expmap(xi * dt)
    *   A  = Ad_{U^{-1}} * F
