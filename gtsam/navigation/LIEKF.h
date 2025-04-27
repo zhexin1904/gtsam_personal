@@ -29,7 +29,7 @@
 #include <gtsam/base/Vector.h>
 
 #include <Eigen/Dense>
-
+#include <type_traits>
 
 namespace gtsam {
 
@@ -92,7 +92,7 @@ class LIEKF {
    * @note Use this if your dynamics does not depend on the state, e.g.
    * predict(f(u), dt, q) where u is a control input
    */
-  void predict(const Vector& u, double dt, const Matrix& Q) {
+  void predict(const typename G::TangentVector& u, double dt, const Matrix& Q) {
     predict(G::Expmap(u * dt), Q);
   }
 
@@ -108,12 +108,18 @@ class LIEKF {
    * @param dt  time step
    * @param Q   process noise covariance
    */
-  template <typename Dynamics>
+  template <typename Dynamics,
+            typename = std::enable_if_t<
+                // not a plain vector…
+                !std::is_convertible_v<Dynamics, typename G::TangentVector>
+                // …and is callable as a true functor
+                && std::is_invocable_r_v<typename G::TangentVector, Dynamics,
+                                         const G&, OptionalJacobian<n, n>&> > >
   void predict(Dynamics&& f, double dt, const Matrix& Q) {
     typename G::Jacobian F;
-    auto xi = f(X_, F);
+    typename G::TangentVector xi = f(X_, F);
     G U = G::Expmap(xi * dt);
-    auto A = U.inverse().AdjointMap() * F;
+    typename G::Jacobian A = U.inverse().AdjointMap() * F;
     X_ = X_.compose(U);
     P_ = A * P_ * A.transpose() + Q;
   }
@@ -133,12 +139,19 @@ class LIEKF {
    * @param dt  time step
    * @param Q   process noise covariance
    */
-  template <typename Control, typename Dynamics>
+  template <typename Control, typename Dynamics,
+            typename = std::enable_if_t<
+                std::is_invocable_r_v<typename G::TangentVector,  // return type
+                                      Dynamics,                   // functor
+                                      const G&,                   // X
+                                      const Control&,             // u
+                                      OptionalJacobian<n, n>&     // H
+                                      > > >
   void predict(Dynamics&& f, const Control& u, double dt, const Matrix& Q) {
     typename G::Jacobian F;
-    auto xi = f(X_, u, F);
+    typename G::TangentVector xi = f(X_, u, F);
     G U = G::Expmap(xi * dt);
-    auto A = U.inverse().AdjointMap() * F;
+    typename G::Jacobian A = U.inverse().AdjointMap() * F;
     X_ = X_.compose(U);
     P_ = A * P_ * A.transpose() + Q;
   }
