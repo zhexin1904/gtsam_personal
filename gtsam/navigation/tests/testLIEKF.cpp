@@ -26,14 +26,14 @@ namespace example {
 static constexpr double k = 0.5;
 Vector3 dynamics(const Rot3& X, OptionalJacobian<3, 3> H = {}) {
   // φ = Logmap(R), Dφ = ∂φ/∂δR
-  Matrix3 Dφ;
-  Vector3 φ = Rot3::Logmap(X, Dφ);
+  Matrix3 D_phi;
+  Vector3 phi = Rot3::Logmap(X, D_phi);
   // zero out yaw
-  φ[2] = 0.0;
-  Dφ.row(2).setZero();
+  phi[2] = 0.0;
+  D_phi.row(2).setZero();
 
-  if (H) *H = -k * Dφ;  // ∂(–kφ)/∂δR
-  return -k * φ;        // xi ∈ 𝔰𝔬(3)
+  if (H) *H = -k * D_phi;  // ∂(–kφ)/∂δR
+  return -k * phi;         // xi ∈ 𝔰𝔬(3)
 }
 }  // namespace example
 
