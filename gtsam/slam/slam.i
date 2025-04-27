@@ -157,6 +157,7 @@ virtual class GeneralSFMFactor2 : gtsam::NoiseModelFactor {
 
 #include <gtsam/slam/SmartFactorBase.h>
 
+// Currently not wrapping SphericalCamera, since measurement type is not Point2 but Unit3
 template <
     CAMERA = {gtsam::PinholeCameraCal3_S2, gtsam::PinholeCameraCal3DS2,
               gtsam::PinholeCameraCal3Bundler, gtsam::PinholeCameraCal3Fisheye,
@@ -289,6 +290,7 @@ virtual class SmartProjectionPoseFactor : gtsam::NonlinearFactor {
 };
 
 #include <gtsam/slam/SmartProjectionRigFactor.h>
+// Only for PinholePose cameras -> PinholeCamera is not supported
 template <CAMERA = {gtsam::PinholePoseCal3_S2, gtsam::PinholePoseCal3DS2,
   gtsam::PinholePoseCal3Bundler,
   gtsam::PinholePoseCal3Fisheye,
