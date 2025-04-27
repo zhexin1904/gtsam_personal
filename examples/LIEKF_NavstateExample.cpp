@@ -31,7 +31,7 @@ using namespace gtsam;
  * @param imu  6×1 vector [a; ω]: linear acceleration and angular velocity.
  * @return     9×1 tangent: [ω; 0₃; a].
  */
-Vector9 dynamics(const Vector6& imu, OptionalJacobian<9, 9> H = {}) {
+Vector9 dynamics(const Vector6& imu) {
   auto a = imu.head<3>();
   auto w = imu.tail<3>();
   Vector9 xi;

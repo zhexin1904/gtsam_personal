@@ -58,7 +58,7 @@ int main() {
 
   // Define the process covariance and measurement covariance matrices Q and R.
   Matrix3 Q = (Vector3(0.05, 0.05, 0.001)).asDiagonal();
-  Matrix2 R = (Vector2(0.01, 0.01)).asDiagonal();
+  Matrix2 R = I_2x2 * 0.01;
 
   // Define odometry movements.
   // U1: Move 1 unit in X, 1 unit in Y, 0.5 radians in theta.
