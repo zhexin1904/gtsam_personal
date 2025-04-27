@@ -152,6 +152,23 @@ virtual class GeneralSFMFactor2 : gtsam::NoiseModelFactor {
   void serialize() const;
 };
 
+// Following header defines PinholeCamera{Cal3_S2|Cal3DS2|Cal3Bundler|Cal3Fisheye|Cal3Unified}
+#include <gtsam/geometry/SimpleCamera.h>
+
+#include <gtsam/slam/SmartFactorBase.h>
+
+template <CAMERA = {gtsam::PinholeCameraCal3_S2, gtsam::PinholeCameraCal3DS2,
+                    gtsam::PinholeCameraCal3Bundler,
+                    gtsam::PinholeCameraCal3Fisheye,
+                    gtsam::PinholeCameraCal3Unified}>
+virtual class SmartFactorBase : gtsam::NonlinearFactor {
+  void add(const gtsam::Point2& measured, size_t key);
+  void add(const gtsam::Point2Vector& measurements, const gtsam::KeyVector& cameraKeys);
+  size_t dim() const;
+  const std::vector<gtsam::Point2>& measured() const;
+  std::vector<CAMERA> cameras(const gtsam::Values& values) const;
+};
+
 #include <gtsam/slam/SmartProjectionFactor.h>
 
 /// Linearization mode: what factor to linearize to
@@ -176,8 +193,11 @@ class SmartProjectionParams {
   void print(const std::string& str = "") const;
 };
 
-template <CAMERA = {gtsam::PinholeCamera<gtsam::Cal3_S2>}>
-class SmartProjectionFactor : gtsam::NonlinearFactor {
+template <CAMERA = {gtsam::PinholeCameraCal3_S2, gtsam::PinholeCameraCal3DS2,
+                    gtsam::PinholeCameraCal3Bundler,
+                    gtsam::PinholeCameraCal3Fisheye,
+                    gtsam::PinholeCameraCal3Unified}>
+virtual class SmartProjectionFactor : gtsam::SmartFactorBase<CAMERA> {
   SmartProjectionFactor();
 
   SmartProjectionFactor(
@@ -238,7 +258,9 @@ class SmartProjectionFactor : gtsam::NonlinearFactor {
 };
 
 #include <gtsam/slam/SmartProjectionPoseFactor.h>
-template <CALIBRATION>
+// We are not deriving from SmartProjectionFactor yet - too complicated in wrapper
+template <CALIBRATION = {gtsam::Cal3_S2, gtsam::Cal3DS2, gtsam::Cal3Bundler,
+                         gtsam::Cal3Fisheye, gtsam::Cal3Unified}>
 virtual class SmartProjectionPoseFactor : gtsam::NonlinearFactor {
   SmartProjectionPoseFactor(const gtsam::noiseModel::Base* noise,
                             const CALIBRATION* K);
@@ -261,9 +283,6 @@ virtual class SmartProjectionPoseFactor : gtsam::NonlinearFactor {
   gtsam::TriangulationResult point() const;
   gtsam::TriangulationResult point(const gtsam::Values& values) const;
 };
-
-typedef gtsam::SmartProjectionPoseFactor<gtsam::Cal3_S2>
-    SmartProjectionPose3Factor;
 
 // WIP
 // #include <gtsam/geometry/PinholeCamera.h>
