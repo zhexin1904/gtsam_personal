@@ -157,16 +157,22 @@ virtual class GeneralSFMFactor2 : gtsam::NoiseModelFactor {
 
 #include <gtsam/slam/SmartFactorBase.h>
 
-template <CAMERA = {gtsam::PinholeCameraCal3_S2, gtsam::PinholeCameraCal3DS2,
-                    gtsam::PinholeCameraCal3Bundler,
-                    gtsam::PinholeCameraCal3Fisheye,
-                    gtsam::PinholeCameraCal3Unified}>
+template <
+    CAMERA = {gtsam::PinholeCameraCal3_S2, gtsam::PinholeCameraCal3DS2,
+              gtsam::PinholeCameraCal3Bundler, gtsam::PinholeCameraCal3Fisheye,
+              gtsam::PinholeCameraCal3Unified, gtsam::PinholePoseCal3_S2,
+              gtsam::PinholePoseCal3DS2, gtsam::PinholePoseCal3Bundler,
+              gtsam::PinholePoseCal3Fisheye, gtsam::PinholePoseCal3Unified}>
 virtual class SmartFactorBase : gtsam::NonlinearFactor {
   void add(const gtsam::Point2& measured, size_t key);
   void add(const gtsam::Point2Vector& measurements, const gtsam::KeyVector& cameraKeys);
   size_t dim() const;
   const std::vector<gtsam::Point2>& measured() const;
   std::vector<CAMERA> cameras(const gtsam::Values& values) const;
+
+  void print(const std::string& s = "", const gtsam::KeyFormatter& keyFormatter =
+    gtsam::DefaultKeyFormatter) const;
+  bool equals(const gtsam::NonlinearFactor& p, double tol = 1e-9) const;
 };
 
 #include <gtsam/slam/SmartProjectionFactor.h>
@@ -193,20 +199,18 @@ class SmartProjectionParams {
   void print(const std::string& str = "") const;
 };
 
-template <CAMERA = {gtsam::PinholeCameraCal3_S2, gtsam::PinholeCameraCal3DS2,
-                    gtsam::PinholeCameraCal3Bundler,
-                    gtsam::PinholeCameraCal3Fisheye,
-                    gtsam::PinholeCameraCal3Unified}>
+template <
+    CAMERA = {gtsam::PinholeCameraCal3_S2, gtsam::PinholeCameraCal3DS2,
+              gtsam::PinholeCameraCal3Bundler, gtsam::PinholeCameraCal3Fisheye,
+              gtsam::PinholeCameraCal3Unified, gtsam::PinholePoseCal3_S2,
+              gtsam::PinholePoseCal3DS2, gtsam::PinholePoseCal3Bundler,
+              gtsam::PinholePoseCal3Fisheye, gtsam::PinholePoseCal3Unified}>
 virtual class SmartProjectionFactor : gtsam::SmartFactorBase<CAMERA> {
   SmartProjectionFactor();
 
   SmartProjectionFactor(
       const gtsam::noiseModel::Base* sharedNoiseModel,
       const gtsam::SmartProjectionParams& params = gtsam::SmartProjectionParams());
-
-  void print(const std::string& s = "", const gtsam::KeyFormatter& keyFormatter =
-    gtsam::DefaultKeyFormatter) const;
-  bool equals(const gtsam::NonlinearFactor& p, double tol = 1e-9) const;
 
   bool decideIfTriangulate(const gtsam::CameraSet<CAMERA>& cameras) const;
   gtsam::TriangulationResult triangulateSafe(const gtsam::CameraSet<CAMERA>& cameras) const;
@@ -284,41 +288,29 @@ virtual class SmartProjectionPoseFactor : gtsam::NonlinearFactor {
   gtsam::TriangulationResult point(const gtsam::Values& values) const;
 };
 
-// WIP
-// #include <gtsam/geometry/PinholeCamera.h>
-// typedef gtsam::PinholeCamera<gtsam::Cal3_S2> PinholeCameraCal3_S2;
-// #include <gtsam/slam/SmartProjectionRigFactor.h>
-// template <CAMERA = {PinholeCameraCal3_S2}>
-// class SmartProjectionRigFactor : gtsam::SmartProjectionFactor<CAMERA> {
-//   SmartProjectionRigFactor();
+#include <gtsam/slam/SmartProjectionRigFactor.h>
+template <CAMERA = {gtsam::PinholePoseCal3_S2, gtsam::PinholePoseCal3DS2,
+  gtsam::PinholePoseCal3Bundler,
+  gtsam::PinholePoseCal3Fisheye,
+  gtsam::PinholePoseCal3Unified}>
+virtual class SmartProjectionRigFactor : gtsam::SmartProjectionFactor<CAMERA> {
+  SmartProjectionRigFactor();
 
-//   SmartProjectionRigFactor(
-//       const gtsam::noiseModel::Base* sharedNoiseModel,
-//       const gtsam::CameraSet<CAMERA>& cameraRig,
-//       const gtsam::SmartProjectionParams& params = gtsam::SmartProjectionParams());
+  SmartProjectionRigFactor(
+      const gtsam::noiseModel::Base* sharedNoiseModel,
+      const gtsam::CameraSet<CAMERA>* cameraRig,
+      const gtsam::SmartProjectionParams& params = gtsam::SmartProjectionParams());
 
-//   void add(const CAMERA::Measurement& measured, const gtsam::Key& poseKey,
-//            const size_t& cameraId = 0);
+  void add(const gtsam::Point2& measured, const gtsam::Key& poseKey,
+           const size_t& cameraId = 0);
 
-//   void add(const CAMERA::MeasurementVector& measurements, const gtsam::KeyVector& poseKeys,
-//            const gtsam::FastVector<size_t>& cameraIds = gtsam::FastVector<size_t>());
+  void add(const gtsam::Point2Vector& measurements, const gtsam::KeyVector& poseKeys,
+           const gtsam::FastVector<size_t>& cameraIds = gtsam::FastVector<size_t>());
 
-//   const gtsam::KeyVector& nonUniqueKeys() const;
-
-//   const gtsam::CameraSet<CAMERA>& cameraRig() const;
-
-//   const gtsam::FastVector<size_t>& cameraIds() const;
-
-//   void print(
-//       const std::string& s = "",
-//       const gtsam::KeyFormatter& keyFormatter = gtsam::DefaultKeyFormatter) const;
-
-//   bool equals(const gtsam::NonlinearFactor& p, double tol = 1e-9) const;
-
-//   gtsam::CameraSet<CAMERA> cameras(const gtsam::Values& values) const;
-  
-//   double error(const gtsam::Values& values) const;
-// };
+  const gtsam::KeyVector& nonUniqueKeys() const;
+  const gtsam::CameraSet<CAMERA>& cameraRig() const;
+  const gtsam::FastVector<size_t>& cameraIds() const;
+};
 
 #include <gtsam/slam/StereoFactor.h>
 template <POSE, LANDMARK>
