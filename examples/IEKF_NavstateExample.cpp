@@ -10,15 +10,15 @@
  * -------------------------------------------------------------------------- */
 
 /**
- * @file LIEKF_NavstateExample.cpp
- * @brief LIEKF on NavState (SE_2(3)) with IMU (predict) and GPS (update)
+ * @file IEKF_NavstateExample.cpp
+ * @brief InvariantEKF on NavState (SE_2(3)) with IMU (predict) and GPS (update)
  * @date April 25, 2025
  * @authors Scott Baker, Matt Kielo, Frank Dellaert
  */
 
 #include <gtsam/base/Matrix.h>
 #include <gtsam/base/OptionalJacobian.h>
-#include <gtsam/navigation/LIEKF.h>
+#include <gtsam/navigation/InvariantEKF.h>
 #include <gtsam/navigation/NavState.h>
 
 #include <iostream>
@@ -53,7 +53,7 @@ int main() {
   // Initial state & covariances
   NavState X0;  // R=I, v=0, t=0
   Matrix9 P0 = Matrix9::Identity() * 0.1;
-  LIEKF<NavState> ekf(X0, P0);
+  InvariantEKF<NavState> ekf(X0, P0);
 
   // Noise & timestep
   double dt = 1.0;

@@ -10,10 +10,10 @@
  * -------------------------------------------------------------------------- */
 
 /**
- * @file    LIEKF.h
- * @brief   Left-Invariant Extended Kalman Filter (LIEKF) implementation
+ * @file    InvariantEKF.h
+ * @brief   Left-Invariant Extended Kalman Filter (InvariantEKF) implementation
  *
- * This file defines the LIEKF class template for performing prediction and
+ * This file defines the InvariantEKF class template for performing prediction and
  * update steps of an Extended Kalman Filter on states residing in a Lie group.
  * The class supports state evolution via group composition and dynamics
  * functions, along with measurement updates using tangent-space corrections.
@@ -34,8 +34,8 @@
 namespace gtsam {
 
 /**
- * @class LIEKF
- * @brief Left-Invariant Extended Kalman Filter (LIEKF) on a Lie group G
+ * @class InvariantEKF
+ * @brief Left-Invariant Extended Kalman Filter (InvariantEKF) on a Lie group G
  *
  * @tparam G  Lie group type providing:
  *           - static int dimension = tangent dimension
@@ -50,7 +50,7 @@ namespace gtsam {
  * using the left-invariant error in the tangent space.
  */
 template <typename G>
-class LIEKF {
+class InvariantEKF {
  public:
   /// Tangent-space dimension
   static constexpr int n = traits<G>::dimension;
@@ -59,7 +59,7 @@ class LIEKF {
   using MatrixN = Eigen::Matrix<double, n, n>;
 
   /// Constructor: initialize with state and covariance
-  LIEKF(const G& X0, const Matrix& P0) : X_(X0), P_(P0) {}
+  InvariantEKF(const G& X0, const Matrix& P0) : X_(X0), P_(P0) {}
 
   /// @return current state estimate
   const G& state() const { return X_; }
@@ -229,6 +229,6 @@ class LIEKF {
 
 // Define static identity I_n
 template <typename G>
-const typename LIEKF<G>::MatrixN LIEKF<G>::I_n = LIEKF<G>::MatrixN::Identity();
+const typename InvariantEKF<G>::MatrixN InvariantEKF<G>::I_n = InvariantEKF<G>::MatrixN::Identity();
 
 }  // namespace gtsam

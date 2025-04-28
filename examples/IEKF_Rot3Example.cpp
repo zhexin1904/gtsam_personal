@@ -10,7 +10,7 @@
  * -------------------------------------------------------------------------- */
 
 /**
- * @file LIEKF_Rot3Example.cpp
+ * @file IEKF_Rot3Example.cpp
  * @brief Left‐Invariant EKF on SO(3) with state‐dependent pitch/roll control
  * and a single magnetometer update.
  * @date April 25, 2025
@@ -20,10 +20,9 @@
 #include <gtsam/base/Matrix.h>
 #include <gtsam/base/OptionalJacobian.h>
 #include <gtsam/geometry/Rot3.h>
-#include <gtsam/navigation/LIEKF.h>
+#include <gtsam/navigation/InvariantEKF.h>
 
 #include <iostream>
-
 
 using namespace std;
 using namespace gtsam;
@@ -39,7 +38,7 @@ Vector3 dynamicsSO3(const Rot3& X, OptionalJacobian<3, 3> H = {}) {
   D_phi.row(2).setZero();
 
   if (H) *H = -k * D_phi;  // ∂(–kφ)/∂δR
-  return -k * phi;        // xi ∈ 𝔰𝔬(3)
+  return -k * phi;         // xi ∈ 𝔰𝔬(3)
 }
 
 // --- 2) Magnetometer model: z = R⁻¹ m, H = –[z]_× ---
@@ -54,7 +53,7 @@ int main() {
   // Initial estimate (identity) and covariance
   const Rot3 R0 = Rot3::RzRyRx(0.1, -0.2, 0.3);
   const Matrix3 P0 = Matrix3::Identity() * 0.1;
-  LIEKF<Rot3> ekf(R0, P0);
+  InvariantEKF<Rot3> ekf(R0, P0);
 
   // Timestep, process noise, measurement noise
   double dt = 0.1;

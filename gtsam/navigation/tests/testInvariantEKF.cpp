@@ -8,8 +8,8 @@
  * -------------------------------------------------------------------------- */
 
 /**
- * @file testLIEKFNavState.cpp
- * @brief Unit test for the NavState dynamics Jacobian in LIEKF example.
+ * @file testInvariantEKFNavState.cpp
+ * @brief Unit test for the NavState dynamics Jacobian in InvariantEKF example.
  * @date April 26, 2025
  * @authors Scott Baker, Matt Kielo, Frank Dellaert
  */
@@ -18,12 +18,12 @@
 #include <gtsam/base/Testable.h>
 #include <gtsam/base/numericalDerivative.h>
 #include <gtsam/geometry/Rot3.h>
-#include <gtsam/navigation/LIEKF.h>
+#include <gtsam/navigation/InvariantEKF.h>
 #include <gtsam/navigation/NavState.h>
 
 using namespace gtsam;
 
-// Duplicate the dynamics function in LIEKF_Rot3Example
+// Duplicate the dynamics function in InvariantEKF_Rot3Example
 namespace exampleSO3 {
 static constexpr double k = 0.5;
 Vector3 dynamics(const Rot3& X, OptionalJacobian<3, 3> H = {}) {
@@ -64,12 +64,12 @@ TEST(IEKF, PredictNumericState) {
 
   // Analytic Jacobian
   Matrix3 actualH;
-  LIEKF<Rot3> iekf0(R0, P0);
+  InvariantEKF<Rot3> iekf0(R0, P0);
   iekf0.predictMean(exampleSO3::dynamics, dt, Q, actualH);
 
   // wrap predict into a state->state functor (mapping on SO(3))
   auto g = [&](const Rot3& R) -> Rot3 {
-    LIEKF<Rot3> iekf(R, P0);
+    InvariantEKF<Rot3> iekf(R, P0);
     return iekf.predictMean(exampleSO3::dynamics, dt, Q);
   };
 
@@ -94,12 +94,12 @@ TEST(IEKF, StateAndControl) {
 
   // Analytic Jacobian
   Matrix3 actualH;
-  LIEKF<Rot3> iekf0(R0, P0);
+  InvariantEKF<Rot3> iekf0(R0, P0);
   iekf0.predictMean(f, dummy_u, dt, Q, actualH);
 
   // wrap predict into a state->state functor (mapping on SO(3))
   auto g = [&](const Rot3& R) -> Rot3 {
-    LIEKF<Rot3> iekf(R, P0);
+    InvariantEKF<Rot3> iekf(R, P0);
     return iekf.predictMean(f, dummy_u, dt, Q);
   };
 
