@@ -97,6 +97,34 @@ class LIEKF {
   }
 
   /**
+   * Predict mean only with state-dependent dynamics:
+   *   xi = f(X, F)
+   *   U  = Expmap(xi * dt)
+   *   A  = Ad_{U^{-1}} * F
+   *
+   * @tparam Dynamics  signature: G f(const G&,  OptionalJacobian<n,n>&)
+   *
+   * @param f   dynamics functor depending on state and control
+   * @param dt  time step
+   * @param Q   process noise covariance
+   */
+  template <typename Dynamics,
+            typename = std::enable_if_t<
+                // not a plain vector…
+                !std::is_convertible_v<Dynamics, typename G::TangentVector>
+                // …and is callable as a true functor
+                && std::is_invocable_r_v<typename G::TangentVector, Dynamics,
+                                         const G&, OptionalJacobian<n, n>>>>
+  G predictMean(Dynamics&& f, double dt, const Matrix& Q,
+                OptionalJacobian<n, n> A = {}) const {
+    typename G::Jacobian F1, F2;
+    typename G::TangentVector xi = f(X_, F1);
+    G U = G::Expmap(xi * dt, F2);
+    if (A) *A = U.inverse().AdjointMap() + F2 * F1 * dt;
+    return X_.compose(U);
+  }
+
+  /**
    * Predict step with state-dependent dynamics:
    *   xi = f(X, F)
    *   U  = Expmap(xi * dt)
@@ -114,13 +142,10 @@ class LIEKF {
                 !std::is_convertible_v<Dynamics, typename G::TangentVector>
                 // …and is callable as a true functor
                 && std::is_invocable_r_v<typename G::TangentVector, Dynamics,
-                                         const G&, OptionalJacobian<n, n>&> > >
+                                         const G&, OptionalJacobian<n, n>>>>
   void predict(Dynamics&& f, double dt, const Matrix& Q) {
-    typename G::Jacobian F;
-    typename G::TangentVector xi = f(X_, F);
-    G U = G::Expmap(xi * dt);
-    typename G::Jacobian A = U.inverse().AdjointMap() * F;
-    X_ = X_.compose(U);
+    typename G::Jacobian A;
+    X_ = predictMean(f, dt, Q, &A);
     P_ = A * P_ * A.transpose() + Q;
   }
 
@@ -145,15 +170,13 @@ class LIEKF {
                                       Dynamics,                   // functor
                                       const G&,                   // X
                                       const Control&,             // u
-                                      OptionalJacobian<n, n>&     // H
-                                      > > >
+                                      OptionalJacobian<n, n>      // H
+                                      >>>
   void predict(Dynamics&& f, const Control& u, double dt, const Matrix& Q) {
-    typename G::Jacobian F;
-    typename G::TangentVector xi = f(X_, u, F);
-    G U = G::Expmap(xi * dt);
-    typename G::Jacobian A = U.inverse().AdjointMap() * F;
-    X_ = X_.compose(U);
-    P_ = A * P_ * A.transpose() + Q;
+    auto g = [f, u](const G& X, OptionalJacobian<n, n> F) {
+      return f(X, u, F);
+    };
+    predict(g, dt, Q);
   }
 
   /**

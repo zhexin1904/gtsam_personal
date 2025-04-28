@@ -17,12 +17,14 @@
 #include <CppUnitLite/TestHarness.h>
 #include <gtsam/base/Testable.h>
 #include <gtsam/base/numericalDerivative.h>
+#include <gtsam/geometry/Rot3.h>
+#include <gtsam/navigation/LIEKF.h>
 #include <gtsam/navigation/NavState.h>
 
 using namespace gtsam;
 
 // Duplicate the dynamics function in LIEKF_Rot3Example
-namespace example {
+namespace exampleSO3 {
 static constexpr double k = 0.5;
 Vector3 dynamics(const Rot3& X, OptionalJacobian<3, 3> H = {}) {
   // φ = Logmap(R), Dφ = ∂φ/∂δR
@@ -35,22 +37,46 @@ Vector3 dynamics(const Rot3& X, OptionalJacobian<3, 3> H = {}) {
   if (H) *H = -k * D_phi;  // ∂(–kφ)/∂δR
   return -k * phi;         // xi ∈ 𝔰𝔬(3)
 }
-}  // namespace example
+}  // namespace exampleSO3
 
-TEST(LIEKFNavState, dynamicsJacobian) {
+TEST(IEKF, dynamicsJacobian) {
   // Construct a nontrivial state and IMU input
   Rot3 R = Rot3::RzRyRx(0.1, -0.2, 0.3);
 
-  // Analytic Jacobian (always zero for left-invariant dynamics)
+  // Analytic Jacobian
   Matrix3 actualH;
-  example::dynamics(R, actualH);
+  exampleSO3::dynamics(R, actualH);
 
   // Numeric Jacobian w.r.t. the state X
-  auto f = [&](const Rot3& X_) { return example::dynamics(X_); };
-  Matrix3 expectedH = numericalDerivative11<Vector3, Rot3>(f, R, 1e-6);
+  auto f = [&](const Rot3& X_) { return exampleSO3::dynamics(X_); };
+  Matrix3 expectedH = numericalDerivative11<Vector3, Rot3>(f, R);
 
   // Compare
-  EXPECT(assert_equal(expectedH, actualH, 1e-8));
+  EXPECT(assert_equal(expectedH, actualH));
+}
+
+TEST(IEKF, PredictNumericState) {
+  // GIVEN
+  Rot3 R0 = Rot3::RzRyRx(0.2, -0.1, 0.3);
+  Matrix3 P0 = Matrix3::Identity() * 0.2;
+  double dt = 0.1;
+  Matrix3 Q = Matrix3::Zero();
+
+  // Analytic Jacobian
+  Matrix3 actualH;
+  LIEKF<Rot3> iekf0(R0, P0);
+  iekf0.predictMean(exampleSO3::dynamics, dt, Q, actualH);
+
+  // wrap predict into a state->state functor (mapping on SO(3))
+  auto g = [&](const Rot3& R) -> Rot3 {
+    LIEKF<Rot3> iekf(R, P0);
+    return iekf.predictMean(exampleSO3::dynamics, dt, Q);
+  };
+
+  // numeric Jacobian of g at R0
+  Matrix3 expectedH = numericalDerivative11<Rot3, Rot3>(g, R0);
+
+  EXPECT(assert_equal(expectedH, actualH));
 }
 
 int main() {
