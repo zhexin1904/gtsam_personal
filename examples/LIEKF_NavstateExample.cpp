@@ -46,8 +46,7 @@ Vector9 dynamics(const Vector6& imu) {
  * @return     3×1 position vector.
  */
 Vector3 h_gps(const NavState& X, OptionalJacobian<3, 9> H = {}) {
-  if (H) *H << Z_3x3, Z_3x3, X.R().matrix();
-  return X.t();
+  return X.position(H);
 }
 
 int main() {
