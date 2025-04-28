@@ -97,52 +97,50 @@ class LIEKF {
   }
 
   /**
+   * SFINAE check for correctly typed state-dependent dynamics function.
+   *   xi = f(X, F)
+   * @tparam Dynamics signature: G f(const G&,  OptionalJacobian<n,n>&)
+   */
+  template <typename Dynamics>
+  using enable_if_dynamics = std::enable_if_t<
+      !std::is_convertible_v<Dynamics, typename G::TangentVector> &&
+      std::is_invocable_r_v<typename G::TangentVector, Dynamics, const G&,
+                            OptionalJacobian<n, n>&>>;
+  /**
    * Predict mean only with state-dependent dynamics:
    *   xi = f(X, F)
-   *   U  = Expmap(xi * dt)
-   *   A  = Ad_{U^{-1}} * F
+   *   X_.expmap(xi * dt)
    *
    * @tparam Dynamics  signature: G f(const G&,  OptionalJacobian<n,n>&)
-   *
    * @param f   dynamics functor depending on state and control
    * @param dt  time step
    * @param Q   process noise covariance
    */
-  template <typename Dynamics,
-            typename = std::enable_if_t<
-                // not a plain vector…
-                !std::is_convertible_v<Dynamics, typename G::TangentVector>
-                // …and is callable as a true functor
-                && std::is_invocable_r_v<typename G::TangentVector, Dynamics,
-                                         const G&, OptionalJacobian<n, n>>>>
+  template <typename Dynamics, typename = enable_if_dynamics<Dynamics>>
   G predictMean(Dynamics&& f, double dt, const Matrix& Q,
                 OptionalJacobian<n, n> A = {}) const {
-    typename G::Jacobian F1, F2;
-    typename G::TangentVector xi = f(X_, F1);
-    G U = G::Expmap(xi * dt, F2);
-    if (A) *A = U.inverse().AdjointMap() + F2 * F1 * dt;
+    typename G::Jacobian Df, Dexp;
+    typename G::TangentVector xi = f(X_, Df);
+    G U = G::Expmap(xi * dt, Dexp);
+    // derivative of mean = d[X.compose(U)]/dLog(X)
+    //   = Ad_{U⁻¹}   (the “left‐invariant” part)
+    // plus the effect of X→U via Expmap:
+    //   Dexp * Df * dt  (how U moves when X moves through f)
+    if (A) *A = U.inverse().AdjointMap() + Dexp * Df * dt;
     return X_.compose(U);
   }
 
   /**
    * Predict step with state-dependent dynamics:
    *   xi = f(X, F)
-   *   U  = Expmap(xi * dt)
-   *   A  = Ad_{U^{-1}} * F
+   *   X_.expmap(xi * dt)
    *
    * @tparam Dynamics  signature: G f(const G&,  OptionalJacobian<n,n>&)
-   *
    * @param f   dynamics functor depending on state and control
    * @param dt  time step
    * @param Q   process noise covariance
    */
-  template <typename Dynamics,
-            typename = std::enable_if_t<
-                // not a plain vector…
-                !std::is_convertible_v<Dynamics, typename G::TangentVector>
-                // …and is callable as a true functor
-                && std::is_invocable_r_v<typename G::TangentVector, Dynamics,
-                                         const G&, OptionalJacobian<n, n>>>>
+  template <typename Dynamics, typename = enable_if_dynamics<Dynamics>>
   void predict(Dynamics&& f, double dt, const Matrix& Q) {
     typename G::Jacobian A;
     X_ = predictMean(f, dt, Q, &A);
@@ -150,10 +148,9 @@ class LIEKF {
   }
 
   /**
-   * Predict step with state and control input dynamics:
+   * Predict mean only with state and control input dynamics:
    *   xi = f(X, u, F)
-   *   U  = Expmap(xi * dt)
-   *   A  = Ad_{U^{-1}} * F
+   *   X_.expmap(xi * dt)
    *
    * @tparam Control   control input type
    * @tparam Dynamics  signature: G f(const G&, const Control&,
@@ -164,14 +161,30 @@ class LIEKF {
    * @param dt  time step
    * @param Q   process noise covariance
    */
-  template <typename Control, typename Dynamics,
-            typename = std::enable_if_t<
-                std::is_invocable_r_v<typename G::TangentVector,  // return type
-                                      Dynamics,                   // functor
-                                      const G&,                   // X
-                                      const Control&,             // u
-                                      OptionalJacobian<n, n>      // H
-                                      >>>
+  template <typename Control, typename Dynamics>
+  G predictMean(Dynamics&& f, const Control& u, double dt, const Matrix& Q,
+                OptionalJacobian<n, n> A = {}) {
+    auto g = [f, u](const G& X, OptionalJacobian<n, n> F) {
+      return f(X, u, F);
+    };
+    return predictMean(g, dt, Q, A);
+  }
+
+  /**
+   * Predict step with state and control input dynamics:
+   *   xi = f(X, u, F)
+   *   X_.expmap(xi * dt)
+   *
+   * @tparam Control   control input type
+   * @tparam Dynamics  signature: G f(const G&, const Control&,
+   *                                  OptionalJacobian<n,n>&)
+   *
+   * @param f   dynamics functor depending on state and control
+   * @param u   control input
+   * @param dt  time step
+   * @param Q   process noise covariance
+   */
+  template <typename Control, typename Dynamics>
   void predict(Dynamics&& f, const Control& u, double dt, const Matrix& Q) {
     auto g = [f, u](const G& X, OptionalJacobian<n, n> F) {
       return f(X, u, F);

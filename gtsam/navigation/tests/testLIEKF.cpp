@@ -79,6 +79,36 @@ TEST(IEKF, PredictNumericState) {
   EXPECT(assert_equal(expectedH, actualH));
 }
 
+TEST(IEKF, StateAndControl) {
+  auto f = [](const Rot3& X, const Vector2& dummy_u,
+              OptionalJacobian<3, 3> H = {}) {
+    return exampleSO3::dynamics(X, H);
+  };
+
+  // GIVEN
+  Rot3 R0 = Rot3::RzRyRx(0.2, -0.1, 0.3);
+  Matrix3 P0 = Matrix3::Identity() * 0.2;
+  Vector2 dummy_u(1, 2);
+  double dt = 0.1;
+  Matrix3 Q = Matrix3::Zero();
+
+  // Analytic Jacobian
+  Matrix3 actualH;
+  LIEKF<Rot3> iekf0(R0, P0);
+  iekf0.predictMean(f, dummy_u, dt, Q, actualH);
+
+  // wrap predict into a state->state functor (mapping on SO(3))
+  auto g = [&](const Rot3& R) -> Rot3 {
+    LIEKF<Rot3> iekf(R, P0);
+    return iekf.predictMean(f, dummy_u, dt, Q);
+  };
+
+  // numeric Jacobian of g at R0
+  Matrix3 expectedH = numericalDerivative11<Rot3, Rot3>(g, R0);
+
+  EXPECT(assert_equal(expectedH, actualH));
+}
+
 int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);
