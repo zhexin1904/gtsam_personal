@@ -9,8 +9,8 @@
 /**
  * @file    Gal3.cpp
  * @brief   Implementation of 3D Galilean Group SGal(3) state
- * @author  Based on Python implementation by User
- * @date    April 30, 2025 // Updated Date
+ * @authors Matt Kielo, Scott Baker, Frank Dellaert
+ * @date    April 30, 2025 
  */
 
 #include <gtsam/navigation/Gal3.h> // Note: Adjust path if needed

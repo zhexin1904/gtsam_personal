@@ -10,8 +10,8 @@
  * @file    Gal3.h
  * @brief   3D Galilean Group SGal(3) state (attitude, position, velocity, time)
  * Based on manif convention: [R, r, v, t], tangent [rho, nu, theta, t_tan]
- * @author  Based on Python implementation by User
- * @date    April 30, 2025 // Updated Date
+ * @authors Matt Kielo, Scott Baker, Frank Dellaert
+ * @date    April 30, 2025
  */
 
 #pragma once

@@ -8,9 +8,9 @@
 
 /**
  * @file    testGal3.cpp
- * @brief   Unit tests for Gal3 class, mirroring custom_gal3_tests.py
- * @author  Based on Python tests by User and NavState tests
- * @date    April 29, 2025 // Updated Date
+ * @brief   Unit tests for Gal3 class: self-consistency and recon to Manif
+ * @authors Matt Kielo, Scott Baker, Frank Dellaert
+ * @date    April 29, 2025
  */
 
 #include <gtsam/navigation/Gal3.h>
