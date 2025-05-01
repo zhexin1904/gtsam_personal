@@ -36,6 +36,150 @@ GTSAM_CONCEPT_LIE_INST(gtsam::Gal3)
 // Instantiate Testable concept for Gal3 to allow assert_equal(Gal3, Gal3)
 // Instantiate Lie group concepts if you plan to use CHECK_LIE_GROUP_DERIVATIVES etc.
 // GTSAM_CONCEPT_LIE_INST(Gal3)
+const Rot3 kTestRot = Rot3::RzRyRx(0.1, -0.2, 0.3);
+const Point3 kTestPos(1.0, -2.0, 3.0);
+const Velocity3 kTestVel(0.5, 0.6, -0.7);
+const double kTestTime = 1.5;
+const Pose3 kTestPose(kTestRot, kTestPos);
+const Gal3 kTestGal3(kTestRot, kTestPos, kTestVel, kTestTime);
+
+
+/* ************************************************************************* */
+// Test GTSAM Concept Compliance
+/* ************************************************************************* */
+TEST(Gal3, Concept) {
+  GTSAM_CONCEPT_ASSERT(IsGroup<Gal3>);
+  GTSAM_CONCEPT_ASSERT(IsManifold<Gal3>);
+  // Since its LieAlgebra is Matrix5, it also technically fits IsMatrixLieGroup,
+  // but IsLieGroup is sufficient here.
+  GTSAM_CONCEPT_ASSERT(IsLieGroup<Gal3>);
+}
+
+/* ************************************************************************* */
+// Use GTSAM's Lie Group Test Macros
+/* ************************************************************************* */
+
+// Define some test instances if needed, or reuse existing ones like kTestGal3
+const Gal3 kTestGal3_Lie1(Rot3::RzRyRx(0.1, -0.2, 0.3), Point3(1.0, -2.0, 3.0), Velocity3(0.5, 0.6, -0.7), 1.5);
+const Gal3 kTestGal3_Lie2(Rot3::RzRyRx(-0.2, 0.3, 0.1), Point3(-2.0, 3.0, 1.0), Velocity3(0.6, -0.7, 0.5), 2.0);
+const Gal3 kIdentity_Lie = Gal3::Identity();
+
+// Check derivatives of compose, inverse, between, Expmap, Logmap
+// compose, inverse, between are currently calculated analytically.
+// @TODO: Expmap/Logmap/retract/localCoordinates currently rely on
+// numerical derivative, so check is circular
+TEST(Gal3, LieGroupDerivatives) {
+  CHECK_LIE_GROUP_DERIVATIVES(kIdentity_Lie, kIdentity_Lie);
+  CHECK_LIE_GROUP_DERIVATIVES(kIdentity_Lie, kTestGal3_Lie1);
+  CHECK_LIE_GROUP_DERIVATIVES(kTestGal3_Lie1, kIdentity_Lie);
+  CHECK_LIE_GROUP_DERIVATIVES(kTestGal3_Lie1, kTestGal3_Lie2);
+}
+
+// Check derivatives of retract and localCoordinates
+TEST(Gal3, ChartDerivatives) {
+  CHECK_CHART_DERIVATIVES(kIdentity_Lie, kIdentity_Lie);
+  CHECK_CHART_DERIVATIVES(kIdentity_Lie, kTestGal3_Lie1);
+  CHECK_CHART_DERIVATIVES(kTestGal3_Lie1, kIdentity_Lie);
+  CHECK_CHART_DERIVATIVES(kTestGal3_Lie1, kTestGal3_Lie2);
+}
+
+
+/* ************************************************************************* */
+// Test 1: Static Constructors (`Create`, `FromPoseVelocityTime`) Value Tests
+/* ************************************************************************* */
+TEST(Gal3, StaticConstructorsValue) {
+    // --- Test Gal3::Create ---
+    Gal3 g1 = Gal3::Create(kTestRot, kTestPos, kTestVel, kTestTime);
+
+    // Verify components match inputs
+    EXPECT(assert_equal(kTestRot, g1.rotation(), kTol));
+    EXPECT(assert_equal(kTestPos, g1.translation(), kTol));
+    EXPECT(assert_equal(kTestVel, g1.velocity(), kTol));
+    EXPECT_DOUBLES_EQUAL(kTestTime, g1.time(), kTol);
+    // Verify whole object matches reference (which was constructed the same way)
+    EXPECT(assert_equal(kTestGal3, g1, kTol));
+
+
+    // --- Test Gal3::FromPoseVelocityTime ---
+    Gal3 g2 = Gal3::FromPoseVelocityTime(kTestPose, kTestVel, kTestTime);
+
+    // Verify components match inputs
+    EXPECT(assert_equal(kTestPose.rotation(), g2.rotation(), kTol));
+    EXPECT(assert_equal(kTestPose.translation(), g2.translation(), kTol));
+    EXPECT(assert_equal(kTestVel, g2.velocity(), kTol));
+    EXPECT_DOUBLES_EQUAL(kTestTime, g2.time(), kTol);
+    // Verify whole object matches reference
+    EXPECT(assert_equal(kTestGal3, g2, kTol));
+}
+
+/* ************************************************************************* */
+// Test 2: Component Accessor Tests
+/* ************************************************************************* */
+TEST(Gal3, ComponentAccessorsValue) {
+    // Use the pre-defined kTestGal3 constructed with known values
+
+    // Test rotation() / attitude()
+    EXPECT(assert_equal(kTestRot, kTestGal3.rotation(), kTol));
+    EXPECT(assert_equal(kTestRot, kTestGal3.attitude(), kTol)); // Alias
+
+    // Test translation() / position()
+    EXPECT(assert_equal(kTestPos, kTestGal3.translation(), kTol));
+    EXPECT(assert_equal(kTestPos, kTestGal3.position(), kTol)); // Alias
+
+    // Test velocity()
+    EXPECT(assert_equal(kTestVel, kTestGal3.velocity(), kTol));
+
+    // Test time()
+    EXPECT_DOUBLES_EQUAL(kTestTime, kTestGal3.time(), kTol);
+
+    // Test derived accessors
+    EXPECT(assert_equal(kTestRot.matrix(), kTestGal3.R(), kTol));
+    // Corrected line: Removed .vector()
+    EXPECT(assert_equal(kTestPos, kTestGal3.r(), kTol));
+    EXPECT(assert_equal(kTestVel, kTestGal3.v(), kTol));
+    EXPECT_DOUBLES_EQUAL(kTestTime, kTestGal3.t(), kTol);
+}
+
+/* ************************************************************************* */
+// Test 3: `Gal3(const Matrix5& M)` Constructor Test
+/* ************************************************************************* */
+TEST(Gal3, MatrixConstructorValue) {
+    // Use the pre-defined kTestGal3 constructed with known values
+    Matrix5 M_known = kTestGal3.matrix(); // Assumes .matrix() is tested/correct
+
+    // Construct from the known valid matrix
+    Gal3 g_from_matrix(M_known);
+
+    // Verify the constructed object is equal to the original
+    EXPECT(assert_equal(kTestGal3, g_from_matrix, kTol));
+
+    // Optional: Test invalid matrix construction (if constructor has checks)
+    Matrix5 M_invalid = M_known;
+    M_invalid(4, 0) = 1e-5; // Violate the zero structure in the last row
+    // Assuming your Gal3(Matrix5) constructor throws std::invalid_argument
+    // or similar for invalid structure. Adjust exception type if needed.
+    try {
+        Gal3 g_invalid(M_invalid);
+        FAIL("Constructor should have thrown for invalid matrix structure.");
+    } catch (const std::invalid_argument& e) {
+        // Expected exception, test passes.
+        // Optionally check e.what() for specific message if desired.
+    } catch (...) {
+        FAIL("Constructor threw unexpected exception type for invalid matrix.");
+    }
+
+    // Test another invalid case
+     M_invalid = M_known;
+     M_invalid(3, 3) = 0.9; // Violate M(3,3) == 1
+     try {
+        Gal3 g_invalid(M_invalid);
+        FAIL("Constructor should have thrown for invalid matrix structure (M(3,3) != 1).");
+    } catch (const std::invalid_argument& e) {
+        // Expected exception, test passes.
+    } catch (...) {
+        FAIL("Constructor threw unexpected exception type for invalid matrix.");
+    }
+}
 
 // ========================================================================
 // Test Cases Section (mirroring Python's TestGal3 class)
@@ -403,6 +547,834 @@ TEST(Gal3, IdentityProperties) {
 
     // Add more test cases here if they exist in the Python script
 }
+
+
+/* ************************************************************************* */
+
+/* ************************************************************************* */
+TEST(Gal3, Adjoint) {
+    // Hardcoded test case for adjoint from Python code
+    const Matrix3 g_R_mat_1 = (Matrix3() << // Added <<
+        -0.2577418495238488, 0.7767168385303765, 0.5747000015202739,
+        -0.6694062876067332, -0.572463082520484, 0.47347781496466923,
+         0.6967527259484512, -0.26267274676776586, 0.6674868290752107
+    ).finished();
+    const Point3 g_r_vec_1(0.680375434309419, -0.21123414636181392, 0.5661984475172117);
+    const Velocity3 g_v_vec_1(0.536459189623808, -0.44445057839362445, 0.10793991159086103);
+    const double g_t_val_1 = -0.0452058962756795;
+
+    const Gal3 test_g(Rot3(g_R_mat_1), g_r_vec_1, g_v_vec_1, g_t_val_1);
+
+    // Expected adjoint matrix (from Python test)
+    Matrix10 expected_adj_matrix;
+    expected_adj_matrix = (Matrix10() << // Added <<
+        -0.2577418495238488, 0.7767168385303765, 0.5747000015202739, -0.011651451315476903, 0.03511218083817791, 0.025979828658358354, 0.22110620799336958, 0.3876840721487304, -0.42479976201969083, 0.536459189623808,
+        -0.6694062876067332, -0.572463082520484, 0.47347781496466923, -0.03026111120383766, -0.025878706730076754, 0.021403988992128208, -0.6381411631187845, 0.6286520658991062, -0.14213043434767314, -0.44445057839362445,
+        0.6967527259484512, -0.26267274676776586, 0.6674868290752107, 0.03149733145902263, -0.011874356944831452, 0.03017434036055619, -0.5313038186955878, -0.22369794100291154, 0.4665680546909384, 0.10793991159086103,
+        0.0, 0.0, 0.0, -0.2577418495238488, 0.7767168385303765, 0.5747000015202739, -0.23741649654248634, 0.1785366687454684, -0.3477720607401242, 0.0,
+        0.0, 0.0, 0.0, -0.6694062876067332, -0.572463082520484, 0.47347781496466923, -0.40160003518135456, 0.22475195574939733, -0.2960463760548867, 0.0,
+        0.0, 0.0, 0.0, 0.6967527259484512, -0.26267274676776586, 0.6674868290752107, -0.47366266867570694, 0.03810916679440729, 0.5094272729993004, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.2577418495238488, 0.7767168385303765, 0.5747000015202739, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.6694062876067332, -0.572463082520484, 0.47347781496466923, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.6967527259484512, -0.26267274676776586, 0.6674868290752107, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0
+    ).finished();
+
+    // Compute adjoint map
+    Matrix10 computed_adj = test_g.AdjointMap();
+
+    // Compare with expected result
+    EXPECT(assert_equal(expected_adj_matrix, computed_adj, kTol * 10));
+
+    // Test tangent vector for adjoint action
+    Vector10 test_tangent = (Vector10() << // Added <<
+        -0.28583171387804845, -0.7221038902918132, -0.09516831208249353,
+        -0.13619637934919504, -0.05432836001072756, 0.1629798883384306,
+        -0.20194877118636279, -0.18928645162443278, 0.07312685929426145,
+        -0.042327821984942095
+    ).finished();
+
+    // Expected result after applying adjoint to tangent vector
+    Vector10 expected_adj_tau = (Vector10() << // Added <<
+        -0.7097860882934639, 0.5869666797222274, 0.10746143202899403,
+        0.07529021542994252, 0.21635024626679053, 0.15385717129791027,
+        -0.05294531834013589, 0.27816922833676766, -0.042176749221369034,
+        -0.042327821984942095
+    ).finished();
+
+    // Apply adjoint to tangent vector
+    Vector10 computed_adj_tau = test_g.Adjoint(test_tangent);
+
+    // Compare with expected result
+    EXPECT(assert_equal(expected_adj_tau, computed_adj_tau, kTol * 10));
+
+    // Test the adjoint property: Log(g * Exp(tau) * g^-1) = Ad(g) * tau
+    Gal3 exp_tau = Gal3::Expmap(test_tangent);
+    Gal3 g_exp_tau_ginv = test_g * exp_tau * test_g.inverse();
+    Vector10 log_result = Gal3::Logmap(g_exp_tau_ginv);
+
+    // Compare with expected result for the adjoint property
+    Vector10 expected_log_result = (Vector10() << // Added <<
+        -0.7097860882934638, 0.5869666797222274, 0.10746143202899389,
+        0.07529021542994252, 0.21635024626679047, 0.15385717129791018,
+        -0.05294531834013579, 0.27816922833676755, -0.04217674922136877,
+        -0.04232782198494209
+    ).finished();
+
+    EXPECT(assert_equal(expected_log_result, log_result, kTol * 10));
+}
+
+// ========================================================================
+// Jacobian Tests Section (mirroring Python's TestGal3Jacobians class)
+// ========================================================================
+
+
+/* ************************************************************************* */
+TEST(Gal3, Jacobian_Compose) {
+    // Hardcoded data from Python test test_compose_jacobians
+    Matrix3 g1_R_mat = (Matrix3() <<
+        -0.3264538540162394, 0.24276278793202133, -0.9135064914894779,
+         0.9430076454867458, 0.1496317101600385, -0.2972321178273404,
+         0.06453264097716288, -0.9584761760784951, -0.27777501352435885
+    ).finished();
+    Point3 g1_r_vec(-0.1995427558196442, 0.7830589040103644, -0.433370507989717);
+    Velocity3 g1_v_vec(0.8986541507293722, 0.051990700444202176, -0.8278883042875157);
+    double g1_t_val = -0.6155723080111539;
+    Gal3 g1(Rot3(g1_R_mat), g1_r_vec, g1_v_vec, g1_t_val);
+
+    Matrix3 g2_R_mat = (Matrix3() <<
+        -0.5204974727334908, 0.7067813015326174, 0.4791060140322894,
+         0.773189425449982, 0.15205374379417114, 0.6156766776243058,
+         0.3622989004266723, 0.6908978584436601, -0.6256194178153267
+    ).finished();
+    Point3 g2_r_vec(-0.8716573584227159, -0.9599539022706234, -0.08459652545144625);
+    Velocity3 g2_v_vec(0.7018395735425127, -0.4666685012479632, 0.07952068144433233);
+    double g2_t_val = -0.24958604725524136;
+    Gal3 g2(Rot3(g2_R_mat), g2_r_vec, g2_v_vec, g2_t_val);
+
+    Matrix10 expected_H1 = (Matrix10() <<
+        -0.5204974727334908, 0.773189425449982, 0.3622989004266723, 0.12990890682589473, -0.19297729247761214, -0.09042475048241341, -0.2823811043440715, 0.3598327802048799, -1.1736098322206205, 0.6973186192002845,
+         0.7067813015326174, 0.15205374379417114, 0.6908978584436601, -0.17640275132344085, -0.03795049288394836, -0.17243846554606443, -0.650366876876537, 0.542434959867202, 0.5459387038042347, -0.4800290630417764,
+         0.4791060140322894, 0.6156766776243058, -0.6256194178153267, -0.11957817625853331, -0.15366430835548997, 0.15614587757865273, 0.652649909196605, -0.5858564732208887, -0.07673941868885611, 0.0008110342596663322,
+         0.0, 0.0, 0.0, -0.5204974727334908, 0.773189425449982, 0.3622989004266723, -0.23055803486323456, -0.29566601949219695, 0.29975516112150496, 0.0,
+         0.0, 0.0, 0.0, 0.7067813015326174, 0.15205374379417114, 0.6908978584436601, -0.3345116854380048, -0.42869572760154795, 0.4365499053963549, 0.0,
+         0.0, 0.0, 0.0, 0.4791060140322894, 0.6156766776243058, -0.6256194178153267, 0.24299784710943456, 0.47718330211934956, 0.6556899423712481, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5204974727334908, 0.773189425449982, 0.3622989004266723, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.7067813015326174, 0.15205374379417114, 0.6908978584436601, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4791060140322894, 0.6156766776243058, -0.6256194178153267, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0
+    ).finished();
+
+    Matrix10 expected_H2 = Matrix10::Identity(); // From Python test
+
+    // Calculate analytical Jacobians
+    Matrix10 H1, H2;
+    g1.compose(g2, H1, H2);
+
+    // Compare
+    EXPECT(assert_equal(expected_H1, H1, kTol));
+    EXPECT(assert_equal(expected_H2, H2, kTol));
+}
+
+/* ************************************************************************* */
+TEST(Gal3, Jacobian_Inverse) {
+    // Hardcoded data from Python test test_inverse_jacobian
+    Matrix3 g_R_mat = (Matrix3() <<
+        0.6680516673568877, 0.2740542884848495, -0.6918101016209183,
+        0.6729369985913887, -0.6193062871756463, 0.4044941514923666,
+       -0.31758898858193396, -0.7357676057205693, -0.5981498680963873
+    ).finished();
+    Point3 g_r_vec(0.06321286832132045, -0.9214393132931736, -0.12472480681013542);
+    Velocity3 g_v_vec(0.4770686298036335, 0.2799576331302327, -0.29190264050471715);
+    double g_t_val = 0.3757227805330059;
+    Gal3 g(Rot3(g_R_mat), g_r_vec, g_v_vec, g_t_val);
+
+    Matrix10 expected_H = (Matrix10() <<
+        -0.6680516673568877, -0.2740542884848495, 0.6918101016209183, 0.2510022299990406, 0.10296843928652219, -0.2599288149818328, -0.33617296841685484, -0.7460372203093872, -0.6201638436054394, -0.4770686298036335,
+        -0.6729369985913887, 0.6193062871756463, -0.4044941514923666, 0.252837760234292, -0.23268748021920607, 0.1519776673080509, 0.04690510412308051, 0.0894976987957895, 0.05899296065652178, -0.2799576331302327,
+        0.31758898858193396, 0.7357676057205693, 0.5981498680963873, -0.1193254178566693, -0.27644465064744467, -0.22473853161662533, -0.6077563738775408, -0.3532109665151345, 0.7571646227598928, 0.29190264050471715,
+        -0.0, -0.0, -0.0, -0.6680516673568877, -0.2740542884848495, 0.6918101016209183, -0.10752062523052273, 0.3867608979391727, 0.049383710440088574, -0.0,
+        -0.0, -0.0, -0.0, -0.6729369985913887, 0.6193062871756463, -0.4044941514923666, 0.04349430207154942, -0.271014473064643, -0.48729973338095034, -0.0,
+        -0.0, -0.0, -0.0, 0.31758898858193396, 0.7357676057205693, 0.5981498680963873, -0.1340109682602236, 0.3721751918050696, -0.38664898924142477, -0.0,
+        -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.6680516673568877, -0.2740542884848495, 0.6918101016209183, -0.0,
+        -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.6729369985913887, 0.6193062871756463, -0.4044941514923666, -0.0,
+        -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, 0.31758898858193396, 0.7357676057205693, 0.5981498680963873, -0.0,
+        -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -1.0
+    ).finished();
+
+    // Calculate analytical Jacobian
+    Matrix10 H;
+    g.inverse(H);
+
+    // Compare
+    EXPECT(assert_equal(expected_H, H, kTol));
+}
+
+/* ************************************************************************* */
+// Test Logmap Value and Jacobian (vs numerical) using captured data
+/* ************************************************************************* */
+TEST(Gal3, Jacobian_Logmap) {
+    const double jac_tol = 1e-5; // Tolerance for Jacobian checks
+
+    // --- Test Case 1 ---
+    const Matrix3 R1_mat = (Matrix3() <<
+        -0.5204974727334908, 0.7067813015326174, 0.4791060140322894,
+         0.773189425449982,  0.15205374379417114, 0.6156766776243058,
+         0.3622989004266723,  0.6908978584436601, -0.6256194178153267
+    ).finished();
+    const Point3 r1_vec(-0.8716573584227159, -0.9599539022706234, -0.08459652545144625);
+    const Velocity3 v1_vec(0.7018395735425127, -0.4666685012479632, 0.07952068144433233);
+    const double t1_val = -0.24958604725524136;
+    const Gal3 g1(Rot3(R1_mat), r1_vec, v1_vec, t1_val);
+
+    const Vector10 expected_log_tau1 = (Vector10() <<
+        -1.2604528322799349, -0.3898722924179116, -0.6402392791385879, // rho
+        -0.34870126525214656, -0.4153032457886797, 1.1791315551702946,  // nu
+         1.4969846781977756,  2.324590726540746,  1.321595100333433,   // theta
+        -0.24958604725524136                                          // t_tan
+    ).finished();
+
+    Matrix10 Hg1_gtsam;
+    Vector10 log1_gtsam = Gal3::Logmap(g1, Hg1_gtsam);
+
+    // Verify value
+    EXPECT(assert_equal(expected_log_tau1, log1_gtsam, kTol));
+    // Verify Jacobian (calculated by Gal3::Logmap) against numerical derivative
+    std::function<Vector10(const Gal3&)> logmap_func1 =
+         [](const Gal3& g_in) { return Gal3::Logmap(g_in); };
+    Matrix H_numerical1 = numericalDerivative11<Vector10, Gal3>(logmap_func1, g1, jac_tol);
+    EXPECT(assert_equal(H_numerical1, Hg1_gtsam, jac_tol));
+
+
+    // --- Test Case 2 ---
+    const Matrix3 R2_mat = (Matrix3() <<
+         0.6680516673568877, 0.2740542884848495, -0.6918101016209183,
+         0.6729369985913887,-0.6193062871756463,  0.4044941514923666,
+        -0.31758898858193396,-0.7357676057205693, -0.5981498680963873
+    ).finished();
+    const Point3 r2_vec(0.06321286832132045, -0.9214393132931736, -0.12472480681013542);
+    const Velocity3 v2_vec(0.4770686298036335, 0.2799576331302327, -0.29190264050471715);
+    const double t2_val = 0.3757227805330059;
+    const Gal3 g2(Rot3(R2_mat), r2_vec, v2_vec, t2_val);
+
+    const Vector10 expected_log_tau2 = (Vector10() <<
+        -0.5687147057967125, -0.3805406510759017, -1.063343079044753, // rho
+         0.5179342682694047,  0.3616924279678234, -0.0984011207117694, // nu
+        -2.215366977027571,  -0.72705858167113,   0.7749725693135466,  // theta
+         0.3757227805330059                                           // t_tan
+    ).finished();
+
+    Matrix10 Hg2_gtsam;
+    Vector10 log2_gtsam = Gal3::Logmap(g2, Hg2_gtsam);
+
+    // Verify value
+    EXPECT(assert_equal(expected_log_tau2, log2_gtsam, kTol));
+    // Verify Jacobian
+     std::function<Vector10(const Gal3&)> logmap_func2 =
+        [](const Gal3& g_in) { return Gal3::Logmap(g_in); };
+    Matrix H_numerical2 = numericalDerivative11<Vector10, Gal3>(logmap_func2, g2, jac_tol);
+    EXPECT(assert_equal(H_numerical2, Hg2_gtsam, jac_tol));
+}
+
+/* ************************************************************************* */
+TEST(Gal3, Jacobian_Expmap) {
+    // Hardcoded data from Python test test_expmap_jacobian
+    Vector10 tau_vec = (Vector10() <<
+         0.1644755309744135, -0.212580759622502, 0.027598787765563664,  // rho
+         0.06314401798217141, -0.07707725418679535, -0.26078036994807674, // nu
+         0.3779854061644677, -0.09638288751073966, -0.2917351793587256,  // theta
+        -0.49338105141355293 // t_tan
+    ).finished();
+
+    Matrix10 expected_H = (Matrix10() <<
+        0.9844524218735122, -0.1490063714302354, 0.02908427677999133, -0.24094497482047258, 0.04906744369191897, -0.008766606502586993, 0.0010755746403492512, 0.020896120374367614, 0.09422195803906698, -0.032194210151797825,
+        0.13700585416694203, 0.9624511801109918, 0.18991633864490795, -0.04463269623239319, -0.23281449603592955, -0.06241249224896669, -0.05013517822202011, -0.011608679508659724, 0.08214064896800377, 0.05141115662809599,
+       -0.06540787266535304, -0.1806541475679301, 0.9749387339968734, 0.0221898591040537, 0.05898968326106501, -0.23742922610598202, -0.09935687017740953, -0.06570748233856251, -0.025136525844073204, 0.1253312320983055,
+        0.0, 0.0, 0.0, 0.9844524218735122, -0.1490063714302354, 0.02908427677999133, -0.02734050131352483, -0.1309992318097018, 0.01786013841817754, 0.0,
+        0.0, 0.0, 0.0, 0.13700585416694203, 0.9624511801109918, 0.18991633864490795, 0.1195266279722227, -0.032519018758919625, 0.035417068913109986, 0.0,
+        0.0, 0.0, 0.0, -0.06540787266535304, -0.1806541475679301, 0.9749387339968734, -0.0560073503522914, -0.019830198590275447, -0.010039835763395311, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.9844524218735122, -0.1490063714302354, 0.02908427677999133, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.13700585416694203, 0.9624511801109918, 0.18991633864490795, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.06540787266535304, -0.1806541475679301, 0.9749387339968734, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0
+    ).finished();
+
+    // Calculate analytical Jacobian
+    Matrix10 H;
+    Gal3::Expmap(tau_vec, H);
+
+    // Compare
+    EXPECT(assert_equal(expected_H, H, kTol));
+}
+
+/* ************************************************************************* */
+// From Manif -- but doesnt match. Unclear why.
+// TEST(Gal3, Jacobian_Between) {
+//     // Hardcoded data from Python test test_between_jacobians
+//     Matrix3 g1_R_mat = (Matrix3() <<
+//          0.1981112115076329, -0.12884463237051902, 0.9716743325745948,
+//          0.9776658305457298, -0.04497580389201028, -0.20529661674659028,
+//          0.0701532013404006, 0.9906443548385938, 0.11705678352030657
+//     ).finished();
+//     Point3 g1_r_vec(0.9044594503494257, 0.8323901360074013, 0.2714234559198019);
+//     Velocity3 g1_v_vec(-0.5142264587405261, -0.7255368464279626, 0.6083535084539808);
+//     double g1_t_val = -0.6866418214918308;
+//     Gal3 g1(Rot3(g1_R_mat), g1_r_vec, g1_v_vec, g1_t_val);
+
+//     Matrix3 g2_R_mat = (Matrix3() <<
+//         -0.5427153955878299, 0.8391431164114453, 0.03603927817303032,
+//          0.8040805715986894, 0.5314810596281534, -0.2664250694549225,
+//         -0.24272295682417533, -0.11561450357036887, -0.963181630220753
+//     ).finished();
+//     Point3 g2_r_vec(0.9978490360071179, -0.5634861893781862, 0.025864788808796835);
+//     Velocity3 g2_v_vec(0.04857438013356852, -0.012834026018545996, 0.945550047767139);
+//     double g2_t_val = -0.41496643117394594;
+//     Gal3 g2(Rot3(g2_R_mat), g2_r_vec, g2_v_vec, g2_t_val);
+
+//     Matrix10 expected_H1 = (Matrix10() <<
+//         -0.6615763028739445, 0.20669033144286447, 0.7208300093390132, -0.1797340003083421, 0.0561526764696732, 0.19583177414002104, -0.3638953521017815, 0.5514557580523199, -0.4921064751586784, 0.18578447025511585,
+//         -0.6777438034544028, 0.24655572954989036, -0.6927291022508597, -0.18412631233900273, 0.06698312406057733, -0.1881974492385603, 0.16072606484418983, -1.0875528521598636, -0.544330359681567, 0.8120736895446168,
+//          0.3209051765783825, 0.9468312305338058, 0.02303233663866666, 0.08718203910196184, 0.25723074412043495, 0.006257319046242687, -0.41075512891439026, 0.1628186824736606, -0.9703039103797245, -0.4943804748805436,
+//         -0.0, -0.0, -0.0, -0.6615763028739445, 0.20669033144286447, 0.7208300093390132, 0.07446465266115959, -0.890789069415051, 0.32376778794135697, -0.0,
+//         -0.0, -0.0, -0.0, -0.6777438034544028, 0.24655572954989036, -0.6927291022508597, -0.2674512085517958, 0.2780902027976629, 0.3606433327863202, -0.0,
+//         -0.0, -0.0, -0.0, 0.3209051765783825, 0.9468312305338058, 0.02303233663866666, -0.41133443569666744, 0.12204155444521667, 0.714065394510391, -0.0,
+//         -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.6615763028739445, 0.20669033144286447, 0.7208300093390132, -0.0,
+//         -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.6777438034544028, 0.24655572954989036, -0.6927291022508597, -0.0,
+//         -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, 0.3209051765783825, 0.9468312305338058, 0.02303233663866666, -0.0,
+//         -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -1.0
+//     ).finished();
+
+//     Matrix10 expected_H2 = Matrix10::Identity(); // From Python test
+
+//     // Calculate analytical Jacobians
+//     Matrix10 H1, H2;
+//     g1.between(g2, H1, H2);
+
+//     // Compare
+//     EXPECT(assert_equal(expected_H1, H1, kTol));
+//     EXPECT(assert_equal(expected_H2, H2, kTol));
+// }
+//
+// Using numerical derivative as a reference instead of Manif.
+//
+TEST(Gal3, Jacobian_Between) {
+    // Define test points g1, g2 (using the same data as before for context)
+    Matrix3 g1_R_mat = (Matrix3() <<
+         0.1981112115076329, -0.12884463237051902, 0.9716743325745948,
+         0.9776658305457298, -0.04497580389201028, -0.20529661674659028,
+         0.0701532013404006, 0.9906443548385938, 0.11705678352030657
+    ).finished();
+    Point3 g1_r_vec(0.9044594503494257, 0.8323901360074013, 0.2714234559198019);
+    Velocity3 g1_v_vec(-0.5142264587405261, -0.7255368464279626, 0.6083535084539808);
+    double g1_t_val = -0.6866418214918308;
+    Gal3 g1(Rot3(g1_R_mat), g1_r_vec, g1_v_vec, g1_t_val);
+
+    Matrix3 g2_R_mat = (Matrix3() <<
+        -0.5427153955878299, 0.8391431164114453, 0.03603927817303032,
+         0.8040805715986894, 0.5314810596281534, -0.2664250694549225,
+        -0.24272295682417533, -0.11561450357036887, -0.963181630220753
+    ).finished();
+    Point3 g2_r_vec(0.9978490360071179, -0.5634861893781862, 0.025864788808796835);
+    Velocity3 g2_v_vec(0.04857438013356852, -0.012834026018545996, 0.945550047767139);
+    double g2_t_val = -0.41496643117394594;
+    Gal3 g2(Rot3(g2_R_mat), g2_r_vec, g2_v_vec, g2_t_val);
+
+    // --- Verify H1 ---
+    Matrix10 H1_analytical, H2_analytical; // Placeholders
+    // Calculate analytical Jacobians using your Gal3::between implementation
+    g1.between(g2, H1_analytical, H2_analytical);
+
+    // Define the 'between' function for numerical derivatives
+    std::function<Gal3(const Gal3&, const Gal3&)> between_func =
+        [](const Gal3& g1_in, const Gal3& g2_in) { return g1_in.between(g2_in); };
+
+    // Calculate numerical derivative w.r.t first arg
+    Matrix H1_numerical = numericalDerivative21(between_func, g1, g2, 1e-6); // Adjust epsilon if needed
+
+    // Compare analytical H1 with numerical H1
+    EXPECT(assert_equal(H1_numerical, H1_analytical, 1e-5)); // Tolerance for numerical comparison
+
+    // --- Verify H2 ---
+    // Analytical H2 is already calculated in H2_analytical
+
+    // Calculate numerical derivative w.r.t second arg
+    Matrix H2_numerical = numericalDerivative22(between_func, g1, g2, 1e-6); // Adjust epsilon if needed
+
+    // Compare analytical H2 with numerical H2
+    EXPECT(assert_equal(H2_numerical, H2_analytical, 1e-5)); // Tolerance for numerical comparison
+}
+
+/* ************************************************************************* */
+// @TODO: Add test_act_jacobians from Python as Gal3::act is not defined.
+/* ************************************************************************* */
+
+
+
+/* ************************************************************************* */
+// Test AdjointMap against numerical derivatives
+/* ************************************************************************* */
+TEST(Gal3, Jacobian_AdjointMap) {
+    // Use a sample Gal3 object (e.g., g1 from the between test)
+    Matrix3 g1_R_mat = (Matrix3() <<
+         0.1981112115076329, -0.12884463237051902, 0.9716743325745948,
+         0.9776658305457298, -0.04497580389201028, -0.20529661674659028,
+         0.0701532013404006, 0.9906443548385938, 0.11705678352030657
+    ).finished();
+    Point3 g1_r_vec(0.9044594503494257, 0.8323901360074013, 0.2714234559198019);
+    Velocity3 g1_v_vec(-0.5142264587405261, -0.7255368464279626, 0.6083535084539808);
+    double g1_t_val = -0.6866418214918308;
+    Gal3 g = Gal3(Rot3(g1_R_mat), g1_r_vec, g1_v_vec, g1_t_val);
+
+    // Pick a sample tangent vector
+    Vector10 xi = (Vector10() << 0.1, -0.2, 0.3, 0.4, -0.5, 0.6, -0.1, 0.15, -0.25, 0.9).finished();
+
+    // Calculate the analytical Adjoint Map
+    Matrix10 Ad_analytical = g.AdjointMap();
+
+    // Define the Adjoint action function for numerical differentiation
+    // Calculates Ad_g(xi)
+    std::function<Vector10(const Gal3&, const Vector10&)> adjoint_action =
+        [](const Gal3& g_in, const Vector10& xi_in) {
+            return g_in.Adjoint(xi_in); // Assuming g.Adjoint(xi) uses g.AdjointMap() * xi
+        };
+
+    // Calculate numerical derivative of Ad_g(xi) w.r.t xi
+    // This numerical derivative should be equal to the Adjoint Map itself
+    Matrix H_xi_numerical = numericalDerivative22(adjoint_action, g, xi);
+
+    // Compare analytical AdjointMap with the numerical derivative w.r.t xi
+    EXPECT(assert_equal(Ad_analytical, H_xi_numerical, 1e-7)); // Use a tolerance suitable for numerical diff
+
+    // --- Optional: Also check the derivative w.r.t g ---
+    // Define Adjoint action function for numerical derivative w.r.t g
+    std::function<Vector10(const Gal3&, const Vector10&)> adjoint_action_wrt_g =
+      [](const Gal3& g_in, const Vector10& xi_in) {
+          Matrix10 H_g; // Analytical H_g from Adjoint
+          Vector10 result = g_in.Adjoint(xi_in, H_g); // Need Adjoint to compute its H_g
+          return result; // Only return value for numericalDerivative
+      };
+
+    // Calculate numerical derivative of Ad_g(xi) w.r.t g
+    Matrix H_g_numerical = numericalDerivative21(adjoint_action_wrt_g, g, xi);
+
+    // Calculate analytical derivative of Ad_g(xi) w.r.t g
+    Matrix10 H_g_analytical;
+    g.Adjoint(xi, H_g_analytical); // Call Adjoint to get analytical H_g
+
+    // Compare analytical H_g with numerical H_g
+    EXPECT(assert_equal(H_g_analytical, H_g_numerical, 1e-7));
+}
+
+
+/* ************************************************************************* */
+// Test inverse Jacobian against numerical derivatives
+/* ************************************************************************* */
+TEST(Gal3, Jacobian_Inverse2) {
+    // Use a sample Gal3 object (e.g., g1 from the between test)
+    Matrix3 g1_R_mat = (Matrix3() <<
+         0.1981112115076329, -0.12884463237051902, 0.9716743325745948,
+         0.9776658305457298, -0.04497580389201028, -0.20529661674659028,
+         0.0701532013404006, 0.9906443548385938, 0.11705678352030657
+    ).finished();
+    Point3 g1_r_vec(0.9044594503494257, 0.8323901360074013, 0.2714234559198019);
+    Velocity3 g1_v_vec(-0.5142264587405261, -0.7255368464279626, 0.6083535084539808);
+    double g1_t_val = -0.6866418214918308;
+    Gal3 g = Gal3(Rot3(g1_R_mat), g1_r_vec, g1_v_vec, g1_t_val);
+
+    // Calculate analytical Jacobian H_inv = d(g.inverse()) / d(g)
+    Matrix10 H_inv_analytical;
+    g.inverse(H_inv_analytical); // Assuming inverse calculates its H
+
+    // Define inverse function wrapper
+    std::function<Gal3(const Gal3&)> inverse_func =
+        [](const Gal3& g_in) { return g_in.inverse(); };
+
+    // Calculate numerical Jacobian
+    Matrix H_inv_numerical = numericalDerivative11(inverse_func, g);
+
+    // Compare analytical H_inv with numerical H_inv
+    EXPECT(assert_equal(H_inv_numerical, H_inv_analytical, 1e-5));
+
+    // Optional: Check against theoretical formula H_inv = -Ad(g.inverse())
+    // EXPECT(assert_equal(-g.inverse().AdjointMap(), H_inv_analytical, 1e-8));
+}
+
+/* ************************************************************************* */
+// Test compose Jacobians against numerical derivatives
+/* ************************************************************************* */
+TEST(Gal3, Jacobian_Compose2) {
+    // Use g1 and g2 from the between test
+     Matrix3 g1_R_mat = (Matrix3() <<
+         0.1981112115076329, -0.12884463237051902, 0.9716743325745948,
+         0.9776658305457298, -0.04497580389201028, -0.20529661674659028,
+         0.0701532013404006, 0.9906443548385938, 0.11705678352030657
+    ).finished();
+    Point3 g1_r_vec(0.9044594503494257, 0.8323901360074013, 0.2714234559198019);
+    Velocity3 g1_v_vec(-0.5142264587405261, -0.7255368464279626, 0.6083535084539808);
+    double g1_t_val = -0.6866418214918308;
+    Gal3 g1(Rot3(g1_R_mat), g1_r_vec, g1_v_vec, g1_t_val);
+
+    Matrix3 g2_R_mat = (Matrix3() <<
+        -0.5427153955878299, 0.8391431164114453, 0.03603927817303032,
+         0.8040805715986894, 0.5314810596281534, -0.2664250694549225,
+        -0.24272295682417533, -0.11561450357036887, -0.963181630220753
+    ).finished();
+    Point3 g2_r_vec(0.9978490360071179, -0.5634861893781862, 0.025864788808796835);
+    Velocity3 g2_v_vec(0.04857438013356852, -0.012834026018545996, 0.945550047767139);
+    double g2_t_val = -0.41496643117394594;
+    Gal3 g2(Rot3(g2_R_mat), g2_r_vec, g2_v_vec, g2_t_val);
+
+    // Calculate analytical Jacobians H1=d(g1*g2)/dg1, H2=d(g1*g2)/dg2
+    Matrix10 H1_analytical, H2_analytical;
+    g1.compose(g2, H1_analytical, H2_analytical);
+
+    // Define compose function wrapper
+    std::function<Gal3(const Gal3&, const Gal3&)> compose_func =
+        [](const Gal3& g1_in, const Gal3& g2_in) { return g1_in.compose(g2_in); };
+
+    // Calculate numerical Jacobians
+    Matrix H1_numerical = numericalDerivative21(compose_func, g1, g2);
+    Matrix H2_numerical = numericalDerivative22(compose_func, g1, g2);
+
+    // Compare analytical vs numerical
+    EXPECT(assert_equal(H1_numerical, H1_analytical, 1e-5));
+    EXPECT(assert_equal(H2_numerical, H2_analytical, 1e-5));
+
+    // Optional: Check analytical Jacobians against theoretical formulas (assuming GTSAM conventions)
+    // H1 = Ad(g2.inverse())
+    // H2 = Identity() (for right compose convention)
+    // EXPECT(assert_equal(g2.inverse().AdjointMap(), H1_analytical, 1e-8));
+    // EXPECT(assert_equal(Matrix10::Identity(), H2_analytical, 1e-8));
+}
+
+
+/* ************************************************************************* */
+// Test act method Value and Jacobians (vs numerical) using captured data
+/* ************************************************************************* */
+TEST(Gal3, Act) {
+     const double jac_tol = 1e-6; // Tolerance for Jacobian checks
+
+     // --- Test Case 1 ---
+     const Matrix3 R1_mat = (Matrix3() <<
+        -0.2577418495238488,  0.7767168385303765,  0.5747000015202739,
+        -0.6694062876067332, -0.572463082520484,   0.47347781496466923,
+         0.6967527259484512, -0.26267274676776586, 0.6674868290752107
+     ).finished();
+     const Point3 r1_vec(0.680375434309419, -0.21123414636181392, 0.5661984475172117);
+     const Velocity3 v1_vec(0.536459189623808, -0.44445057839362445, 0.10793991159086103);
+     const double t1_val = -0.0452058962756795;
+     const Gal3 g1(Rot3(R1_mat), r1_vec, v1_vec, t1_val);
+     const Point3 p_in1(4.967141530112327, -1.3826430117118464, 6.476885381006925);
+     const Point3 expected_p_out1(2.048479118929923, 0.321903700434202, 8.713486171732242);
+
+     Matrix H1g_gtsam = Matrix::Zero(3, 10);
+     Matrix H1p_gtsam = Matrix::Zero(3, 3);
+     Point3 p_out1_gtsam = g1.act(p_in1, H1g_gtsam, H1p_gtsam); // Requires Gal3::act to be implemented
+
+     // Verify value
+     EXPECT(assert_equal(expected_p_out1, p_out1_gtsam, kTol));
+
+     // Verify Jacobians vs numerical
+     std::function<Point3(const Gal3&, const Point3&)> act_func1 =
+              [](const Gal3& g_in, const Point3& p_in) { return g_in.act(p_in); }; // Requires Gal3::act
+     Matrix H1g_numerical = numericalDerivative21(act_func1, g1, p_in1, jac_tol);
+     Matrix H1p_numerical = numericalDerivative22(act_func1, g1, p_in1, jac_tol);
+     EXPECT(assert_equal(H1g_numerical, H1g_gtsam, jac_tol));
+     EXPECT(assert_equal(H1p_numerical, H1p_gtsam, jac_tol));
+
+
+     // --- Test Case 2 ---
+     const Matrix3 R2_mat = (Matrix3() <<
+        0.1981112115076329, -0.12884463237051902, 0.9716743325745948,
+        0.9776658305457298, -0.04497580389201028, -0.20529661674659028,
+        0.0701532013404006,  0.9906443548385938,  0.11705678352030657
+     ).finished();
+     const Point3 r2_vec(0.9044594503494257, 0.8323901360074013, 0.2714234559198019);
+     const Velocity3 v2_vec(-0.5142264587405261, -0.7255368464279626, 0.6083535084539808);
+     const double t2_val = -0.6866418214918308;
+     const Gal3 g2(Rot3(R2_mat), r2_vec, v2_vec, t2_val);
+     const Point3 p_in2(15.230298564080254, -2.3415337472333597, -2.3413695694918055);
+     const Point3 expected_p_out2(1.9483976916013555, 16.30852024491054, -1.2538227216376843);
+
+     Matrix H2g_gtsam = Matrix::Zero(3, 10);
+     Matrix H2p_gtsam = Matrix::Zero(3, 3);
+     Point3 p_out2_gtsam = g2.act(p_in2, H2g_gtsam, H2p_gtsam); // Requires Gal3::act to be implemented
+
+     // Verify value
+     EXPECT(assert_equal(expected_p_out2, p_out2_gtsam, kTol));
+
+     // Verify Jacobians vs numerical
+     std::function<Point3(const Gal3&, const Point3&)> act_func2 =
+              [](const Gal3& g_in, const Point3& p_in) { return g_in.act(p_in); }; // Requires Gal3::act
+     Matrix H2g_numerical = numericalDerivative21(act_func2, g2, p_in2, jac_tol);
+     Matrix H2p_numerical = numericalDerivative22(act_func2, g2, p_in2, jac_tol);
+     EXPECT(assert_equal(H2g_numerical, H2g_gtsam, jac_tol));
+     EXPECT(assert_equal(H2p_numerical, H2p_gtsam, jac_tol));
+}
+
+
+
+/* ************************************************************************* */
+// Test interpolate method against manif data (value check only)
+/* ************************************************************************* */
+TEST(Gal3, Interpolate) {
+    const double interp_tol = 1e-6; // Tolerance for interpolation value comparison
+
+    // --- Test Case 1 ---
+    const Matrix3 R1_mat = (Matrix3() <<
+        -0.5427153955878299, 0.8391431164114453,  0.03603927817303032,
+         0.8040805715986894, 0.5314810596281534, -0.2664250694549225,
+        -0.24272295682417533,-0.11561450357036887,-0.963181630220753
+    ).finished();
+    const Point3 r1_vec(0.9978490360071179, -0.5634861893781862, 0.025864788808796835);
+    const Velocity3 v1_vec(0.04857438013356852, -0.012834026018545996, 0.945550047767139);
+    const double t1_val = -0.41496643117394594;
+    const Gal3 g1(Rot3(R1_mat), r1_vec, v1_vec, t1_val);
+
+    const Matrix3 R2_mat = (Matrix3() <<
+        -0.3264538540162394, 0.24276278793202133, -0.9135064914894779,
+         0.9430076454867458, 0.1496317101600385,  -0.2972321178273404,
+         0.06453264097716288,-0.9584761760784951,  -0.27777501352435885
+    ).finished();
+    const Point3 r2_vec(-0.1995427558196442, 0.7830589040103644, -0.433370507989717);
+    const Velocity3 v2_vec(0.8986541507293722, 0.051990700444202176, -0.8278883042875157);
+    const double t2_val = -0.6155723080111539;
+    const Gal3 g2(Rot3(R2_mat), r2_vec, v2_vec, t2_val);
+
+    // Expected results for different alphas
+    const Gal3 expected_alpha0_00 = g1; // Should be identical to g1
+    const Gal3 expected_alpha0_25(Rot3(-0.5305293740379828,  0.8049951577356123, -0.26555861745588893,
+                                          0.8357380608208966,  0.444360967494815,  -0.32262241748272774,
+                                         -0.14170559967126867, -0.39309811318459514,-0.9085116380281089),
+                                  Point3(0.7319725410358775, -0.24509083842031143, -0.20526665070473993),
+                                  Velocity3(0.447233815335834, 0.08156238532481315, 0.6212732810121263),
+                                  -0.46511790038324796);
+     const Gal3 expected_alpha0_50(Rot3(-0.4871812472793253,  0.6852678695634308, -0.5413523614461815,
+                                           0.8717937932763143,  0.34522257149684665,-0.34755856791913387,
+                                          -0.051283665082120816,-0.6412716453057169, -0.7655982383878919),
+                                   Point3(0.4275876127256323, 0.0806397132393819, -0.3622648631703127),
+                                   Velocity3(0.7397753319939113, 0.12027591889377548, 0.19009330402180313),
+                                   -0.5152693695925499);
+    const Gal3 expected_alpha0_75(Rot3(-0.416880477991759,   0.49158776471130083,-0.7645600935541361,
+                                          0.9087464582621175,  0.24369303223618222,-0.338812013712018,
+                                          0.019762127046961175,-0.8360353913714909, -0.5483195078682666),
+                                   Point3(0.10860773480095642, 0.42140693978775756, -0.4380637787537704),
+                                   Velocity3(0.895925123398753, 0.10738792759782673, -0.3083508669060544),
+                                   -0.5654208388018519);
+    const Gal3 expected_alpha1_00 = g2; // Should be identical to g2
+
+    // Compare values
+    // Requires Gal3::interpolate to be implemented
+    EXPECT(assert_equal(expected_alpha0_00, g1.interpolate(g2, 0.0), interp_tol));
+    EXPECT(assert_equal(expected_alpha0_25, g1.interpolate(g2, 0.25), interp_tol));
+    EXPECT(assert_equal(expected_alpha0_50, g1.interpolate(g2, 0.5), interp_tol));
+    EXPECT(assert_equal(expected_alpha0_75, g1.interpolate(g2, 0.75), interp_tol));
+    EXPECT(assert_equal(expected_alpha1_00, g1.interpolate(g2, 1.0), interp_tol));
+}
+
+
+
+/* ************************************************************************* */
+// Added Test: Jacobians for Static Constructors
+/* ************************************************************************* */
+TEST(Gal3, Jacobian_StaticConstructors) {
+    // Note: This test verifies analytical Jacobians against numerical derivatives
+    // of the constructor functions. Gal3::Create and Gal3::FromPoseVelocityTime
+    // implement analytical Jacobians, so this test is NOT circular.
+    const double jac_tol = 1e-7; // Tolerance for Jacobian checks
+
+    // --- Test Gal3::Create ---
+    gtsam::Matrix H1_ana, H2_ana, H3_ana, H4_ana; // Use dynamic Matrix type
+    Gal3::Create(kTestRot, kTestPos, kTestVel, kTestTime, H1_ana, H2_ana, H3_ana, H4_ana);
+
+    // Numerical derivatives
+    // Explicitly use const double& for the double argument in lambda
+    std::function<Gal3(const Rot3&, const Point3&, const Velocity3&, const double&)> create_func =
+        [](const Rot3& R, const Point3& r, const Velocity3& v, const double& t){
+            return Gal3::Create(R, r, v, t); // Call without Jacobians for numerical diff
+        };
+
+    // Pass kTestTime by const reference to match lambda
+    const double& time_ref = kTestTime;
+    Matrix H1_num = numericalDerivative41(create_func, kTestRot, kTestPos, kTestVel, time_ref, jac_tol);
+    Matrix H2_num = numericalDerivative42(create_func, kTestRot, kTestPos, kTestVel, time_ref, jac_tol);
+    Matrix H3_num = numericalDerivative43(create_func, kTestRot, kTestPos, kTestVel, time_ref, jac_tol);
+    Matrix H4_num = numericalDerivative44(create_func, kTestRot, kTestPos, kTestVel, time_ref, jac_tol);
+
+
+    // Compare
+    EXPECT(assert_equal(H1_num, H1_ana, jac_tol));
+    EXPECT(assert_equal(H2_num, H2_ana, jac_tol));
+    EXPECT(assert_equal(H3_num, H3_ana, jac_tol));
+    EXPECT(assert_equal(H4_num, H4_ana, jac_tol));
+
+
+    // --- Test Gal3::FromPoseVelocityTime ---
+    gtsam::Matrix Hpv1_ana, Hpv2_ana, Hpv3_ana; // Use dynamic Matrix type
+    Gal3::FromPoseVelocityTime(kTestPose, kTestVel, kTestTime, Hpv1_ana, Hpv2_ana, Hpv3_ana);
+
+    // Numerical derivatives
+    // Explicitly use const double& for the double argument in lambda
+    std::function<Gal3(const Pose3&, const Velocity3&, const double&)> fromPoseVelTime_func =
+        [](const Pose3& pose, const Velocity3& v, const double& t){
+            return Gal3::FromPoseVelocityTime(pose, v, t); // Call without Jacobians
+        };
+
+    // Pass kTestTime by const reference to match lambda
+    Matrix Hpv1_num = numericalDerivative31(fromPoseVelTime_func, kTestPose, kTestVel, time_ref, jac_tol);
+    Matrix Hpv2_num = numericalDerivative32(fromPoseVelTime_func, kTestPose, kTestVel, time_ref, jac_tol);
+    Matrix Hpv3_num = numericalDerivative33(fromPoseVelTime_func, kTestPose, kTestVel, time_ref, jac_tol);
+
+    // Compare
+    EXPECT(assert_equal(Hpv1_num, Hpv1_ana, jac_tol));
+    EXPECT(assert_equal(Hpv2_num, Hpv2_ana, jac_tol));
+    EXPECT(assert_equal(Hpv3_num, Hpv3_ana, jac_tol));
+}
+
+
+/* ************************************************************************* */
+// Added Test: Jacobians for Component Accessors
+/* ************************************************************************* */
+TEST(Gal3, Jacobian_Accessors) {
+    // Note: This test verifies analytical Jacobians against numerical derivatives
+    // of the accessor functions. The accessors in Gal3 implement analytical
+    // Jacobians, so this test is NOT circular.
+    const double jac_tol = 1e-7;
+
+    // --- Test rotation() / attitude() Jacobian ---
+    gtsam::Matrix Hrot_ana; // Use dynamic Matrix type
+    kTestGal3.rotation(Hrot_ana);
+    std::function<Rot3(const Gal3&)> rot_func =
+        [](const Gal3& g) { return g.rotation(); };
+    Matrix Hrot_num = numericalDerivative11<Rot3, Gal3>(rot_func, kTestGal3, jac_tol);
+    EXPECT(assert_equal(Hrot_num, Hrot_ana, jac_tol));
+
+    // --- Test translation() / position() Jacobian ---
+    gtsam::Matrix Hpos_ana; // Use dynamic Matrix type
+    kTestGal3.translation(Hpos_ana);
+    std::function<Point3(const Gal3&)> pos_func =
+        [](const Gal3& g) { return g.translation(); };
+    Matrix Hpos_num = numericalDerivative11<Point3, Gal3>(pos_func, kTestGal3, jac_tol);
+    EXPECT(assert_equal(Hpos_num, Hpos_ana, jac_tol));
+
+    // --- Test velocity() Jacobian ---
+    gtsam::Matrix Hvel_ana; // Use dynamic Matrix type
+    kTestGal3.velocity(Hvel_ana);
+    std::function<Velocity3(const Gal3&)> vel_func =
+        [](const Gal3& g) { return g.velocity(); };
+    Matrix Hvel_num = numericalDerivative11<Velocity3, Gal3>(vel_func, kTestGal3, jac_tol);
+    EXPECT(assert_equal(Hvel_num, Hvel_ana, jac_tol));
+
+    // --- Test time() Jacobian ---
+    gtsam::Matrix Htime_ana; // Use dynamic Matrix type
+    kTestGal3.time(Htime_ana);
+    std::function<double(const Gal3&)> time_func =
+        [](const Gal3& g) { return g.time(); };
+    Matrix Htime_num = numericalDerivative11<double, Gal3>(time_func, kTestGal3, jac_tol);
+    EXPECT(assert_equal(Htime_num, Htime_ana, jac_tol));
+}
+
+/* ************************************************************************* */
+// Added Test: Jacobians for interpolate
+/* ************************************************************************* */
+TEST(Gal3, Jacobian_Interpolate) {
+    // *** CIRCULARITY WARNING ***
+    // Gal3::interpolate computes its Jacobians (H1, H2, Ha) using a chain rule
+    // that involves the Jacobians of Logmap and Expmap. Since Gal3::Logmap and
+    // Gal3::Expmap compute their Jacobians numerically (via LogmapDerivative
+    // and ExpmapDerivative in Gal3.cpp), comparing the interpolate Jacobians
+    // against numerical derivatives here is circular. It verifies the chain rule
+    // implementation assuming the underlying numerical derivatives are correct.
+    const double jac_tol = 1e-7;
+    const Gal3 g1 = kTestGal3_Lie1; // Use pre-defined states
+    const Gal3 g2 = kTestGal3_Lie2;
+    const double alpha = 0.3; // Example interpolation factor
+
+    gtsam::Matrix H1_ana, H2_ana, Ha_ana; // Use dynamic Matrix type
+    g1.interpolate(g2, alpha, H1_ana, H2_ana, Ha_ana);
+
+    // Numerical derivatives
+    // Explicitly use const double& for the double argument in lambda
+    std::function<Gal3(const Gal3&, const Gal3&, const double&)> interp_func =
+        [](const Gal3& g1_in, const Gal3& g2_in, const double& a){
+            // Call interpolate *without* asking for its Jacobians for numerical diff
+            return g1_in.interpolate(g2_in, a);
+        };
+
+    // Pass alpha by const reference to match lambda
+    const double& alpha_ref = alpha;
+    Matrix H1_num = numericalDerivative31(interp_func, g1, g2, alpha_ref, jac_tol);
+    Matrix H2_num = numericalDerivative32(interp_func, g1, g2, alpha_ref, jac_tol);
+    Matrix Ha_num = numericalDerivative33(interp_func, g1, g2, alpha_ref, jac_tol);
+
+
+    // Compare analytical (numerically derived) vs numerical
+    EXPECT(assert_equal(H1_num, H1_ana, jac_tol));
+    EXPECT(assert_equal(H2_num, H2_ana, jac_tol));
+    EXPECT(assert_equal(Ha_num, Ha_ana, jac_tol));
+}
+
+/* ************************************************************************* */
+// Added Test: Static Adjoint functions
+/* ************************************************************************* */
+TEST(Gal3, StaticAdjoint) { // Removed duplicate TEST macro here
+    // Note: This test verifies the analytical Jacobians (Hxi, Hy) provided by
+    // the static Gal3::adjoint function against expected analytical properties
+    // (e.g., Hy = adjointMap(xi), Hxi = -adjointMap(y)) and also against
+    // numerical derivatives of the static adjoint function itself.
+    // Since the Jacobians in static Gal3::adjoint are implemented analytically
+    // using adjointMap, this test is NOT circular regarding those Jacobians.
+    const double jac_tol = 1e-7;
+    // Create two tangent vectors
+    Vector10 xi = (Vector10() << 0.1, -0.2, 0.3, 0.4, -0.5, 0.6, -0.1, 0.15, -0.25, 0.9).finished();
+    Vector10 y = (Vector10() << -0.5, 0.4, -0.3, 0.2, -0.1, 0.0, 0.3, -0.35, 0.45, -0.1).finished();
+
+    // --- Test static adjointMap ---
+    Matrix10 ad_xi_map = Gal3::adjointMap(xi);
+
+    // Check if ad_xi_map * y equals adjoint(xi, y)
+    // Evaluate the product explicitly into a Vector10 for assert_equal
+    Vector10 ad_xi_map_times_y = ad_xi_map * y;
+    Vector10 ad_xi_y_direct = Gal3::adjoint(xi, y);
+    EXPECT(assert_equal(ad_xi_map_times_y, ad_xi_y_direct, kTol));
+
+
+    // Verify Jacobian of adjoint(xi,y) w.r.t y equals adjointMap(xi)
+     std::function<Vector10(const Vector10&, const Vector10&)> static_adjoint_func =
+        [](const Vector10& xi_in, const Vector10& y_in){
+            // Call static adjoint *without* asking for its Jacobians for numerical diff
+            return Gal3::adjoint(xi_in, y_in);
+        };
+    Matrix Hy_num = numericalDerivative22(static_adjoint_func, xi, y, jac_tol);
+    EXPECT(assert_equal(ad_xi_map, Hy_num, jac_tol));
+
+
+    // --- Test static adjoint ---
+    gtsam::Matrix Hxi_ana, Hy_ana; // Use dynamic Matrix type
+    Gal3::adjoint(xi, y, Hxi_ana, Hy_ana); // Get analytical Jacobians
+
+    // Check analytical H_y matches ad_xi_map (which was checked numerically above)
+    EXPECT(assert_equal(ad_xi_map, Hy_ana, kTol));
+
+    // Check analytical H_xi matches -ad(y)
+    Matrix10 minus_ad_y_map = -Gal3::adjointMap(y);
+    EXPECT(assert_equal(minus_ad_y_map, Hxi_ana, kTol));
+
+    // Verify analytical H_xi against numerical derivative
+    Matrix Hxi_num = numericalDerivative21(static_adjoint_func, xi, y, jac_tol);
+    EXPECT(assert_equal(Hxi_num, Hxi_ana, jac_tol));
+
+    // Verify Jacobi Identity: [x, [y, z]] + [y, [z, x]] + [z, [x, y]] = 0
+    Vector10 z = (Vector10() << 0.7, 0.8, 0.9, -0.1, -0.2, -0.3, 0.5, 0.6, 0.7, 0.1).finished();
+    Vector10 term1 = Gal3::adjoint(xi, Gal3::adjoint(y, z));
+    Vector10 term2 = Gal3::adjoint(y, Gal3::adjoint(z, xi));
+    Vector10 term3 = Gal3::adjoint(z, Gal3::adjoint(xi, y));
+    // Evaluate the sum explicitly into a Vector10 for assert_equal
+    Vector10 sum_terms = term1 + term2 + term3;
+    // Explicitly cast Vector10::Zero() to Vector10 to resolve ambiguity
+    EXPECT(assert_equal(Vector10(Vector10::Zero()), sum_terms, jac_tol));
+}
+
 
 /* ************************************************************************* */
 int main() {

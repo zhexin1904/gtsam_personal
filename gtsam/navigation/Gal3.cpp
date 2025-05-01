@@ -10,7 +10,7 @@
  * @file    Gal3.cpp
  * @brief   Implementation of 3D Galilean Group SGal(3) state
  * @author  Based on Python implementation by User
- * @date    April 29, 2025
+ * @date    April 30, 2025 // Updated Date
  */
 
 #include <gtsam/navigation/Gal3.h> // Note: Adjust path if needed
@@ -26,140 +26,125 @@
 namespace gtsam {
 
 //------------------------------------------------------------------------------
-// Static Helper Functions Implementation
+// Constants and Helper function for Expmap/Logmap (Implementation Detail)
 //------------------------------------------------------------------------------
+namespace { // Anonymous namespace for internal linkage
 
-Matrix3 Gal3::SO3_LeftJacobian(const Vector3& theta) {
-    using std::cos;
-    using std::sin;
-    using std::sqrt;
+  // Define the threshold locally within the cpp file
+  constexpr double kSmallAngleThreshold = 1e-10;
 
-    const double angle_sq = theta.squaredNorm();
+  Matrix3 Calculate_E(const Vector3& theta) {
+      using std::cos;
+      using std::sin;
+      using std::sqrt;
 
-    // Use Taylor series expansion for small angles
-    if (angle_sq < kSmallAngleThreshold * kSmallAngleThreshold) {
-        // Jl(w) approx = I + 0.5*[w]x + (1/6)*[w]x^2
-        const Matrix3 W = skewSymmetric(theta);
-        return Matrix3::Identity() + 0.5 * W + (1.0/6.0) * W * W;
-    }
+      const double angle_sq = theta.squaredNorm();
+      const Matrix3 W = skewSymmetric(theta);
+      const Matrix3 W2 = W * W;
 
-    const double angle = sqrt(angle_sq);
-    const Matrix3 W = skewSymmetric(theta);
-    const Matrix3 W2 = W * W;
+      Matrix3 E = 0.5 * Matrix3::Identity();
 
-    const double inv_angle_sq = 1.0 / angle_sq;
-    const double sin_angle = sin(angle);
-    const double cos_angle = cos(angle);
+      // Small angle approximation - Use locally defined constant
+      if (angle_sq < kSmallAngleThreshold * kSmallAngleThreshold) {
+          E += (1.0 / 6.0) * W + (1.0 / 24.0) * W2;
+          return E;
+      }
 
-    // coeff1 = (1 - cos(theta)) / theta^2
-    const double coeff1 = (1.0 - cos_angle) * inv_angle_sq;
-    // coeff2 = (theta - sin(theta)) / theta^3
-    const double coeff2 = (angle - sin_angle) / (angle_sq * angle);
+      const double angle = sqrt(angle_sq);
+      const double sin_angle = sin(angle);
+      const double cos_angle = cos(angle);
 
-    return Matrix3::Identity() + coeff1 * W + coeff2 * W2;
+      // Coefficients from manif::SGal3TangentBase::exp()
+      const double A = (angle - sin_angle) / (angle_sq * angle);                 // A = (theta - sin(theta)) / theta^3
+      const double B = (angle_sq + 2.0 * cos_angle - 2.0) / (2.0 * angle_sq * angle_sq); // B = (theta^2 + 2*cos(theta) - 2) / (2 * theta^4)
+
+      E += A * W + B * W2;
+      return E;
+  }
+} // end anonymous namespace
+
+//------------------------------------------------------------------------------
+// Static Constructor/Create functions (NavState order: 1)
+//------------------------------------------------------------------------------
+Gal3 Gal3::Create(const Rot3& R, const Point3& r, const Velocity3& v, double t,
+                    OptionalJacobian<10, 3> H1, OptionalJacobian<10, 3> H2,
+                    OptionalJacobian<10, 3> H3, OptionalJacobian<10, 1> H4) {
+      // H = d Logmap(Create(R,r,v,t)) / d [w, r_vec, v_vec, t]
+      // Note: Derivatives are w.r.t tangent space elements at the identity
+      // for inputs R, r, v, t. However, the standard way is derivative
+      // w.r.t minimal tangent spaces of inputs. Let's assume standard approach.
+      if (H1) { // d xi_out / d omega_R (3x3)
+        *H1 = Matrix::Zero(10, 3);
+        H1->block<3, 3>(6, 0) = Matrix3::Identity(); // d theta / d omega_R = I
+      }
+      if (H2) { // d xi_out / d delta_r (3x3)
+        *H2 = Matrix::Zero(10, 3);
+        H2->block<3, 3>(0, 0) = R.transpose();      // d rho / d delta_r = R^T
+      }
+      if (H3) { // d xi_out / d delta_v (3x3)
+        *H3 = Matrix::Zero(10, 3);
+        H3->block<3, 3>(3, 0) = R.transpose();      // d nu / d delta_v = R^T
+      }
+      if (H4) { // d xi_out / d delta_t (10x1)
+        *H4 = Matrix::Zero(10, 1);
+        // As derived: d xi / dt = [-R^T v; 0; 0; 1]
+        Vector3 drho_dt = -R.transpose() * v; // Corrected derivative for rho
+        H4->block<3, 1>(0, 0) = drho_dt;       // Assign to rho rows (0-2)
+        // d nu / dt = 0
+        // d theta / dt = 0
+        (*H4)(9, 0) = 1.0;                     // d t_tan / dt = 1
+      }
+      return Gal3(R, r, v, t);
 }
 
 //------------------------------------------------------------------------------
-Matrix3 Gal3::SO3_LeftJacobianInverse(const Vector3& theta) {
-    using std::cos;
-    using std::sin;
-    using std::sqrt;
-    using std::tan;
-
-    const double angle_sq = theta.squaredNorm();
-    const Matrix3 W = skewSymmetric(theta);
-
-    // Use Taylor series expansion for small angles
-    if (angle_sq < kSmallAngleThreshold * kSmallAngleThreshold) {
-        // Jl(w)^-1 approx = I - 0.5*W + (1/12)*W^2
-        return Matrix3::Identity() - 0.5 * W + (1.0/12.0) * W * W;
+Gal3 Gal3::FromPoseVelocityTime(const Pose3& pose, const Velocity3& v, double t,
+                                OptionalJacobian<10, 6> H1, OptionalJacobian<10, 3> H2,
+                                OptionalJacobian<10, 1> H3) {
+    const Rot3& R = pose.rotation();
+    const Point3& r = pose.translation(); // Get r for H3 calculation if needed below
+    if (H1) { // d xi_out / d xi_pose (10x6), xi_pose = [omega_R; v_r]
+        *H1 = Matrix::Zero(10, 6);
+        // d theta / d omega_pose = I (rows 6-8, cols 0-2)
+        H1->block<3, 3>(6, 0) = Matrix3::Identity();
+        // d rho / d v_r = I (rows 0-2, cols 3-5) - Corrected
+        H1->block<3, 3>(0, 3) = Matrix3::Identity();
+        // Other blocks (d_rho/d_omega, d_nu/d_omega, d_nu/d_vr, d_tt/d_omega, d_tt/d_vr) are zero.
     }
-
-    const double angle = sqrt(angle_sq);
-    const double half_angle = 0.5 * angle;
-
-    // Formula: I - 0.5*W + (1/theta^2 - cot(theta/2)/(2*theta)) * W^2
-    // which is I - 0.5*W + (1 - 0.5*theta*cot(0.5*theta))/theta^2 * W^2
-    double cot_half_angle;
-    // Avoid division by zero/very small numbers for tan(half_angle)
-    if (std::abs(sin(half_angle)) < kSmallAngleThreshold) {
-        // If sin(half_angle) is near zero, theta is near multiples of 2*pi.
-        // cot(x) ~ 1/x for small x. Let x = half_angle.
-        // If half_angle is very small, use Taylor expansion of the coefficient:
-        // (1 - 0.5*theta*cot(0.5*theta))/theta^2 -> 1/12 + O(theta^2)
-        if (std::abs(half_angle) < kSmallAngleThreshold) {
-           // Use Taylor approx for the coefficient directly
-           const double coeff = 1.0 / 12.0; // + angle_sq / 720.0 + ...; // Higher order if needed
-           return Matrix3::Identity() - 0.5 * W + coeff * (W * W);
-        } else {
-            // theta is near non-zero multiples of 2*pi. tan(half_angle) is near zero.
-            // cot becomes large. Use limit or high-precision calculation if needed.
-            // For now, use standard tan. May need robustness improvements.
-             cot_half_angle = cos(half_angle) / sin(half_angle); // Avoid 1.0/tan()
-        }
-    } else {
-        cot_half_angle = cos(half_angle) / sin(half_angle); // Avoid 1.0/tan()
+    if (H2) { // d xi_out / d v_in (10x3)
+        *H2 = Matrix::Zero(10, 3);
+        H2->block<3, 3>(3, 0) = R.transpose();         // d(nu_out)/d(v_in) = R^T
     }
-
-    const double coeff = (1.0 - 0.5 * angle * cot_half_angle) / angle_sq;
-    return Matrix3::Identity() - 0.5 * W + coeff * (W * W);
-
-    // Alternative using GTSAM SO3 properties (verify this matches J_l^-1):
-    // J_l(theta)^-1 = J_r(-theta).
-    // return gtsam::so3::DexpFunctor(-theta).rightJacobian();
-}
-
-
-//------------------------------------------------------------------------------
-Matrix3 Gal3::Calculate_E(const Vector3& theta) {
-    using std::cos;
-    using std::sin;
-    using std::sqrt;
-
-    const double angle_sq = theta.squaredNorm();
-    const Matrix3 W = skewSymmetric(theta);
-    const Matrix3 W2 = W * W;
-
-    Matrix3 E = 0.5 * Matrix3::Identity();
-
-    // Small angle approximation (from manif SGal3Tangent_base.h / Expmap formula)
-    // E approx = 0.5*I + (1/6)*W + (1/24)*W^2
-    if (angle_sq < kSmallAngleThreshold * kSmallAngleThreshold) {
-        E += (1.0 / 6.0) * W + (1.0 / 24.0) * W2;
-        return E;
+    if (H3) { // d xi_out / d t_in (10x1)
+        *H3 = Matrix::Zero(10, 1);
+        // As derived: d xi / dt = [-R^T v; 0; 0; 1]
+        Vector3 drho_dt = -R.transpose() * v; // Corrected derivative for rho
+        H3->block<3, 1>(0, 0) = drho_dt;       // Assign to rho rows (0-2)
+        // d nu / dt = 0
+        // d theta / dt = 0
+        (*H3)(9, 0) = 1.0;                     // d t_tan / dt = 1
     }
-
-    const double angle = sqrt(angle_sq);
-    const double sin_angle = sin(angle);
-    const double cos_angle = cos(angle);
-
-    // Coefficients A and B from manif::SGal3TangentBase::exp()
-    // A = (theta - sin(theta)) / theta^3
-    const double A = (angle - sin_angle) / (angle_sq * angle);
-    // B = (theta^2 + 2*cos(theta) - 2) / (2 * theta^4)
-    const double B = (angle_sq + 2.0 * cos_angle - 2.0) / (2.0 * angle_sq * angle_sq);
-
-    E += A * W + B * W2;
-    return E;
+    // Pass r (translation from pose) to the Gal3 constructor
+    return Gal3(R, r, v, t);
 }
 
 //------------------------------------------------------------------------------
-// Constructors
+// Constructors (NavState order: 2 - Included in Constructor section)
 //------------------------------------------------------------------------------
 Gal3::Gal3(const Matrix5& M) {
-    // CORRECTED: Use head(N) with correct sizes for checks
+    // Ensure matrix adheres to SGal(3) structure
     if (std::abs(M(3, 3) - 1.0) > 1e-9 || std::abs(M(4, 4) - 1.0) > 1e-9 ||
         M.row(4).head(4).norm() > 1e-9 || M.row(3).head(3).norm() > 1e-9) { // Row 4 first 4 = 0; Row 3 first 3 = 0
         throw std::invalid_argument("Invalid Gal3 matrix structure: Check zero blocks and diagonal ones.");
     }
     R_ = Rot3(M.block<3, 3>(0, 0));
-    v_ = M.block<3, 1>(0, 3); // Manif: v is in column 3 (0-indexed)
-    r_ = Point3(M.block<3, 1>(0, 4)); // Manif: r is in column 4
-    t_ = M(3, 4);             // Manif: t is at (3, 4)
+    v_ = M.block<3, 1>(0, 3); // v is in column 3
+    r_ = Point3(M.block<3, 1>(0, 4)); // r is in column 4
+    t_ = M(3, 4);             // t is at (3, 4)
 }
 
 //------------------------------------------------------------------------------
-// Component Access
+// Component Access (NavState order: 3)
 //------------------------------------------------------------------------------
 const Rot3& Gal3::rotation(OptionalJacobian<3, 10> H) const {
     if (H) {
@@ -171,9 +156,17 @@ const Rot3& Gal3::rotation(OptionalJacobian<3, 10> H) const {
 
 //------------------------------------------------------------------------------
 const Point3& Gal3::translation(OptionalJacobian<3, 10> H) const {
+     // H = d r / d xi = [dr/drho, dr/dnu, dr/dtheta, dr/dt_tan]
      if (H) {
         *H = Matrix::Zero(3, 10);
-        H->block<3, 3>(0, 0) = R_.matrix(); // Derivative w.r.t rho (local tangent space)
+        // dr/drho = R (local tangent space)
+        H->block<3,3>(0, 0) = R_.matrix();
+        // dr/dnu = 0
+        // H->block<3,3>(0, 3) = Matrix3::Zero(); // Already zero
+        // dr/dtheta = 0
+        // H->block<3,3>(0, 6) = Matrix3::Zero(); // Already zero
+        // dr/dt_tan = v (Corrected)
+        H->block<3,1>(0, 9) = v_;
     }
     return r_;
 }
@@ -197,21 +190,32 @@ const double& Gal3::time(OptionalJacobian<1, 10> H) const {
 }
 
 //------------------------------------------------------------------------------
-// Matrix Representation
+// Matrix Representation (NavState order: 4)
 //------------------------------------------------------------------------------
 Matrix5 Gal3::matrix() const {
     Matrix5 M = Matrix5::Identity();
     M.block<3, 3>(0, 0) = R_.matrix();
-    M.block<3, 1>(0, 3) = v_; // Manif: v in col 3
-    M.block<3, 1>(0, 4) = Vector3(r_); // Manif: r in col 4 // CORRECTED: Assign Vector3 from Point3
-    M(3, 4) = t_;             // Manif: t at (3, 4)
+    M.block<3, 1>(0, 3) = v_;
+    M.block<3, 1>(0, 4) = Vector3(r_);
+    M(3, 4) = t_;
     M.block<1,3>(3,0).setZero(); // Zero out row 3, cols 0-2
     M.block<1,4>(4,0).setZero(); // Zero out row 4, cols 0-3
     return M;
 }
 
 //------------------------------------------------------------------------------
-// Testable Requirements
+// Stream operator (NavState order: 5)
+//------------------------------------------------------------------------------
+std::ostream& operator<<(std::ostream& os, const Gal3& state) {
+    os << "R: " << state.R_ << "\n";
+    os << "r: " << state.r_.transpose() << "\n";
+    os << "v: " << state.v_.transpose() << "\n";
+    os << "t: " << state.t_;
+    return os;
+}
+
+//------------------------------------------------------------------------------
+// Testable Requirements (NavState order: 6)
 //------------------------------------------------------------------------------
 void Gal3::print(const std::string& s) const {
     std::cout << (s.empty() ? "" : s + " ");
@@ -227,13 +231,12 @@ bool Gal3::equals(const Gal3& other, double tol) const {
 }
 
 //------------------------------------------------------------------------------
-// Group Operations
+// Group Operations (NavState order: 7)
 //------------------------------------------------------------------------------
 Gal3 Gal3::inverse() const {
     // Formula: R_inv = R', v_inv = -R'*v, r_inv = -R'*(r - t*v), t_inv = -t
     const Rot3 Rinv = R_.inverse();
     const Velocity3 v_inv = -(Rinv.rotate(v_));
-    // CORRECTED: Cast r_ to Vector3 for subtraction
     const Point3 r_inv = -(Rinv.rotate(Vector3(r_) - t_ * v_));
     const double t_inv = -t_;
     return Gal3(Rinv, r_inv, v_inv, t_inv);
@@ -242,24 +245,21 @@ Gal3 Gal3::inverse() const {
 //------------------------------------------------------------------------------
 Gal3 Gal3::compose(const Gal3& other, OptionalJacobian<10, 10> H1, OptionalJacobian<10, 10> H2) const {
     // Formula: R = R1*R2, v = R1*v2 + v1, r = R1*r2 + t2*v1 + r1, t = t1+t2
-    // where this = g1, other = g2
     const Gal3& g1 = *this;
     const Gal3& g2 = other;
 
     const Rot3 R_comp = g1.R_.compose(g2.R_);
-    // CORRECTED: Cast g1.r_ to Vector3 for addition
     const Vector3 r_comp_vec = g1.R_.rotate(g2.r_) + g2.t_ * g1.v_ + Vector3(g1.r_);
     const Velocity3 v_comp = g1.R_.rotate(g2.v_) + g1.v_;
     const double t_comp = g1.t_ + g2.t_;
 
     Gal3 result(R_comp, Point3(r_comp_vec), v_comp, t_comp);
 
-    // Jacobians require correct AdjointMap implementation
     if (H1) {
-         *H1 = g2.inverse().AdjointMap();
+         *H1 = g2.inverse().AdjointMap(); // Jacobian w.r.t this is Ad(g2.inverse())
     }
     if (H2) {
-        *H2 = Matrix10::Identity();
+        *H2 = Matrix10::Identity();      // Jacobian w.r.t other is Identity
     }
 
     return result;
@@ -269,69 +269,203 @@ Gal3 Gal3::compose(const Gal3& other, OptionalJacobian<10, 10> H1, OptionalJacob
 Gal3 Gal3::between(const Gal3& other, OptionalJacobian<10, 10> H1, OptionalJacobian<10, 10> H2) const {
     const Gal3& g1 = *this;
     const Gal3& g2 = other;
-    Gal3 g1_inv = g1.inverse();
-    Gal3 result = g1_inv.compose(g2); // g1_inv * g2
 
-    // Jacobians require correct AdjointMap implementation
+    // Step 1: Calculate g1.inverse() and its Jacobian w.r.t. g1
+    // H_inv_g1 = -Ad(g1_inv)
+    Matrix10 H_inv_g1;
+    // NOTE: This internal call to inverse *does* take the Jacobian argument
+    Gal3 g1_inv = g1.inverse(H_inv_g1);
+
+    // Step 2: Calculate g2.inverse() needed for compose Jacobian
+    Gal3 g2_inv = g2.inverse(); // This calls the public inverse() without Jacobian
+
+    // Step 3: Calculate compose(g1_inv, g2) and its Jacobians w.r.t. g1_inv and g2
+    // H_comp_g1inv = Ad(g2_inv)
+    // H_comp_g2 = Identity
+    Matrix10 H_comp_g1inv, H_comp_g2;
+    Gal3 result = g1_inv.compose(g2, H_comp_g1inv, H_comp_g2);
+
+    // Step 4: Apply chain rule explicitly for H1
     if (H1) {
-        *H1 = -result.AdjointMap();
+        // H1 = d(compose)/d(g1_inv) * d(g1_inv)/d(g1) = H_comp_g1inv * H_inv_g1
+        *H1 = H_comp_g1inv * H_inv_g1;
     }
+
+    // Step 5: Assign H2
     if (H2) {
-         *H2 = g1_inv.AdjointMap();
+        // H2 = d(compose)/d(g2) = H_comp_g2 = Identity
+        *H2 = H_comp_g2; // Should be Identity()
     }
 
     return result;
 }
 
-
 //------------------------------------------------------------------------------
-// Manifold Operations (Retract/Local)
+// Lie Group Static Functions (NavState order: 8)
 //------------------------------------------------------------------------------
-Gal3 Gal3::retract(const Vector10& xi, OptionalJacobian<10, 10> H1, OptionalJacobian<10, 10> H2) const {
-    Gal3 g_exp = Gal3::Expmap(xi);
-    Matrix10 H_exp_xi = Matrix10::Zero(); // Placeholder
-    if (H2) {
-       H_exp_xi = Gal3::ExpmapDerivative(xi); // Needs ExpmapDerivative implemented
-    }
+Gal3 Gal3::Expmap(const Vector10& xi, OptionalJacobian<10, 10> Hxi) {
+    const Vector3 rho_tan = rho(xi);
+    const Vector3 nu_tan = nu(xi);
+    const Vector3 theta_tan = theta(xi);
+    const double t_tan_val = t_tan(xi)(0);
 
-    Matrix10 H_comp_this, H_comp_gexp;
-    Gal3 result = this->compose(g_exp, H_comp_this, H_comp_gexp);
+    const Rot3 R = Rot3::Expmap(theta_tan);
+    const gtsam::so3::DexpFunctor dexp_functor(theta_tan);
+    const Matrix3 Jl_theta = dexp_functor.leftJacobian(); // Left Jacobian of SO(3) Expmap
 
-    if (H1) {
-        *H1 = H_comp_this; // Requires AdjointMap
-    }
-    if (H2) {
-        // Needs ExpmapDerivative and potentially AdjointMap if H_comp_gexp is not Identity
-        *H2 = H_comp_gexp * H_exp_xi; // H_comp_gexp is Identity here
-    }
-    return result;
+    const Matrix3 E = Calculate_E(theta_tan); // Use helper matrix E(theta)
+
+    const Point3 r_final = Point3(Jl_theta * rho_tan + E * (t_tan_val * nu_tan));
+    const Velocity3 v_final = Jl_theta * nu_tan;
+    const double t_final = t_tan_val;
+
+     if (Hxi) {
+         *Hxi = ExpmapDerivative(xi); // Use numerical derivative for Jacobian
+     }
+
+    return Gal3(R, r_final, v_final, t_final);
 }
 
 //------------------------------------------------------------------------------
-Vector10 Gal3::localCoordinates(const Gal3& other, OptionalJacobian<10, 10> H1, OptionalJacobian<10, 10> H2) const {
-    Matrix10 H_between_this, H_between_other;
-    Gal3 result_g = this->between(other, H_between_this, H_between_other);
+Vector10 Gal3::Logmap(const Gal3& g, OptionalJacobian<10, 10> Hg) {
+    const Vector3 theta_vec = Rot3::Logmap(g.R_);
+    const gtsam::so3::DexpFunctor dexp_functor_log(theta_vec);
+    const Matrix3 Jl_theta_inv = dexp_functor_log.leftJacobianInverse(); // Inverse Left Jacobian
 
-    Matrix10 H_log_g = Matrix10::Zero(); // Placeholder
-    if (H1 || H2) {
-        H_log_g = Gal3::LogmapDerivative(result_g); // Needs LogmapDerivative implemented
-    }
-    Vector10 result_xi = Gal3::Logmap(result_g);
+    const Matrix3 E = Calculate_E(theta_vec); // Use helper matrix E(theta)
 
-    // Jacobians require LogmapDerivative and AdjointMap (via between Jacobians)
-    if (H1) {
-        *H1 = H_log_g * H_between_this;
+    const Vector3 r_vec = Vector3(g.r_);
+    const Velocity3& v_vec = g.v_;
+    const double& t_val = g.t_;
+
+    const Vector3 nu_tan = Jl_theta_inv * v_vec;
+    const Vector3 rho_tan = Jl_theta_inv * (r_vec - E * (t_val * nu_tan));
+    const double t_tan_val = t_val;
+
+    if (Hg) {
+        *Hg = LogmapDerivative(g); // Use numerical derivative for Jacobian
     }
-    if (H2) {
-        *H2 = H_log_g * H_between_other;
-    }
-    return result_xi;
+
+    Vector10 xi;
+    rho(xi) = rho_tan;
+    nu(xi) = nu_tan;
+    theta(xi) = theta_vec;
+    t_tan(xi)(0) = t_tan_val;
+    return xi;
 }
 
 //------------------------------------------------------------------------------
-// Lie Group Static Functions
-//------------------------------------------------------------------------------
+Matrix10 Gal3::AdjointMap() const {
+    const Matrix3 Rmat = R_.matrix();
+    const Vector3 v_vec = v_;
+    const Vector3 r_minus_tv = Vector3(r_) - t_ * v_;
 
+    Matrix10 Ad = Matrix10::Zero();
+
+    // Row block 1: drho' output
+    Ad.block<3,3>(0,0) = Rmat;
+    Ad.block<3,3>(0,3) = -t_ * Rmat;
+    Ad.block<3,3>(0,6) = skewSymmetric(r_minus_tv) * Rmat; // [(r-t*v)]x * R
+    Ad.block<3,1>(0,9) = v_vec;
+
+    // Row block 2: dnu' output
+    Ad.block<3,3>(3,3) = Rmat;
+    Ad.block<3,3>(3,6) = skewSymmetric(v_vec) * Rmat; // [v]x * R
+
+    // Row block 3: dtheta' output
+    Ad.block<3,3>(6,6) = Rmat;
+
+    // Row block 4: dt' output
+    Ad(9,9) = 1.0;
+
+    return Ad;
+}
+
+//------------------------------------------------------------------------------
+Vector10 Gal3::Adjoint(const Vector10& xi, OptionalJacobian<10, 10> H_g, OptionalJacobian<10, 10> H_xi) const {
+    Matrix10 Ad = AdjointMap(); // Ad = Ad(g)
+    Vector10 y = Ad * xi;      // y = Ad_g(xi)
+
+    if (H_xi) {
+        *H_xi = Ad; // Jacobian w.r.t xi is Ad(g)
+    }
+
+    if (H_g) {
+        // Jacobian H_g = d(Ad_g(xi))/d(g) -> use numerical derivative
+        std::function<Vector10(const Gal3&, const Vector10&)> adjoint_action_wrt_g =
+          [&](const Gal3& g_in, const Vector10& xi_in) {
+              // Call Adjoint *without* asking for its Jacobians for numerical diff
+              return g_in.Adjoint(xi_in);
+          };
+        *H_g = numericalDerivative21(adjoint_action_wrt_g, *this, xi, 1e-7);
+    }
+    return y;
+}
+
+//------------------------------------------------------------------------------
+Matrix10 Gal3::adjointMap(const Vector10& xi) { // Lowercase 'a' - ad(xi)
+    const Matrix3 Theta_hat = skewSymmetric(theta(xi)); // =[theta_xi]x
+    const Matrix3 Nu_hat = skewSymmetric(nu(xi));       // =[nu_xi]x
+    const Matrix3 Rho_hat = skewSymmetric(rho(xi));       // =[rho_xi]x
+    const double t_val = t_tan(xi)(0);                 // =t_xi
+    const Vector3 nu_vec = nu(xi);
+
+    Matrix10 ad = Matrix10::Zero();
+
+    // Structure based on Lie bracket [xi, y] = ad(xi)y
+    // Row block 1: maps input rho_y, nu_y, theta_y, t_y to output rho_z
+    ad.block<3,3>(0,0) = Theta_hat;
+    ad.block<3,3>(0,3) = -t_val * Matrix3::Identity();
+    ad.block<3,3>(0,6) = Rho_hat;
+    ad.block<3,1>(0,9) = nu_vec;
+
+    // Row block 2: maps input nu_y, theta_y to output nu_z
+    ad.block<3,3>(3,3) = Theta_hat;
+    ad.block<3,3>(3,6) = Nu_hat;
+
+    // Row block 3: maps input theta_y to output theta_z
+    ad.block<3,3>(6,6) = Theta_hat;
+
+    // Row block 4: maps input t_y to output t_z (which is 0)
+
+    return ad;
+}
+
+//------------------------------------------------------------------------------
+Vector10 Gal3::adjoint(const Vector10& xi, const Vector10& y, OptionalJacobian<10, 10> Hxi, OptionalJacobian<10, 10> Hy) {
+    Matrix10 ad_xi = adjointMap(xi);
+    if (Hy) *Hy = ad_xi; // Jacobian w.r.t y is ad(xi)
+    if (Hxi) {
+        // Jacobian w.r.t xi is -ad(y)
+         *Hxi = -adjointMap(y);
+    }
+    return ad_xi * y;
+}
+
+//------------------------------------------------------------------------------
+Matrix10 Gal3::ExpmapDerivative(const Vector10& xi) {
+    // Use numerical derivative for Expmap Jacobian
+    // Use locally defined constant
+    if (xi.norm() < kSmallAngleThreshold) return Matrix10::Identity();
+    std::function<Gal3(const Vector10&)> fn =
+        [](const Vector10& v) { return Gal3::Expmap(v); };
+    return numericalDerivative11<Gal3, Vector10>(fn, xi, 1e-5);
+}
+
+//------------------------------------------------------------------------------
+Matrix10 Gal3::LogmapDerivative(const Gal3& g) {
+    // Use numerical derivative for Logmap Jacobian
+    Vector10 xi = Gal3::Logmap(g);
+    // Use locally defined constant
+    if (xi.norm() < kSmallAngleThreshold) return Matrix10::Identity();
+    std::function<Vector10(const Gal3&)> fn =
+        [](const Gal3& g_in) { return Gal3::Logmap(g_in); };
+    return numericalDerivative11<Vector10, Gal3>(fn, g, 1e-5);
+}
+
+//------------------------------------------------------------------------------
+// Lie Algebra (Hat/Vee maps) (NavState order: 9)
+//------------------------------------------------------------------------------
 Matrix5 Gal3::Hat(const Vector10& xi) {
     const Vector3 rho_tan = rho(xi);
     const Vector3 nu_tan = nu(xi);
@@ -348,10 +482,8 @@ Matrix5 Gal3::Hat(const Vector10& xi) {
 
 //------------------------------------------------------------------------------
 Vector10 Gal3::Vee(const Matrix5& X) {
-    // CORRECTED: Check X.row(3).head(N) for Lie algebra structure
-    // Lie algebra row 3 is [0 0 0 0 t], so first 3 elements should be 0.
-    // Lie algebra row 4 is [0 0 0 0 0], so all 5 elements should be 0.
-    if (X.row(4).norm() > 1e-9 || X.row(3).head(3).norm() > 1e-9) { // Row 4 all=0; Row 3 first 3=0
+    // Check Lie algebra structure: Row 4 all=0; Row 3 first 3=0, last = t.
+    if (X.row(4).norm() > 1e-9 || X.row(3).head(3).norm() > 1e-9 || std::abs(X(3,3)) > 1e-9) {
      throw std::invalid_argument("Matrix is not in sgal(3)");
     }
 
@@ -359,188 +491,155 @@ Vector10 Gal3::Vee(const Matrix5& X) {
     rho(xi) = X.block<3, 1>(0, 4); // rho from column 4
     nu(xi) = X.block<3, 1>(0, 3);  // nu from column 3
     const Matrix3& S = X.block<3, 3>(0, 0);
-    theta(xi) << S(2, 1), S(0, 2), S(1, 0);
+    theta(xi) << S(2, 1), S(0, 2), S(1, 0); // Extract theta from skew-symmetric part
     t_tan(xi)(0) = X(3, 4); // t from element (3, 4)
     return xi;
 }
 
 //------------------------------------------------------------------------------
-Gal3 Gal3::Expmap(const Vector10& xi, OptionalJacobian<10, 10> Hxi) {
-    const Vector3 rho_tan = rho(xi);
-    const Vector3 nu_tan = nu(xi);
-    const Vector3 theta_tan = theta(xi);
-    const double t_tan_val = t_tan(xi)(0);
-
-    const Rot3 R = Rot3::Expmap(theta_tan);
-    const Matrix3 Jl_theta = SO3_LeftJacobian(theta_tan);
-    const Matrix3 E = Calculate_E(theta_tan);
-
-    const Point3 r_final = Point3(Jl_theta * rho_tan + E * (t_tan_val * nu_tan));
-    const Velocity3 v_final = Jl_theta * nu_tan;
-    const double t_final = t_tan_val;
-
-     if (Hxi) {
-         // Jacobian placeholder - requires derivation
-         *Hxi = ExpmapDerivative(xi);
-     }
-
-    return Gal3(R, r_final, v_final, t_final);
-}
-
-//------------------------------------------------------------------------------
-Vector10 Gal3::Logmap(const Gal3& g, OptionalJacobian<10, 10> Hg) {
-    const Vector3 theta_vec = Rot3::Logmap(g.R_);
-    const Matrix3 Jl_theta_inv = SO3_LeftJacobianInverse(theta_vec);
-    const Matrix3 E = Calculate_E(theta_vec);
-
-    // CORRECTED: Cast r_ to Vector3 for subtraction
-    const Vector3 r_vec = Vector3(g.r_);
-    const Velocity3& v_vec = g.v_;
-    const double& t_val = g.t_;
-
-    const Vector3 nu_tan = Jl_theta_inv * v_vec;
-    const Vector3 rho_tan = Jl_theta_inv * (r_vec - E * (t_val * nu_tan));
-    const double t_tan_val = t_val;
-
-    // Jacobian placeholder - requires derivation
-    if (Hg) {
-        *Hg = LogmapDerivative(g);
-    }
-
-    Vector10 xi;
-    rho(xi) = rho_tan;
-    nu(xi) = nu_tan;
-    theta(xi) = theta_vec;
-    t_tan(xi)(0) = t_tan_val;
-    return xi;
-}
-
-//------------------------------------------------------------------------------
-Matrix10 Gal3::AdjointMap() const {
-    const Matrix3 Rmat = R_.matrix();
-    const Matrix3 Vhat = skewSymmetric(v_);
-    // CORRECTED: Cast r_ to Vector3 for subtraction
-    const Vector3 r_minus_tv = Vector3(r_) - t_ * v_;
-    const Matrix3 S_r_minus_tv_hat = skewSymmetric(r_minus_tv);
-
-    Matrix10 Ad = Matrix10::Zero();
-
-    // Row block 1: drho' output (maps input drho, dnu, dtheta, dt)
-    Ad.block<3,3>(0,0) = Rmat;
-    Ad.block<3,3>(0,3) = t_ * Rmat;
-    Ad.block<3,3>(0,6) = -Rmat * S_r_minus_tv_hat;
-    Ad.block<3,1>(0,9) = Rmat * v_;
-
-    // Row block 2: dnu' output
-    Ad.block<3,3>(3,3) = Rmat;
-    Ad.block<3,3>(3,6) = -Rmat * Vhat;
-
-    // Row block 3: dtheta' output
-    Ad.block<3,3>(6,6) = Rmat;
-
-    // Row block 4: dt' output
-    Ad(9,9) = 1.0;
-
-    return Ad;
-}
-
-
-//------------------------------------------------------------------------------
-Vector10 Gal3::Adjoint(const Vector10& xi, OptionalJacobian<10, 10> H_g, OptionalJacobian<10, 10> H_xi) const {
-    Matrix10 Ad = AdjointMap();
-    if (H_xi) {
-        *H_xi = Ad;
-    }
-    // Jacobian H_g requires adjointMap
-    if (H_g) {
-         *H_g = -adjointMap(Ad * xi);
-    }
-    return Ad * xi;
-}
-
-//------------------------------------------------------------------------------
-Matrix10 Gal3::adjointMap(const Vector10& xi) {
-    // Based on Manif SGal3Tangent::adj() / Lie bracket [xi, y]
-    const Matrix3 Theta_hat = skewSymmetric(theta(xi));
-    const Matrix3 Nu_hat = skewSymmetric(nu(xi));
-    const Matrix3 Rho_hat = skewSymmetric(rho(xi));
-    const double t_val = t_tan(xi)(0);
-
-    Matrix10 ad = Matrix10::Zero();
-
-    // Row block 1: rho_out = Theta_hat*m + Rho_hat*eta + t_val*p
-    ad.block<3,3>(0,0) = Theta_hat;  // d/dm
-    ad.block<3,3>(0,3) = t_val * Matrix3::Identity(); // d/dp
-    ad.block<3,3>(0,6) = Rho_hat;    // d/deta
-
-    // Row block 2: nu_out = Theta_hat*p + Nu_hat*eta
-    ad.block<3,3>(3,3) = Theta_hat; // d/dp
-    ad.block<3,3>(3,6) = Nu_hat;    // d/deta
-
-    // Row block 3: theta_out = Theta_hat*eta
-    ad.block<3,3>(6,6) = Theta_hat; // d/deta
-
-    // Row block 4: t_out = 0 (already zero)
-
-    return ad;
-}
-
-//------------------------------------------------------------------------------
-Vector10 Gal3::adjoint(const Vector10& xi, const Vector10& y, OptionalJacobian<10, 10> Hxi, OptionalJacobian<10, 10> Hy) {
-    Matrix10 ad_xi = adjointMap(xi);
-    if (Hy) *Hy = ad_xi;
-    // Jacobian Hxi requires adjointMap
-    if (Hxi) {
-         *Hxi = -adjointMap(y);
-    }
-    return ad_xi * y;
-}
-
-
-//------------------------------------------------------------------------------
-Matrix10 Gal3::ExpmapDerivative(const Vector10& xi) {
-    if (xi.norm() < kSmallAngleThreshold) return Matrix10::Identity();
-    // CORRECTED: Explicitly create std::function to resolve ambiguity
-    std::function<Gal3(const Vector10&)> fn =
-        [](const Vector10& v) { return Gal3::Expmap(v); };
-    // Note: Default delta for numericalDerivative might be too large or small
-    return numericalDerivative11<Gal3, Vector10>(fn, xi, 1e-5); // Pass function object
-}
-
-//------------------------------------------------------------------------------
-Matrix10 Gal3::LogmapDerivative(const Gal3& g) {
-    Vector10 xi = Gal3::Logmap(g);
-    if (xi.norm() < kSmallAngleThreshold) return Matrix10::Identity();
-    // CORRECTED: Explicitly create std::function to resolve ambiguity
-    std::function<Vector10(const Gal3&)> fn =
-        [](const Gal3& g_in) { return Gal3::Logmap(g_in); };
-    // Note: Default delta for numericalDerivative might be too large or small
-    return numericalDerivative11<Vector10, Gal3>(fn, g, 1e-5); // Pass function object
-}
-
-
-//------------------------------------------------------------------------------
-// ChartAtOrigin
+// ChartAtOrigin (NavState order: 10)
 //------------------------------------------------------------------------------
 Gal3 Gal3::ChartAtOrigin::Retract(const Vector10& xi, ChartJacobian Hxi) {
+  // Retraction at origin is Expmap
   return Gal3::Expmap(xi, Hxi);
 }
 
 //------------------------------------------------------------------------------
 Vector10 Gal3::ChartAtOrigin::Local(const Gal3& g, ChartJacobian Hg) {
+  // Local coordinates at origin is Logmap
   return Gal3::Logmap(g, Hg);
 }
 
 //------------------------------------------------------------------------------
-// Stream operator
+// Manifold Operations (Instance) (NavState order: 11 - retract/local/interpolate)
 //------------------------------------------------------------------------------
-std::ostream& operator<<(std::ostream& os, const Gal3& state) {
-    os << "R: " << state.R_ << "\n";
-    os << "r: " << state.r_.transpose() << "\n";
-    os << "v: " << state.v_.transpose() << "\n";
-    os << "t: " << state.t_;
-    return os;
+Gal3 Gal3::retract(const Vector10& xi, OptionalJacobian<10, 10> H1, OptionalJacobian<10, 10> H2) const {
+    // Default retract is Expmap applied via composition: this->compose(Expmap(xi))
+    Matrix10 H_exp_xi;
+    Gal3 g_exp = Gal3::Expmap(xi, H2 ? &H_exp_xi : nullptr); // Expmap(xi) and its Jacobian H2'
+
+    Matrix10 H_comp_this, H_comp_gexp;
+    Gal3 result = this->compose(g_exp, H1 ? &H_comp_this : nullptr, H2 ? &H_comp_gexp : nullptr);
+
+    if (H1) {
+        // H1 = d(compose)/d(this) = H_comp_this = Ad(g_exp.inverse())
+        *H1 = H_comp_this;
+    }
+    if (H2) {
+        // H2 = d(compose)/d(g_exp) * d(g_exp)/d(xi) = H_comp_gexp * H_exp_xi
+        // H_comp_gexp is Identity, so H2 = H_exp_xi
+        *H2 = H_comp_gexp * H_exp_xi;
+    }
+    return result;
 }
 
+//------------------------------------------------------------------------------
+Vector10 Gal3::localCoordinates(const Gal3& other, OptionalJacobian<10, 10> H1, OptionalJacobian<10, 10> H2) const {
+    // Default localCoords is Logmap of the relative transformation: Logmap(this->between(other))
+    Matrix10 H_between_this, H_between_other;
+    Gal3 result_g = this->between(other, H1 ? &H_between_this : nullptr, H2 ? &H_between_other : nullptr); // g = between(this, other) and its Jacobians
+
+    Matrix10 H_log_g;
+    Vector10 result_xi = Gal3::Logmap(result_g, (H1 || H2) ? &H_log_g : nullptr); // xi = Logmap(g) and its Jacobian
+
+    if (H1) {
+        // H1 = d(Logmap)/d(g) * d(g)/d(this) = H_log_g * H_between_this
+        *H1 = H_log_g * H_between_this;
+    }
+    if (H2) {
+        // H2 = d(Logmap)/d(g) * d(g)/d(other) = H_log_g * H_between_other
+        *H2 = H_log_g * H_between_other;
+    }
+    return result_xi;
+}
+
+//------------------------------------------------------------------------------
+Gal3 Gal3::interpolate(const Gal3& other, double alpha,
+                       OptionalJacobian<10, 10> H1,
+                       OptionalJacobian<10, 10> H2,
+                       OptionalJacobian<10, 1> Ha) const {
+    // Formula: g_interp = g1 * Exp(alpha * Log(g1.inverse * g2))
+    //          g_interp = g1 * Exp(alpha * Log(g1.between(g2)))
+    //          g_interp = g1.compose(Gal3::Expmap(alpha * Gal3::Logmap(g1.between(g2))))
+
+    // Step 1: Calculate between and Logmap
+    Matrix10 H_between_g1, H_between_g2; // Jacobians of between
+    Gal3 g_between = this->between(other,
+                                  (H1 || H2 || Ha) ? &H_between_g1 : nullptr,
+                                  (H1 || H2 || Ha) ? &H_between_g2 : nullptr);
+
+    Matrix10 H_log_between; // Jacobian of Logmap wrt g_between
+    Vector10 xi_between = Gal3::Logmap(g_between,
+                                      (H1 || H2 || Ha) ? &H_log_between : nullptr);
+
+    // Step 2: Scale tangent vector
+    Vector10 xi_scaled = alpha * xi_between;
+
+    // Step 3: Calculate Expmap
+    Matrix10 H_exp_scaled; // Jacobian of Expmap wrt xi_scaled
+    Gal3 g_exp_scaled = Gal3::Expmap(xi_scaled,
+                                    (H1 || H2 || Ha) ? &H_exp_scaled : nullptr);
+
+    // Step 4: Compose with g1 (this)
+    Matrix10 H_comp_g1, H_comp_gexp; // Jacobians of compose
+    Gal3 g_interp = this->compose(g_exp_scaled,
+                                 (H1 || Ha) ? &H_comp_g1 : nullptr,
+                                 (H1 || H2 || Ha) ? &H_comp_gexp : nullptr);
+
+    // --- Calculate Jacobians using Chain Rule ---
+    if (H1 || H2 || Ha) {
+        const Matrix10 d_xi_sc_d_xi_btw = alpha * Matrix10::Identity();
+        const Matrix10 chain_gexp_gbtw = H_exp_scaled * d_xi_sc_d_xi_btw * H_log_between;
+        const Matrix10 chain_gexp_g1 = chain_gexp_gbtw * H_between_g1;
+        const Matrix10 chain_gexp_g2 = chain_gexp_gbtw * H_between_g2;
+        const Vector10 d_xi_sc_d_alpha = xi_between;
+        const Vector10 chain_gexp_alpha = H_exp_scaled * d_xi_sc_d_alpha;
+
+        if (H1) {
+            // d(g_interp)/d(g1) = d(f5)/d(g1) + d(f5)/d(g_exp) * d(g_exp)/d(g1)
+            *H1 = H_comp_g1 + H_comp_gexp * chain_gexp_g1;
+        }
+        if (H2) {
+             // d(g_interp)/d(g2) = d(f5)/d(g_exp) * d(g_exp)/d(g2)
+            *H2 = H_comp_gexp * chain_gexp_g2;
+        }
+        if (Ha) {
+            // d(g_interp)/d(alpha) = d(f5)/d(g_exp) * d(g_exp)/d(alpha)
+           *Ha = H_comp_gexp * chain_gexp_alpha;
+        }
+    }
+    return g_interp;
+}
+
+//------------------------------------------------------------------------------
+// Group Action (NavState order: After Manifold Instance methods, before Dynamics)
+//------------------------------------------------------------------------------
+Point3 Gal3::act(const Point3& p, OptionalJacobian<3, 10> Hself, OptionalJacobian<3, 3> Hp) const {
+    // Implementation assumes instantaneous action: p_out = R_.rotate(p) + r_
+    Point3 r_out = R_.rotate(p) + r_;
+
+    if (Hp) {
+        *Hp = R_.matrix(); // Jacobian d(R*p+r)/dp = R
+    }
+    if (Hself) {
+        // Jacobian d(act(g,p))/d(xi) where g = this, xi is tangent at identity
+        // Corresponds to columns for [rho, nu, theta, t_tan]
+        *Hself = Matrix::Zero(3, 10);
+        const Matrix3 Rmat = R_.matrix();
+        // Derivative w.r.t. rho (cols 0-2) -> d(r)/drho = R
+        Hself->block<3,3>(0, 0) = Rmat;
+        // Derivative w.r.t. nu (cols 3-5) -> d(R*p+r)/dnu = 0
+        // Block remains zero.
+        // Derivative w.r.t. theta (cols 6-8) -> d(R*p)/dtheta = -R*skew(p)
+        Hself->block<3,3>(0, 6) = -Rmat * skewSymmetric(p);
+        // Derivative w.r.t. t_tan (col 9) -> Based on retract analysis, should be v_
+        Hself->block<3,1>(0, 9) = v_;
+    }
+    return r_out;
+}
+
+//------------------------------------------------------------------------------
+// Dynamics (NavState order: 12) - Gal3 currently has no dynamics methods.
+//------------------------------------------------------------------------------
 
 } // namespace gtsam
