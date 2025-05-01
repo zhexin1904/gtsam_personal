@@ -549,7 +549,7 @@ class ISAM2 {
   gtsam::Values calculateEstimate() const;
   template <VALUE = {gtsam::Point2, gtsam::Rot2, gtsam::Pose2, gtsam::Point3,
                      gtsam::Rot3, gtsam::Pose3, gtsam::Similarity2, gtsam::Similarity3, gtsam::Cal3_S2, gtsam::Cal3DS2,
-                     gtsam::Cal3f, gtsam::Cal3Bundler, 
+                     gtsam::Cal3f, gtsam::Cal3Bundler, gtsam::imuBias::ConstantBias,
                      gtsam::EssentialMatrix, gtsam::FundamentalMatrix, gtsam::SimpleFundamentalMatrix,
                      gtsam::PinholeCamera<gtsam::Cal3_S2>,
                      gtsam::PinholeCamera<gtsam::Cal3Bundler>,
@@ -626,6 +626,7 @@ template <T = {double,
                gtsam::PinholeCamera<gtsam::Cal3Bundler>,
                gtsam::PinholeCamera<gtsam::Cal3Fisheye>,
                gtsam::PinholeCamera<gtsam::Cal3Unified>,
+               gtsam::NavState,
                gtsam::imuBias::ConstantBias}>
 virtual class PriorFactor : gtsam::NoiseModelFactor {
   PriorFactor(size_t key, const T& prior,
@@ -669,16 +670,16 @@ virtual class NonlinearEquality2 : gtsam::NoiseModelFactor {
 };
 
 #include <gtsam/nonlinear/FixedLagSmoother.h>
+// This class is not available in python, just use a dictionary
 class FixedLagSmootherKeyTimestampMapValue {
   FixedLagSmootherKeyTimestampMapValue(size_t key, double timestamp);
   FixedLagSmootherKeyTimestampMapValue(const gtsam::FixedLagSmootherKeyTimestampMapValue& other);
 };
 
+// This class is not available in python, just use a dictionary
 class FixedLagSmootherKeyTimestampMap {
   FixedLagSmootherKeyTimestampMap();
   FixedLagSmootherKeyTimestampMap(const gtsam::FixedLagSmootherKeyTimestampMap& other);
-
-  // Note: no print function
 
   // common STL methods
   size_t size() const;
@@ -739,6 +740,7 @@ virtual class IncrementalFixedLagSmoother : gtsam::FixedLagSmoother {
 
   void print(string s = "IncrementalFixedLagSmoother:\n") const;
 
+  gtsam::Matrix marginalCovariance(size_t key) const;
   gtsam::ISAM2Params params() const;
 
   gtsam::NonlinearFactorGraph getFactors() const;
