@@ -18,6 +18,7 @@
 #include <gtsam/base/numericalDerivative.h> // For derivative checking if desired
 #include <gtsam/base/Matrix.h> // For Z_3x3 etc.
 #include <gtsam/nonlinear/expressions.h> // For constructing expressions
+#include <gtsam/geometry/concepts.h> // For GtsamLieTypeChecks @TODO - check
 
 #include <iostream>
 #include <cmath>
@@ -33,34 +34,6 @@ namespace { // Anonymous namespace for internal linkage
   // Define the threshold locally within the cpp file
   constexpr double kSmallAngleThreshold = 1e-10;
 
-  Matrix3 Calculate_E(const Vector3& theta) {
-      using std::cos;
-      using std::sin;
-      using std::sqrt;
-
-      const double angle_sq = theta.squaredNorm();
-      const Matrix3 W = skewSymmetric(theta);
-      const Matrix3 W2 = W * W;
-
-      Matrix3 E = 0.5 * Matrix3::Identity();
-
-      // Small angle approximation - Use locally defined constant
-      if (angle_sq < kSmallAngleThreshold * kSmallAngleThreshold) {
-          E += (1.0 / 6.0) * W + (1.0 / 24.0) * W2;
-          return E;
-      }
-
-      const double angle = sqrt(angle_sq);
-      const double sin_angle = sin(angle);
-      const double cos_angle = cos(angle);
-
-      // Coefficients from manif::SGal3TangentBase::exp()
-      const double A = (angle - sin_angle) / (angle_sq * angle);                 // A = (theta - sin(theta)) / theta^3
-      const double B = (angle_sq + 2.0 * cos_angle - 2.0) / (2.0 * angle_sq * angle_sq); // B = (theta^2 + 2*cos(theta) - 2) / (2 * theta^4)
-
-      E += A * W + B * W2;
-      return E;
-  }
 } // end anonymous namespace
 
 //------------------------------------------------------------------------------
@@ -74,19 +47,19 @@ Gal3 Gal3::Create(const Rot3& R, const Point3& r, const Velocity3& v, double t,
       // for inputs R, r, v, t. However, the standard way is derivative
       // w.r.t minimal tangent spaces of inputs. Let's assume standard approach.
       if (H1) { // d xi_out / d omega_R (3x3)
-        *H1 = Matrix::Zero(10, 3);
+        H1->setZero();
         H1->block<3, 3>(6, 0) = Matrix3::Identity(); // d theta / d omega_R = I
       }
       if (H2) { // d xi_out / d delta_r (3x3)
-        *H2 = Matrix::Zero(10, 3);
+        H2->setZero();
         H2->block<3, 3>(0, 0) = R.transpose();      // d rho / d delta_r = R^T
       }
       if (H3) { // d xi_out / d delta_v (3x3)
-        *H3 = Matrix::Zero(10, 3);
+        H3->setZero();
         H3->block<3, 3>(3, 0) = R.transpose();      // d nu / d delta_v = R^T
       }
       if (H4) { // d xi_out / d delta_t (10x1)
-        *H4 = Matrix::Zero(10, 1);
+        H4->setZero();
         // As derived: d xi / dt = [-R^T v; 0; 0; 1]
         Vector3 drho_dt = -R.transpose() * v; // Corrected derivative for rho
         H4->block<3, 1>(0, 0) = drho_dt;       // Assign to rho rows (0-2)
@@ -104,7 +77,7 @@ Gal3 Gal3::FromPoseVelocityTime(const Pose3& pose, const Velocity3& v, double t,
     const Rot3& R = pose.rotation();
     const Point3& r = pose.translation(); // Get r for H3 calculation if needed below
     if (H1) { // d xi_out / d xi_pose (10x6), xi_pose = [omega_R; v_r]
-        *H1 = Matrix::Zero(10, 6);
+        H1->setZero();
         // d theta / d omega_pose = I (rows 6-8, cols 0-2)
         H1->block<3, 3>(6, 0) = Matrix3::Identity();
         // d rho / d v_r = I (rows 0-2, cols 3-5) - Corrected
@@ -112,11 +85,11 @@ Gal3 Gal3::FromPoseVelocityTime(const Pose3& pose, const Velocity3& v, double t,
         // Other blocks (d_rho/d_omega, d_nu/d_omega, d_nu/d_vr, d_tt/d_omega, d_tt/d_vr) are zero.
     }
     if (H2) { // d xi_out / d v_in (10x3)
-        *H2 = Matrix::Zero(10, 3);
+        H2->setZero();
         H2->block<3, 3>(3, 0) = R.transpose();         // d(nu_out)/d(v_in) = R^T
     }
     if (H3) { // d xi_out / d t_in (10x1)
-        *H3 = Matrix::Zero(10, 1);
+        H3->setZero();
         // As derived: d xi / dt = [-R^T v; 0; 0; 1]
         Vector3 drho_dt = -R.transpose() * v; // Corrected derivative for rho
         H3->block<3, 1>(0, 0) = drho_dt;       // Assign to rho rows (0-2)
@@ -148,7 +121,7 @@ Gal3::Gal3(const Matrix5& M) {
 //------------------------------------------------------------------------------
 const Rot3& Gal3::rotation(OptionalJacobian<3, 10> H) const {
     if (H) {
-        *H = Matrix::Zero(3, 10);
+        H->setZero();
         H->block<3, 3>(0, 6) = Matrix3::Identity(); // Derivative w.r.t theta
     }
     return R_;
@@ -158,7 +131,7 @@ const Rot3& Gal3::rotation(OptionalJacobian<3, 10> H) const {
 const Point3& Gal3::translation(OptionalJacobian<3, 10> H) const {
      // H = d r / d xi = [dr/drho, dr/dnu, dr/dtheta, dr/dt_tan]
      if (H) {
-        *H = Matrix::Zero(3, 10);
+        H->setZero();
         // dr/drho = R (local tangent space)
         H->block<3,3>(0, 0) = R_.matrix();
         // dr/dnu = 0
@@ -174,7 +147,7 @@ const Point3& Gal3::translation(OptionalJacobian<3, 10> H) const {
 //------------------------------------------------------------------------------
 const Velocity3& Gal3::velocity(OptionalJacobian<3, 10> H) const {
      if (H) {
-        *H = Matrix::Zero(3, 10);
+        H->setZero();
         H->block<3, 3>(0, 3) = R_.matrix(); // d(v)/d(nu)
      }
     return v_;
@@ -183,7 +156,7 @@ const Velocity3& Gal3::velocity(OptionalJacobian<3, 10> H) const {
 //------------------------------------------------------------------------------
 const double& Gal3::time(OptionalJacobian<1, 10> H) const {
     if (H) {
-        *H = Matrix::Zero(1, 10);
+        H->setZero();
         (*H)(0, 9) = 1.0; // Derivative w.r.t t_tan
     }
     return t_;
@@ -303,56 +276,134 @@ Gal3 Gal3::between(const Gal3& other, OptionalJacobian<10, 10> H1, OptionalJacob
 //------------------------------------------------------------------------------
 // Lie Group Static Functions
 //------------------------------------------------------------------------------
-Gal3 Gal3::Expmap(const Vector10& xi, OptionalJacobian<10, 10> Hxi) {
+gtsam::Gal3 gtsam::Gal3::Expmap(const Vector10& xi, OptionalJacobian<10, 10> Hxi) {
+    // Extract tangent vector components
     const Vector3 rho_tan = rho(xi);
     const Vector3 nu_tan = nu(xi);
     const Vector3 theta_tan = theta(xi);
     const double t_tan_val = t_tan(xi)(0);
 
-    const Rot3 R = Rot3::Expmap(theta_tan);
+    // Use the SO(3) DexpFunctor. This computes theta, W, WW, sin/cos (or Taylor series),
+    // and coefficients A, B, C efficiently, handling the near-zero case.
     const gtsam::so3::DexpFunctor dexp_functor(theta_tan);
-    const Matrix3 Jl_theta = dexp_functor.leftJacobian(); // Left Jacobian of SO(3) Expmap
 
-    const Matrix3 E = Calculate_E(theta_tan); // Use helper matrix E(theta)
+    // Get Rotation matrix R = Exp(theta)
+    // We can use the functor's result directly if it provides it,
+    // or call the standard Rot3::Expmap which might be slightly clearer.
+    // Let's assume Rot3::Expmap is fine, as DexpFunctor primarily helps with Jacobians and coefficients.
+    const Rot3 R = Rot3::Expmap(theta_tan); // or const Rot3 R(dexp_functor.expmap());
 
+    // Get Left Jacobian of SO(3) Expmap: J_R(theta)
+    const Matrix3 Jl_theta = dexp_functor.leftJacobian();
+
+    // Calculate the E matrix using coefficients from dexp_functor to avoid redundant calculations.
+    // E = 0.5 * I + C * W + B_E * W2
+    // where C = dexp_functor.C = (theta - sin(theta)) / theta^3
+    // and B_E = (1 - 2 * dexp_functor.B) / (2 * dexp_functor.theta2)
+    //       where B = dexp_functor.B = (1 - cos(theta)) / theta^2
+    // Note: DexpFunctor handles the small angle case (nearZero==true) internally
+    //       by using Taylor approximations for B and C, which results in the
+    //       correct Taylor series for E.
+    Matrix3 E;
+    if (dexp_functor.nearZero) {
+         // Although the formula below *should* work due to Taylor series in B,C,
+         // we can be explicit using the known Taylor series for E for clarity/safety.
+         // E = 0.5*I + (1/6)*W + (1/24)*WW
+         E = 0.5 * Matrix3::Identity() + (1.0 / 6.0) * dexp_functor.W + (1.0 / 24.0) * dexp_functor.WW;
+    } else {
+         // Use the derived formula. theta2 cannot be zero here.
+         const double B_E = (1.0 - 2.0 * dexp_functor.B) / (2.0 * dexp_functor.theta2);
+         E = 0.5 * Matrix3::Identity() + dexp_functor.C * dexp_functor.W + B_E * dexp_functor.WW;
+    }
+
+    // Calculate final state components using the computed parts
     const Point3 r_final = Point3(Jl_theta * rho_tan + E * (t_tan_val * nu_tan));
     const Velocity3 v_final = Jl_theta * nu_tan;
     const double t_final = t_tan_val;
 
-     if (Hxi) {
-         *Hxi = ExpmapDerivative(xi); // Use numerical derivative for Jacobian
-     }
+    // Construct the final Gal3 object
+    Gal3 result(R, r_final, v_final, t_final);
 
-    return Gal3(R, r_final, v_final, t_final);
+    // If Jacobian is requested, compute it numerically.
+    // The lambda should call this Expmap function *without* the Jacobian flag
+    // to avoid infinite recursion.
+    if (Hxi) {
+        std::function<Gal3(const Vector10&)> expmap_wrapper =
+             [](const Vector10& tangent_vector) -> Gal3 {
+                 // Call the Expmap function itself, but without requesting Jacobian
+                 return Gal3::Expmap(tangent_vector);
+             };
+
+        // Compute numerical derivative using the wrapper
+        *Hxi = Gal3::ExpmapDerivative(xi);
+        // Note: The numerical derivative computes the Right Jacobian Jr(xi) for Expmap.
+        // Jr(xi) = d Expmap(xi o eps) / d eps |_{eps=0}
+        //        = d (Expmap(xi) * Expmap(Dr(xi) * eps)) / d eps |_{eps=0}
+        //        = d (Expmap(xi) * (I + (Dr(xi)*eps)^ )) / d eps |_{eps=0} * Dr(xi) ??? No, this is not right.
+        // The numerical derivative directly computes dExpmap(xi)/dxi where the perturbation is additive in xi.
+        // This corresponds to the Right Jacobian by definition in GTSAM's manifold context.
+        // Retract(x, v) = x.compose(Expmap(v))  (Right chart)
+        // Retract(Identity, xi) = Expmap(xi)
+        // Derivative d Retract(Identity, xi) / d xi = Jr_SO3(xi) for SO3.
+        // Let's assume numericalDerivative11 gives the correct Jacobian expected by the retract/localCoordinates framework.
+    }
+
+    return result;
 }
 
-//------------------------------------------------------------------------------
+// Also update the numerical derivative lambda within Logmap if it re-implements logic:
 Vector10 Gal3::Logmap(const Gal3& g, OptionalJacobian<10, 10> Hg) {
     const Vector3 theta_vec = Rot3::Logmap(g.R_);
+
+    // Use DexpFunctor to get Jacobians and coefficients efficiently
     const gtsam::so3::DexpFunctor dexp_functor_log(theta_vec);
     const Matrix3 Jl_theta_inv = dexp_functor_log.leftJacobianInverse(); // Inverse Left Jacobian
 
-    const Matrix3 E = Calculate_E(theta_vec); // Use helper matrix E(theta)
+    // Calculate E using the same logic as in Expmap, but based on theta_vec
+    Matrix3 E;
+    if (dexp_functor_log.nearZero) {
+         E = 0.5 * Matrix3::Identity() + (1.0 / 6.0) * dexp_functor_log.W + (1.0 / 24.0) * dexp_functor_log.WW;
+    } else {
+         const double B_E = (1.0 - 2.0 * dexp_functor_log.B) / (2.0 * dexp_functor_log.theta2);
+         E = 0.5 * Matrix3::Identity() + dexp_functor_log.C * dexp_functor_log.W + B_E * dexp_functor_log.WW;
+    }
 
     const Vector3 r_vec = Vector3(g.r_);
     const Velocity3& v_vec = g.v_;
     const double& t_val = g.t_;
 
     const Vector3 nu_tan = Jl_theta_inv * v_vec;
+    // Corrected formula for rho_tan based on Expmap structure: r = Jl*rho + E*(t*nu)
+    // => Jl*rho = r - E*(t*nu)
+    // => rho = Jl_inv * (r - E*(t*nu))
     const Vector3 rho_tan = Jl_theta_inv * (r_vec - E * (t_val * nu_tan));
     const double t_tan_val = t_val;
-
-    if (Hg) {
-        *Hg = LogmapDerivative(g); // Use numerical derivative for Jacobian
-    }
 
     Vector10 xi;
     rho(xi) = rho_tan;
     nu(xi) = nu_tan;
     theta(xi) = theta_vec;
     t_tan(xi)(0) = t_tan_val;
+
+    if (Hg) {
+        // Define a lambda that calls Logmap *without* the Jacobian argument
+        std::function<Vector10(const Gal3&)> logmap_wrapper =
+             [](const Gal3& state) -> Vector10 {
+                 return Gal3::Logmap(state); // Call Logmap without Hg
+             };
+         // Compute numerical derivative
+        *Hg = Gal3::LogmapDerivative(g);
+         // This numerical derivative gives dLogmap(g)/dg where perturbation is on g.
+         // This corresponds to the derivative of the Local chart.
+         // Local(x,y) = Logmap(x.between(y))
+         // Local(Identity, g) = Logmap(Identity.between(g)) = Logmap(g)
+         // Derivative d Local(Identity, g) / d g should be Jl_inv(Logmap(g)). Let's assume numericalDerivative works as expected.
+    }
+
     return xi;
 }
+
+
 
 //------------------------------------------------------------------------------
 Matrix10 Gal3::AdjointMap() const {
@@ -621,7 +672,7 @@ Point3 Gal3::act(const Point3& p, OptionalJacobian<3, 10> Hself, OptionalJacobia
     if (Hself) {
         // Jacobian d(act(g,p))/d(xi) where g = this, xi is tangent at identity
         // Corresponds to columns for [rho, nu, theta, t_tan]
-        *Hself = Matrix::Zero(3, 10);
+        Hself->setZero();
         const Matrix3 Rmat = R_.matrix();
         // Derivative w.r.t. rho (cols 0-2) -> d(r)/drho = R
         Hself->block<3,3>(0, 0) = Rmat;

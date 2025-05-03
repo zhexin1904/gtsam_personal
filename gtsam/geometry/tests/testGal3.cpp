@@ -13,7 +13,7 @@
  * @date    April 29, 2025
  */
 
-#include <gtsam/navigation/Gal3.h>
+#include <gtsam/geometry/Gal3.h>
 
 #include <gtsam/base/numericalDerivative.h>
 #include <gtsam/base/TestableAssertions.h>
@@ -1374,6 +1374,64 @@ TEST(Gal3, StaticAdjoint) { // Removed duplicate TEST macro here
     // Explicitly cast Vector10::Zero() to Vector10 to resolve ambiguity
     EXPECT(assert_equal(Vector10(Vector10::Zero()), sum_terms, jac_tol));
 }
+
+/* ************************************************************************* */
+// Test Expmap/Logmap self-consistency for near-zero tangent vectors
+/* ************************************************************************* */
+TEST(Gal3, ExpLog_NearZero) {
+    // Tolerance for round-trip checks often needs to be slightly looser
+    const double kTolRoundtrip = kTol * 100; // Adjusted tolerance
+
+    // --- Test Case 1: Small non-zero tangent vector ---
+    Vector10 xi_small1;
+    xi_small1 << 1e-5, -2e-5, 1.5e-5, // rho
+                 -3e-5, 4e-5, -2.5e-5, // nu
+                  1e-7, -2e-7, 1.5e-7, // theta (norm ~ 2.69e-7 radians)
+                 -5e-5;              // t_tan
+
+    Gal3 g_small1 = Gal3::Expmap(xi_small1);
+    Vector10 xi_recovered1 = Gal3::Logmap(g_small1);
+
+    // Check if the recovered tangent vector is close to the original small vector.
+    // Compare Vector10 directly using assert_equal's Eigen overload.
+    EXPECT(assert_equal(xi_small1, xi_recovered1, kTolRoundtrip));
+
+
+    // --- Test Case 2: Another small non-zero tangent vector ---
+     Vector10 xi_small2;
+     xi_small2 << -5e-6, 1e-6, -4e-6,  // rho
+                   2e-6, -6e-6, 1e-6,   // nu
+                  -5e-8, 8e-8, -2e-8,  // theta (norm ~ 9.64e-8 radians)
+                   9e-6;               // t_tan
+
+    Gal3 g_small2 = Gal3::Expmap(xi_small2);
+    Vector10 xi_recovered2 = Gal3::Logmap(g_small2);
+    EXPECT(assert_equal(xi_small2, xi_recovered2, kTolRoundtrip));
+
+
+    // --- Test Case 3: Even smaller theta magnitude ---
+     Vector10 xi_small3;
+     xi_small3 << 1e-9, 2e-9, 3e-9,    // rho
+                  -4e-9,-5e-9,-6e-9,   // nu
+                   1e-10, 2e-10, 3e-10, // theta (norm ~ 3.74e-10 radians)
+                   7e-9;               // t_tan
+
+    Gal3 g_small3 = Gal3::Expmap(xi_small3);
+    Vector10 xi_recovered3 = Gal3::Logmap(g_small3);
+    // Use a tighter tolerance as we get closer to zero
+    EXPECT(assert_equal(xi_small3, xi_recovered3, kTol));
+
+
+    // --- Test Case 4: Zero tangent vector (Strict Identity case) ---
+    Vector10 xi_zero = Vector10::Zero();
+    Gal3 g_identity = Gal3::Expmap(xi_zero);
+    Vector10 xi_recovered_zero = Gal3::Logmap(g_identity);
+
+    EXPECT(assert_equal(Gal3::Identity(), g_identity, kTol));
+    EXPECT(assert_equal(xi_zero, xi_recovered_zero, kTol)); // Compare vectors directly
+    EXPECT(assert_equal(xi_zero, Gal3::Logmap(Gal3::Expmap(xi_zero)), kTol)); // Compare vectors directly
+}
+
 
 
 /* ************************************************************************* */
