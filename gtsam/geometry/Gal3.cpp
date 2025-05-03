@@ -10,10 +10,10 @@
  * @file    Gal3.cpp
  * @brief   Implementation of 3D Galilean Group SGal(3) state
  * @authors Matt Kielo, Scott Baker, Frank Dellaert
- * @date    April 30, 2025 
+ * @date    April 30, 2025
  */
 
-#include <gtsam/navigation/Gal3.h> // Note: Adjust path if needed
+#include <gtsam/geometry/Gal3.h> // Note: Adjust path if needed
 #include <gtsam/geometry/SO3.h> // For so3::DexpFunctor if needed, and Rot3 Log/Exp
 #include <gtsam/base/numericalDerivative.h> // For derivative checking if desired
 #include <gtsam/base/Matrix.h> // For Z_3x3 etc.
@@ -64,7 +64,7 @@ namespace { // Anonymous namespace for internal linkage
 } // end anonymous namespace
 
 //------------------------------------------------------------------------------
-// Static Constructor/Create functions (NavState order: 1)
+// Static Constructor/Create functions
 //------------------------------------------------------------------------------
 Gal3 Gal3::Create(const Rot3& R, const Point3& r, const Velocity3& v, double t,
                     OptionalJacobian<10, 3> H1, OptionalJacobian<10, 3> H2,
@@ -129,7 +129,7 @@ Gal3 Gal3::FromPoseVelocityTime(const Pose3& pose, const Velocity3& v, double t,
 }
 
 //------------------------------------------------------------------------------
-// Constructors (NavState order: 2 - Included in Constructor section)
+// Constructors
 //------------------------------------------------------------------------------
 Gal3::Gal3(const Matrix5& M) {
     // Ensure matrix adheres to SGal(3) structure
@@ -144,7 +144,7 @@ Gal3::Gal3(const Matrix5& M) {
 }
 
 //------------------------------------------------------------------------------
-// Component Access (NavState order: 3)
+// Component Access
 //------------------------------------------------------------------------------
 const Rot3& Gal3::rotation(OptionalJacobian<3, 10> H) const {
     if (H) {
@@ -190,7 +190,7 @@ const double& Gal3::time(OptionalJacobian<1, 10> H) const {
 }
 
 //------------------------------------------------------------------------------
-// Matrix Representation (NavState order: 4)
+// Matrix Representation
 //------------------------------------------------------------------------------
 Matrix5 Gal3::matrix() const {
     Matrix5 M = Matrix5::Identity();
@@ -204,7 +204,7 @@ Matrix5 Gal3::matrix() const {
 }
 
 //------------------------------------------------------------------------------
-// Stream operator (NavState order: 5)
+// Stream operator
 //------------------------------------------------------------------------------
 std::ostream& operator<<(std::ostream& os, const Gal3& state) {
     os << "R: " << state.R_ << "\n";
@@ -215,7 +215,7 @@ std::ostream& operator<<(std::ostream& os, const Gal3& state) {
 }
 
 //------------------------------------------------------------------------------
-// Testable Requirements (NavState order: 6)
+// Testable Requirements
 //------------------------------------------------------------------------------
 void Gal3::print(const std::string& s) const {
     std::cout << (s.empty() ? "" : s + " ");
@@ -231,7 +231,7 @@ bool Gal3::equals(const Gal3& other, double tol) const {
 }
 
 //------------------------------------------------------------------------------
-// Group Operations (NavState order: 7)
+// Group Operations
 //------------------------------------------------------------------------------
 Gal3 Gal3::inverse() const {
     // Formula: R_inv = R', v_inv = -R'*v, r_inv = -R'*(r - t*v), t_inv = -t
@@ -301,7 +301,7 @@ Gal3 Gal3::between(const Gal3& other, OptionalJacobian<10, 10> H1, OptionalJacob
 }
 
 //------------------------------------------------------------------------------
-// Lie Group Static Functions (NavState order: 8)
+// Lie Group Static Functions
 //------------------------------------------------------------------------------
 Gal3 Gal3::Expmap(const Vector10& xi, OptionalJacobian<10, 10> Hxi) {
     const Vector3 rho_tan = rho(xi);
@@ -464,7 +464,7 @@ Matrix10 Gal3::LogmapDerivative(const Gal3& g) {
 }
 
 //------------------------------------------------------------------------------
-// Lie Algebra (Hat/Vee maps) (NavState order: 9)
+// Lie Algebra (Hat/Vee maps)
 //------------------------------------------------------------------------------
 Matrix5 Gal3::Hat(const Vector10& xi) {
     const Vector3 rho_tan = rho(xi);
@@ -497,7 +497,7 @@ Vector10 Gal3::Vee(const Matrix5& X) {
 }
 
 //------------------------------------------------------------------------------
-// ChartAtOrigin (NavState order: 10)
+// ChartAtOrigin
 //------------------------------------------------------------------------------
 Gal3 Gal3::ChartAtOrigin::Retract(const Vector10& xi, ChartJacobian Hxi) {
   // Retraction at origin is Expmap
@@ -511,7 +511,7 @@ Vector10 Gal3::ChartAtOrigin::Local(const Gal3& g, ChartJacobian Hg) {
 }
 
 //------------------------------------------------------------------------------
-// Manifold Operations (Instance) (NavState order: 11 - retract/local/interpolate)
+// Manifold Operations (Instance)
 //------------------------------------------------------------------------------
 Gal3 Gal3::retract(const Vector10& xi, OptionalJacobian<10, 10> H1, OptionalJacobian<10, 10> H2) const {
     // Default retract is Expmap applied via composition: this->compose(Expmap(xi))
@@ -611,9 +611,6 @@ Gal3 Gal3::interpolate(const Gal3& other, double alpha,
     return g_interp;
 }
 
-//------------------------------------------------------------------------------
-// Group Action (NavState order: After Manifold Instance methods, before Dynamics)
-//------------------------------------------------------------------------------
 Point3 Gal3::act(const Point3& p, OptionalJacobian<3, 10> Hself, OptionalJacobian<3, 3> Hp) const {
     // Implementation assumes instantaneous action: p_out = R_.rotate(p) + r_
     Point3 r_out = R_.rotate(p) + r_;
@@ -637,9 +634,5 @@ Point3 Gal3::act(const Point3& p, OptionalJacobian<3, 10> Hself, OptionalJacobia
     }
     return r_out;
 }
-
-//------------------------------------------------------------------------------
-// Dynamics (NavState order: 12) - Gal3 currently has no dynamics methods.
-//------------------------------------------------------------------------------
 
 } // namespace gtsam
