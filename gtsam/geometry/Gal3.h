@@ -169,39 +169,13 @@ class GTSAM_EXPORT Gal3 : public LieGroup<Gal3, 10> {
   using LieGroup<Gal3, 10>::inverse;
 
   /// Compose with another element: `this * other`
-  Gal3 compose(const Gal3& other, OptionalJacobian<10, 10> H1 = {},
-               OptionalJacobian<10, 10> H2 = {}) const;
+  // Gal3 compose(const Gal3& other, OptionalJacobian<10, 10> H1 = {},
+  //              OptionalJacobian<10, 10> H2 = {}) const;
 
-  /// Group composition operator: `this * other`
-  Gal3 operator*(const Gal3& other) const { return compose(other); }
-
-  /// Calculate the relative transformation: `this->inverse() * other`
-  Gal3 between(const Gal3& other, OptionalJacobian<10, 10> H1 = {},
-               OptionalJacobian<10, 10> H2 = {}) const;
-
-  /// @}
-  /// @name Manifold Operations
-  /// @{
-
-  /// Retract from tangent space xi to manifold element (this + xi)
-  Gal3 retract(const Vector10& xi, OptionalJacobian<10, 10> H1 = {},
-               OptionalJacobian<10, 10> H2 = {}) const;
-
-  /// Compute local coordinates (tangent vector) from this to other (logmap(this.inverse * other))
-  Vector10 localCoordinates(const Gal3& other, OptionalJacobian<10, 10> H1 = {},
-                            OptionalJacobian<10, 10> H2 = {}) const;
-
-
-  /**
-   * Interpolate between two Gal3 elements.
-   * @param other The other Gal3 element.
-   * @param alpha Interpolation fraction (0=this, 1=other).
-   * @return Interpolated Gal3 element: this->compose(Expmap(alpha * Logmap(this->between(other))))
-   */
-   Gal3 interpolate(const Gal3& other, double alpha,
-                    OptionalJacobian<10, 10> H1 = {},
-                    OptionalJacobian<10, 10> H2 = {},
-                    OptionalJacobian<10, 1> Ha = {}) const; // Added Jacobian args to match NavState/typical patterns
+  // /// Group composition operator: `this * other`
+  // Gal3 operator*(const Gal3& other) const { return compose(other); }
+  // Gal3 compose(const Gal3& other) const;
+  Gal3 operator*(const Gal3& other) const;
 
   /// @}
   /// @name Group Action

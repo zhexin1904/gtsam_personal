@@ -1165,11 +1165,11 @@ TEST(Gal3, Interpolate) {
 
     // Compare values
     // Requires Gal3::interpolate to be implemented
-    EXPECT(assert_equal(expected_alpha0_00, g1.interpolate(g2, 0.0), interp_tol));
-    EXPECT(assert_equal(expected_alpha0_25, g1.interpolate(g2, 0.25), interp_tol));
-    EXPECT(assert_equal(expected_alpha0_50, g1.interpolate(g2, 0.5), interp_tol));
-    EXPECT(assert_equal(expected_alpha0_75, g1.interpolate(g2, 0.75), interp_tol));
-    EXPECT(assert_equal(expected_alpha1_00, g1.interpolate(g2, 1.0), interp_tol));
+    EXPECT(assert_equal(expected_alpha0_00, gtsam::interpolate(g1, g2, 0.0), interp_tol));
+    EXPECT(assert_equal(expected_alpha0_25, gtsam::interpolate(g1, g2, 0.25), interp_tol));
+    EXPECT(assert_equal(expected_alpha0_50, gtsam::interpolate(g1, g2, 0.5), interp_tol));
+    EXPECT(assert_equal(expected_alpha0_75, gtsam::interpolate(g1, g2, 0.75), interp_tol));
+    EXPECT(assert_equal(expected_alpha1_00, gtsam::interpolate(g1, g2, 1.0), interp_tol));
 }
 
 
@@ -1291,14 +1291,14 @@ TEST(Gal3, Jacobian_Interpolate) {
     const double alpha = 0.3; // Example interpolation factor
 
     gtsam::Matrix H1_ana, H2_ana, Ha_ana; // Use dynamic Matrix type
-    g1.interpolate(g2, alpha, H1_ana, H2_ana, Ha_ana);
+    gtsam::interpolate(g1, g2, alpha, H1_ana, H2_ana, Ha_ana);
 
     // Numerical derivatives
     // Explicitly use const double& for the double argument in lambda
     std::function<Gal3(const Gal3&, const Gal3&, const double&)> interp_func =
         [](const Gal3& g1_in, const Gal3& g2_in, const double& a){
             // Call interpolate *without* asking for its Jacobians for numerical diff
-            return g1_in.interpolate(g2_in, a);
+            return gtsam::interpolate(g1_in, g2_in, a);
         };
 
     // Pass alpha by const reference to match lambda

@@ -216,62 +216,27 @@ Gal3 Gal3::inverse() const {
 }
 
 //------------------------------------------------------------------------------
-Gal3 Gal3::compose(const Gal3& other, OptionalJacobian<10, 10> H1, OptionalJacobian<10, 10> H2) const {
+
+Gal3 Gal3::operator*(const Gal3& other) const {
+    // This function provides the fundamental math for g1 * g2
     // Formula: R = R1*R2, v = R1*v2 + v1, r = R1*r2 + t2*v1 + r1, t = t1+t2
-    const Gal3& g1 = *this;
-    const Gal3& g2 = other;
+    const Gal3& g1 = *this; // g1 is the current object (*this)
+    const Gal3& g2 = other; // g2 is the argument
 
     const Rot3 R_comp = g1.R_.compose(g2.R_);
-    const Vector3 r_comp_vec = g1.R_.rotate(g2.r_) + g2.t_ * g1.v_ + Vector3(g1.r_);
+
+    // Ensure correct types for addition (using Vector3 temporarily if r_ is Point3)
+    const Vector3 r1_vec(g1.r_);
+    const Vector3 r2_vec(g2.r_);
+    const Vector3 r_comp_vec = g1.R_.rotate(r2_vec) + g2.t_ * g1.v_ + r1_vec;
+
     const Velocity3 v_comp = g1.R_.rotate(g2.v_) + g1.v_;
     const double t_comp = g1.t_ + g2.t_;
 
-    Gal3 result(R_comp, Point3(r_comp_vec), v_comp, t_comp);
-
-    if (H1) {
-         *H1 = g2.inverse().AdjointMap(); // Jacobian w.r.t this is Ad(g2.inverse())
-    }
-    if (H2) {
-        *H2 = Matrix10::Identity();      // Jacobian w.r.t other is Identity
-    }
-
-    return result;
+    // Construct the result using the computed components
+    return Gal3(R_comp, Point3(r_comp_vec), v_comp, t_comp);
 }
 
-//------------------------------------------------------------------------------
-Gal3 Gal3::between(const Gal3& other, OptionalJacobian<10, 10> H1, OptionalJacobian<10, 10> H2) const {
-    const Gal3& g1 = *this;
-    const Gal3& g2 = other;
-
-    // Step 1: Calculate g1.inverse() and its Jacobian w.r.t. g1
-    // H_inv_g1 = -Ad(g1_inv)
-    Matrix10 H_inv_g1;
-    // NOTE: This internal call to inverse *does* take the Jacobian argument
-    Gal3 g1_inv = g1.inverse(H_inv_g1);
-
-    // Step 2: Calculate g2.inverse() needed for compose Jacobian
-    Gal3 g2_inv = g2.inverse(); // This calls the public inverse() without Jacobian
-
-    // Step 3: Calculate compose(g1_inv, g2) and its Jacobians w.r.t. g1_inv and g2
-    // H_comp_g1inv = Ad(g2_inv)
-    // H_comp_g2 = Identity
-    Matrix10 H_comp_g1inv, H_comp_g2;
-    Gal3 result = g1_inv.compose(g2, H_comp_g1inv, H_comp_g2);
-
-    // Step 4: Apply chain rule explicitly for H1
-    if (H1) {
-        // H1 = d(compose)/d(g1_inv) * d(g1_inv)/d(g1) = H_comp_g1inv * H_inv_g1
-        *H1 = H_comp_g1inv * H_inv_g1;
-    }
-
-    // Step 5: Assign H2
-    if (H2) {
-        // H2 = d(compose)/d(g2) = H_comp_g2 = Identity
-        *H2 = H_comp_g2; // Should be Identity()
-    }
-
-    return result;
-}
 
 //------------------------------------------------------------------------------
 // Lie Group Static Functions
@@ -559,107 +524,6 @@ Gal3 Gal3::ChartAtOrigin::Retract(const Vector10& xi, ChartJacobian Hxi) {
 Vector10 Gal3::ChartAtOrigin::Local(const Gal3& g, ChartJacobian Hg) {
   // Local coordinates at origin is Logmap
   return Gal3::Logmap(g, Hg);
-}
-
-//------------------------------------------------------------------------------
-// Manifold Operations (Instance)
-//------------------------------------------------------------------------------
-Gal3 Gal3::retract(const Vector10& xi, OptionalJacobian<10, 10> H1, OptionalJacobian<10, 10> H2) const {
-    // Default retract is Expmap applied via composition: this->compose(Expmap(xi))
-    Matrix10 H_exp_xi;
-    Gal3 g_exp = Gal3::Expmap(xi, H2 ? &H_exp_xi : nullptr); // Expmap(xi) and its Jacobian H2'
-
-    Matrix10 H_comp_this, H_comp_gexp;
-    Gal3 result = this->compose(g_exp, H1 ? &H_comp_this : nullptr, H2 ? &H_comp_gexp : nullptr);
-
-    if (H1) {
-        // H1 = d(compose)/d(this) = H_comp_this = Ad(g_exp.inverse())
-        *H1 = H_comp_this;
-    }
-    if (H2) {
-        // H2 = d(compose)/d(g_exp) * d(g_exp)/d(xi) = H_comp_gexp * H_exp_xi
-        // H_comp_gexp is Identity, so H2 = H_exp_xi
-        *H2 = H_comp_gexp * H_exp_xi;
-    }
-    return result;
-}
-
-//------------------------------------------------------------------------------
-Vector10 Gal3::localCoordinates(const Gal3& other, OptionalJacobian<10, 10> H1, OptionalJacobian<10, 10> H2) const {
-    // Default localCoords is Logmap of the relative transformation: Logmap(this->between(other))
-    Matrix10 H_between_this, H_between_other;
-    Gal3 result_g = this->between(other, H1 ? &H_between_this : nullptr, H2 ? &H_between_other : nullptr); // g = between(this, other) and its Jacobians
-
-    Matrix10 H_log_g;
-    Vector10 result_xi = Gal3::Logmap(result_g, (H1 || H2) ? &H_log_g : nullptr); // xi = Logmap(g) and its Jacobian
-
-    if (H1) {
-        // H1 = d(Logmap)/d(g) * d(g)/d(this) = H_log_g * H_between_this
-        *H1 = H_log_g * H_between_this;
-    }
-    if (H2) {
-        // H2 = d(Logmap)/d(g) * d(g)/d(other) = H_log_g * H_between_other
-        *H2 = H_log_g * H_between_other;
-    }
-    return result_xi;
-}
-
-//------------------------------------------------------------------------------
-Gal3 Gal3::interpolate(const Gal3& other, double alpha,
-                       OptionalJacobian<10, 10> H1,
-                       OptionalJacobian<10, 10> H2,
-                       OptionalJacobian<10, 1> Ha) const {
-    // Formula: g_interp = g1 * Exp(alpha * Log(g1.inverse * g2))
-    //          g_interp = g1 * Exp(alpha * Log(g1.between(g2)))
-    //          g_interp = g1.compose(Gal3::Expmap(alpha * Gal3::Logmap(g1.between(g2))))
-
-    // Step 1: Calculate between and Logmap
-    Matrix10 H_between_g1, H_between_g2; // Jacobians of between
-    Gal3 g_between = this->between(other,
-                                  (H1 || H2 || Ha) ? &H_between_g1 : nullptr,
-                                  (H1 || H2 || Ha) ? &H_between_g2 : nullptr);
-
-    Matrix10 H_log_between; // Jacobian of Logmap wrt g_between
-    Vector10 xi_between = Gal3::Logmap(g_between,
-                                      (H1 || H2 || Ha) ? &H_log_between : nullptr);
-
-    // Step 2: Scale tangent vector
-    Vector10 xi_scaled = alpha * xi_between;
-
-    // Step 3: Calculate Expmap
-    Matrix10 H_exp_scaled; // Jacobian of Expmap wrt xi_scaled
-    Gal3 g_exp_scaled = Gal3::Expmap(xi_scaled,
-                                    (H1 || H2 || Ha) ? &H_exp_scaled : nullptr);
-
-    // Step 4: Compose with g1 (this)
-    Matrix10 H_comp_g1, H_comp_gexp; // Jacobians of compose
-    Gal3 g_interp = this->compose(g_exp_scaled,
-                                 (H1 || Ha) ? &H_comp_g1 : nullptr,
-                                 (H1 || H2 || Ha) ? &H_comp_gexp : nullptr);
-
-    // --- Calculate Jacobians using Chain Rule ---
-    if (H1 || H2 || Ha) {
-        const Matrix10 d_xi_sc_d_xi_btw = alpha * Matrix10::Identity();
-        const Matrix10 chain_gexp_gbtw = H_exp_scaled * d_xi_sc_d_xi_btw * H_log_between;
-        const Matrix10 chain_gexp_g1 = chain_gexp_gbtw * H_between_g1;
-        const Matrix10 chain_gexp_g2 = chain_gexp_gbtw * H_between_g2;
-        const Vector10 d_xi_sc_d_alpha = xi_between;
-        const Vector10 chain_gexp_alpha = H_exp_scaled * d_xi_sc_d_alpha;
-
-        if (H1) {
-            // d(g_interp)/d(g1) = d(f5)/d(g1) + d(f5)/d(g_exp) * d(g_exp)/d(g1)
-            *H1 = H_comp_g1 + H_comp_gexp * chain_gexp_g1;
-        }
-        if (H2) {
-             // d(g_interp)/d(g2) = d(f5)/d(g_exp) * d(g_exp)/d(g2)
-            *H2 = H_comp_gexp * chain_gexp_g2;
-        }
-        if (Ha) {
-            // d(g_interp)/d(alpha) = d(f5)/d(g_exp) * d(g_exp)/d(alpha)
-           *Ha = H_comp_gexp * chain_gexp_alpha;
-        }
-    }
-    return g_interp;
 }
 
 Point3 Gal3::act(const Point3& p, OptionalJacobian<3, 10> Hself, OptionalJacobian<3, 3> Hp) const {
