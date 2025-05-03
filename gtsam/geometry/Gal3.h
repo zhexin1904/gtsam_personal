@@ -1,15 +1,15 @@
 /* ----------------------------------------------------------------------------
  * GTSAM Copyright 2010, Georgia Tech Research Corporation,
  * Atlanta, Georgia 30332-0415
- * All Rights Reserved
- * Authors: Frank Dellaert, et al. (see THANKS for the full author list)
- * See LICENSE for the license information
- * -------------------------------------------------------------------------- */
+
+* All Rights Reserved
+* Authors: Frank Dellaert, et al. (see THANKS for the full author list)
+* See LICENSE for the license information
+* -------------------------------------------------------------------------- */
 
 /**
  * @file    Gal3.h
  * @brief   3D Galilean Group SGal(3) state (attitude, position, velocity, time)
- * Based on manif convention: [R, r, v, t], tangent [rho, nu, theta, t_tan]
  * @authors Matt Kielo, Scott Baker, Frank Dellaert
  * @date    April 30, 2025
  */
@@ -17,6 +17,7 @@
 #pragma once
 
 #include <gtsam/geometry/Pose3.h> // Includes Rot3, Point3
+#include <gtsam/geometry/Event.h>
 #include <gtsam/base/Lie.h>       // For LieGroup base class and traits
 #include <gtsam/base/Manifold.h>  // For Manifold traits
 
@@ -32,36 +33,14 @@ class Gal3;
 using Velocity3 = Vector3;
 // Define Vector10 for tangent space
 using Vector10 = Eigen::Matrix<double, 10, 1>;
-// Define Matrix5 for Lie Algebra matrix representation (Hat map output)
+// Define Matrix5 for Lie Algebra matrix representation
 using Matrix5 = Eigen::Matrix<double, 5, 5>;
-// Define Matrix10 for Jacobians (AdjointMap, Expmap/Logmap derivatives)
+// Define Matrix10 for Jacobians
 using Matrix10 = Eigen::Matrix<double, 10, 10>;
-
 
 /**
  * Represents an element of the 3D Galilean group SGal(3).
- * Aligned with manif conventions: state (R, r, v, t), tangent (rho, nu, theta, t_tan).
- * Internal state:
- * R_: Rotation (Rot3) - attitude (world R body)
- * r_: Translation (Point3) - position in world frame
- * v_: Velocity Boost (Velocity3) - velocity in world frame
- * t_: Time (double)
- *
- * Homogeneous Matrix Representation (manif convention):
- * [ R  v  r ]
- * [ 0  1  t ]
- * [ 0  0  1 ]  (Where R is 3x3, v,r are 3x1, t is scalar, 0 are row vectors)
- *
- * Lie Algebra Matrix Representation (manif convention):
- * [ skew(theta)  nu  rho ]
- * [      0        0   t  ]
- * [      0        0   0  ] (Where skew(theta) is 3x3, nu,rho are 3x1, t is scalar)
- *
- * Tangent Vector xi (Vector10): [rho; nu; theta; t_tan]
- * rho (3x1): Position tangent component
- * nu  (3x1): Velocity tangent component
- * theta(3x1): Rotation tangent component (so(3))
- * t_tan (1x1): Time tangent component
+ * Internal state: rotation, translation, velocity, time.
  */
 class GTSAM_EXPORT Gal3 : public LieGroup<Gal3, 10> {
  private:
@@ -81,11 +60,11 @@ class GTSAM_EXPORT Gal3 : public LieGroup<Gal3, 10> {
   /// Default constructor: Identity element
   Gal3() : R_(Rot3::Identity()), r_(Point3::Zero()), v_(Velocity3::Zero()), t_(0.0) {}
 
-  /// Construct from attitude, position, velocity, time (manif order)
+  /// Construct from attitude, position, velocity, time
   Gal3(const Rot3& R, const Point3& r, const Velocity3& v, double t) :
     R_(R), r_(r), v_(v), t_(t) {}
 
-  /// Construct from a 5x5 matrix representation (manif convention)
+  /// Construct from a 5x5 matrix representation
   explicit Gal3(const Matrix5& M);
 
   /// Named constructor from components with derivatives
@@ -117,28 +96,27 @@ class GTSAM_EXPORT Gal3 : public LieGroup<Gal3, 10> {
   /// Access time component (double)
   const double& time(OptionalJacobian<1, 10> H = {}) const;
 
-  // Convenience accessors matching NavState names where they overlap
+  // Convenience accessors matching NavState names
   const Rot3& attitude(OptionalJacobian<3, 10> H = {}) const { return rotation(H); }
   const Point3& position(OptionalJacobian<3, 10> H = {}) const { return translation(H); }
-
 
   /// @}
   /// @name Derived quantities
   /// @{
 
-  /// Return rotation matrix (Matrix3).
+  /// Return rotation matrix (Matrix3)
   Matrix3 R() const { return R_.matrix(); }
 
-  /// Return position as Vector3.
+  /// Return position as Vector3
   Vector3 r() const { return Vector3(r_); } // Conversion from Point3
 
-  /// Return velocity as Vector3. Computation-free.
+  /// Return velocity as Vector3
   const Vector3& v() const { return v_; }
 
-  /// Return time scalar. Computation-free.
+  /// Return time scalar
   const double& t() const { return t_; }
 
-  /// Return 5x5 homogeneous matrix representation (manif convention).
+  /// Return 5x5 homogeneous matrix representation
   Matrix5 matrix() const;
 
   /// @}
@@ -168,13 +146,7 @@ class GTSAM_EXPORT Gal3 : public LieGroup<Gal3, 10> {
   // Bring LieGroup::inverse() into scope (version with derivative)
   using LieGroup<Gal3, 10>::inverse;
 
-  /// Compose with another element: `this * other`
-  // Gal3 compose(const Gal3& other, OptionalJacobian<10, 10> H1 = {},
-  //              OptionalJacobian<10, 10> H2 = {}) const;
-
-  // /// Group composition operator: `this * other`
-  // Gal3 operator*(const Gal3& other) const { return compose(other); }
-  // Gal3 compose(const Gal3& other) const;
+  /// Group composition operator
   Gal3 operator*(const Gal3& other) const;
 
   /// @}
@@ -182,21 +154,14 @@ class GTSAM_EXPORT Gal3 : public LieGroup<Gal3, 10> {
   /// @{
 
   /**
-   * Action of the group element on a 3D point.
-   * Following GTSAM convention for Pose3::transformFrom, this applies
-   * the instantaneous rotation and translation: p' = R*p + r.
-   * If time evolution is needed, use compose or specific dynamics model.
+   * Apply Galilean transform to a spacetime Event
+   * @param e Input event (location, time)
+   * @param Hself Optional Jacobian wrt this Gal3 element's tangent space
+   * @param He Optional Jacobian wrt the input event's tangent space
+   * @return Transformed event
    */
-  Point3 act(const Point3& p,
-             OptionalJacobian<3, 10> Hself = {},
-             OptionalJacobian<3, 3> Hp = {}) const;
-
-  // Alias for consistency if used elsewhere
-  Point3 transformFrom(const Point3& p,
-                       OptionalJacobian<3, 10> Hself = {},
-                       OptionalJacobian<3, 3> Hp = {}) const {
-      return act(p, Hself, Hp);
-  }
+  Event act(const Event& e, OptionalJacobian<4, 10> Hself = {},
+            OptionalJacobian<4, 4> He = {}) const;
 
   /// @}
   /// @name Lie Group Static Functions
@@ -205,9 +170,7 @@ class GTSAM_EXPORT Gal3 : public LieGroup<Gal3, 10> {
   /// The type of the Lie algebra (matrix representation)
   using LieAlgebra = Matrix5;
 
-  // Helper functions for accessing tangent vector components by name
-  // Input xi is [rho(3), nu(3), theta(3), t_tan(1)]
-  // *** CORRECTED to use .block<rows, cols>(startRow, startCol) syntax ***
+  // Helper functions for accessing tangent vector components
   static Eigen::Block<Vector10, 3, 1> rho(Vector10& v) { return v.block<3, 1>(0, 0); }
   static Eigen::Block<Vector10, 3, 1> nu(Vector10& v) { return v.block<3, 1>(3, 0); }
   static Eigen::Block<Vector10, 3, 1> theta(Vector10& v) { return v.block<3, 1>(6, 0); }
@@ -219,36 +182,30 @@ class GTSAM_EXPORT Gal3 : public LieGroup<Gal3, 10> {
   static Eigen::Block<const Vector10, 1, 1> t_tan(const Vector10& v) { return v.block<1, 1>(9, 0); }
 
   /// Exponential map at identity: tangent vector xi -> manifold element g
-  /// xi = [rho, nu, theta, t_tan] (10x1)
   static Gal3 Expmap(const Vector10& xi, OptionalJacobian<10, 10> Hxi = {});
 
   /// Logarithmic map at identity: manifold element g -> tangent vector xi
-  /// Returns xi = [rho, nu, theta, t_tan] (10x1)
   static Vector10 Logmap(const Gal3& g, OptionalJacobian<10, 10> Hg = {});
 
-  /// Calculate Adjoint map Ad_g, transforming a tangent vector in the identity frame
-  /// to the frame of this element g. Ad_g = [Ad_R, 0; Ad_r*Ad_R, Ad_R] structure adapted for Gal3.
+  /// Calculate Adjoint map Ad_g
   Matrix10 AdjointMap() const;
 
-  /// Apply this element's AdjointMap Ad_g to a tangent vector xi_base at identity.
-  /// Result is xi_this = Ad_g * xi_base.
-  /// H_g = d(Ad_g * xi_base)/dg, H_xi = d(Ad_g * xi_base)/dxi_base = Ad_g
-  Vector10 Adjoint(const Vector10& xi_base, OptionalJacobian<10, 10> H_g = {}, OptionalJacobian<10, 10> H_xi = {}) const;
+  /// Apply this element's AdjointMap Ad_g to a tangent vector xi_base at identity
+  Vector10 Adjoint(const Vector10& xi_base, OptionalJacobian<10, 10> H_g = {},
+                  OptionalJacobian<10, 10> H_xi = {}) const;
 
-  /// The adjoint action `ad(xi, y)` = `adjointMap(xi) * y`.
-  /// This is the Lie bracket [xi, y] = ad_xi(y).
-  static Vector10 adjoint(const Vector10& xi, const Vector10& y, OptionalJacobian<10, 10> Hxi = {}, OptionalJacobian<10, 10> Hy = {});
+  /// The adjoint action `ad(xi, y)` = `adjointMap(xi) * y`
+  static Vector10 adjoint(const Vector10& xi, const Vector10& y,
+                         OptionalJacobian<10, 10> Hxi = {},
+                         OptionalJacobian<10, 10> Hy = {});
 
-  /// Compute the 10x10 adjoint map `ad(xi)` associated with tangent vector xi.
-  /// Acts on a tangent vector y: `ad(xi, y) = ad(xi) * y`.
+  /// Compute the adjoint map `ad(xi)` associated with tangent vector xi
   static Matrix10 adjointMap(const Vector10& xi);
 
-  /// Derivative of Expmap(xi) w.r.t. xi evaluated at xi.
-  /// Currently implemented numerically.
+  /// Derivative of Expmap(xi) w.r.t. xi evaluated at xi
   static Matrix10 ExpmapDerivative(const Vector10& xi);
 
-  /// Derivative of Logmap(g) w.r.t. g (represented as tangent vector at identity).
-  /// Currently implemented numerically.
+  /// Derivative of Logmap(g) w.r.t. g
   static Matrix10 LogmapDerivative(const Gal3& g);
 
   /// Chart at origin, uses Expmap/Logmap for Retract/Local
@@ -257,12 +214,10 @@ class GTSAM_EXPORT Gal3 : public LieGroup<Gal3, 10> {
     static Vector10 Local(const Gal3& g, ChartJacobian Hg = {});
   };
 
-  /// Hat operator: maps tangent vector xi to Lie algebra matrix (Manif convention).
-  /// xi = [rho, nu, theta, t_tan] -> [ skew(theta) nu rho ; 0 0 t_tan ; 0 0 0 ]
+  /// Hat operator: maps tangent vector xi to Lie algebra matrix
   static Matrix5 Hat(const Vector10& xi);
 
-  /// Vee operator: maps Lie algebra matrix to tangent vector xi (Manif convention).
-  /// [ S N R ; 0 0 T ; 0 0 0 ] -> [ R ; N ; vee(S) ; T ] = [rho; nu; theta; t_tan]
+  /// Vee operator: maps Lie algebra matrix to tangent vector xi
   static Vector10 Vee(const Matrix5& X);
 
   /// @}
@@ -274,11 +229,10 @@ class GTSAM_EXPORT Gal3 : public LieGroup<Gal3, 10> {
   friend class boost::serialization::access;
   template <class ARCHIVE>
   void serialize(ARCHIVE& ar, const unsigned int /*version*/) {
-    // Serialize member variables
-    ar& BOOST_SERIALIZATION_NVP(R_);
-    ar& BOOST_SERIALIZATION_NVP(r_);
-    ar& BOOST_SERIALIZATION_NVP(v_);
-    ar& BOOST_SERIALIZATION_NVP(t_);
+    ar & BOOST_SERIALIZATION_NVP(R_);
+    ar & BOOST_SERIALIZATION_NVP(r_);
+    ar & BOOST_SERIALIZATION_NVP(v_);
+    ar & BOOST_SERIALIZATION_NVP(t_);
   }
 #endif
   /// @}
