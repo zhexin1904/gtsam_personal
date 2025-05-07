@@ -305,7 +305,7 @@ namespace gtsam {
       for (DenseIndex pos = 0; pos < static_cast<DenseIndex>(n); ++pos) {
         Key j = keys_[pos];
         // Get the diagonal block G_jj and add its diagonal elements to d
-        DMap(d + D * j) += info_.info_.diagonal(pos);
+        DMap(d + D * j) += info_.diagonal(pos);
       }
     }
 
