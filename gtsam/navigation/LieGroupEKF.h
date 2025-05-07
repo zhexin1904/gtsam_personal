@@ -10,13 +10,13 @@
  * -------------------------------------------------------------------------- */
 
  /**
-  * @file  GroupEKF.h
+  * @file  LieGroupEKF.h
   * @brief   Extended Kalman Filter derived class for Lie groups G.
   *
-  * This file defines the GroupEKF class template, inheriting from ManifoldEKF,
+  * This file defines the LieGroupEKF class template, inheriting from ManifoldEKF,
   * for performing EKF steps specifically on states residing in a Lie group.
-  * It provides predict methods utilizing group composition, tangent space
-  * controls (via exponential map), and state-dependent dynamics functions.
+  * It provides predict methods with state-dependent dynamics functions.
+  * Please use the InvariantEKF class for prediction via group composition.
   *
   * @date  April 24, 2025
   * @authors Scott Baker, Matt Kielo, Frank Dellaert
@@ -34,18 +34,18 @@
 namespace gtsam {
 
   /**
-   * @class GroupEKF
+   * @class LieGroupEKF
    * @brief Extended Kalman Filter on a Lie group G, derived from ManifoldEKF
    *
    * @tparam G Lie group type providing group operations and Expmap/AdjointMap.
    *       Must satisfy LieGroup concept (`gtsam::IsLieGroup<G>::value`).
    *
-   * This filter specializes ManifoldEKF for Lie groups, offering convenient
-   * prediction methods based on group composition or dynamics functions defining
-   * motion in the tangent space.
+   * This filter specializes ManifoldEKF for Lie groups, offering predict methods
+   * with state-dependent dynamics functions.
+   * Use the InvariantEKF class for prediction via group composition.
    */
   template <typename G>
-  class GroupEKF : public ManifoldEKF<G> {
+  class LieGroupEKF : public ManifoldEKF<G> {
   public:
     using Base = ManifoldEKF<G>; ///< Base class type
     static constexpr int n = Base::n; ///< Group dimension (tangent space dimension)
@@ -54,39 +54,8 @@ namespace gtsam {
     using Jacobian = Eigen::Matrix<double, n, n>; ///< Jacobian matrix type specific to the group G
 
     /// Constructor: initialize with state and covariance
-    GroupEKF(const G& X0, const MatrixN& P0) : Base(X0, P0) {
+    LieGroupEKF(const G& X0, const MatrixN& P0) : Base(X0, P0) {
       static_assert(IsLieGroup<G>::value, "Template parameter G must be a GTSAM Lie Group");
-    }
-
-    /**
-     * Predict step via group composition (Left-Invariant):
-     *   X_{k+1} = X_k * U
-     *   P_{k+1} = Ad_{U^{-1}} P_k Ad_{U^{-1}}^T + Q
-     * where Ad_{U^{-1}} is the Adjoint map of U^{-1}. This corresponds to
-     * F = Ad_{U^{-1}} in the base class predict method.
-     *
-     * @param U Lie group element representing the motion increment.
-     * @param Q Process noise covariance in the tangent space (size nxn).
-     */
-    void predict(const G& U, const Matrix& Q) {
-      G X_next = this->X_.compose(U);
-      // TODO(dellaert): traits<G>::AdjointMap should exist
-      Jacobian A = traits<G>::Inverse(U).AdjointMap(); // A = Adjoint(U.inverse())
-      Base::predict(X_next, A, Q); // Call base class predict
-    }
-
-    /**
-     * Predict step via tangent control vector:
-     *   U = Expmap(u * dt)
-     * Then calls predict(U, Q).
-     *
-     * @param u Tangent space control vector.
-     * @param dt Time interval.
-     * @param Q Process noise covariance matrix (size nxn).
-     */
-    void predict(const TangentVector& u, double dt, const Matrix& Q) {
-      G U = traits<G>::Expmap(u * dt);
-      predict(U, Q); // Call the group composition predict
     }
 
     /**
@@ -142,8 +111,8 @@ namespace gtsam {
     template <typename Dynamics, typename = enable_if_dynamics<Dynamics>>
     void predict(Dynamics&& f, double dt, const Matrix& Q) {
       Jacobian A;
-      G X_next = predictMean(std::forward<Dynamics>(f), dt, A);
-      Base::predict(X_next, A, Q); // Call base class predict
+      this->X_ = predictMean(std::forward<Dynamics>(f), dt, A);
+      this->P_ = A * this->P_ * A.transpose() + Q;
     }
 
     /**
@@ -191,6 +160,6 @@ namespace gtsam {
       return predict([&](const G& X, OptionalJacobian<n, n> Df) { return f(X, u, Df); }, dt, Q);
     }
 
-  }; // GroupEKF
+  }; // LieGroupEKF
 
 }  // namespace gtsam

@@ -20,7 +20,7 @@
 #include <gtsam/base/Matrix.h>
 #include <gtsam/base/OptionalJacobian.h>
 #include <gtsam/geometry/Rot3.h>
-#include <gtsam/navigation/GroupEKF.h>
+#include <gtsam/navigation/LieGroupEKF.h>
 
 #include <iostream>
 
@@ -53,7 +53,7 @@ int main() {
   // Initial estimate (identity) and covariance
   const Rot3 R0 = Rot3::RzRyRx(0.1, -0.2, 0.3);
   const Matrix3 P0 = Matrix3::Identity() * 0.1;
-  GroupEKF<Rot3> ekf(R0, P0);
+  LieGroupEKF<Rot3> ekf(R0, P0);
 
   // Timestep, process noise, measurement noise
   double dt = 0.1;
