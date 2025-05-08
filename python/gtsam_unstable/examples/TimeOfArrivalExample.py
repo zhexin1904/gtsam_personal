@@ -12,8 +12,8 @@ Author: Frank Dellaert
 # pylint: disable=invalid-name, no-name-in-module
 
 from gtsam import (LevenbergMarquardtOptimizer, LevenbergMarquardtParams,
-                   NonlinearFactorGraph, Point3, Values, noiseModel)
-from gtsam_unstable import Event, TimeOfArrival, TOAFactor
+                   NonlinearFactorGraph, Point3, Values, noiseModel, Event)
+from gtsam_unstable import TimeOfArrival, TOAFactor
 
 # units
 MS = 1e-3

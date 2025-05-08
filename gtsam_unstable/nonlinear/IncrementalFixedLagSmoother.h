@@ -11,11 +11,11 @@
 
 #pragma once
 
-#ifdef _MSC_VER
-#pragma message("IncrementalFixedLagSmoother was moved to the gtsam/nonlinear directory")
-#else
-#warning "IncrementalFixedLagSmoother was moved to the gtsam/nonlinear directory"
-#endif
+// #ifdef _MSC_VER
+// #pragma message("IncrementalFixedLagSmoother was moved to the gtsam/nonlinear directory")
+// #else
+// #warning "IncrementalFixedLagSmoother was moved to the gtsam/nonlinear directory"
+// #endif
 
 
 #include <gtsam/nonlinear/IncrementalFixedLagSmoother.h>
