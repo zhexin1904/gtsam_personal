@@ -379,11 +379,11 @@ virtual class RangeFactor : gtsam::NoiseModelFactor {
 
 typedef gtsam::RangeFactor<gtsam::PoseRTV, gtsam::PoseRTV> RangeFactorRTV;
 
-  double height() const;
-  void print(string s) const;
-};
-
 class TimeOfArrival {
+  TimeOfArrival();
+  TimeOfArrival(double speed);
+  double measure(const gtsam::Event& event, const gtsam::Point3& sensor) const;
+};
 
 #include <gtsam_unstable/slam/TOAFactor.h>
 virtual class TOAFactor : gtsam::NonlinearFactor {

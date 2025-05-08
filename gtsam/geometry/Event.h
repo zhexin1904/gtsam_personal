@@ -84,7 +84,7 @@ template <>
 struct traits<Event> : internal::Manifold<Event> {};
 
 /// Time of arrival to given sensor
-class TimeOfArrival {
+class GTSAM_EXPORT TimeOfArrival {
   const double speed_;  ///< signal speed
 
  public:

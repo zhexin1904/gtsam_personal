@@ -1514,17 +1514,18 @@ gtsam::TriangulationResult triangulateSafe(
     const gtsam::Point2Vector& measurements,
     const gtsam::TriangulationParameters& params);
 
-#include <gtsam_unstable/geometry/Event.h>
+
+#include <gtsam/geometry/Event.h>
 class Event {
   Event();
   Event(double t, const gtsam::Point3& p);
   Event(double t, double x, double y, double z);
   double time() const;
   gtsam::Point3 location() const;
-  TimeOfArrival();
-  TimeOfArrival(double speed);
-  double measure(const gtsam::Event& event, const gtsam::Point3& sensor) const;
+  double height() const;
+  void print(string s) const;
 };
+
 
 #include <gtsam/geometry/BearingRange.h>
 template <POSE, POINT, BEARING, RANGE>
