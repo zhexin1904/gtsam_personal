@@ -93,21 +93,44 @@ namespace gtsam {
     }
 
     /**
+     * Measurement update: Corrects the state and covariance using a pre-calculated
+     * predicted measurement and its Jacobian.
+     *
+     * @tparam Measurement Type of the measurement vector (e.g., VectorN<m>).
+     * @param prediction Predicted measurement.
+     * @param H Jacobian of the measurement function h w.r.t. local(X), H = dh/dlocal(X).
+     *          Its dimensions must be m x n.
+     * @param z Observed measurement.
+     * @param R Measurement noise covariance (size m x m).
+     */
+    template <typename Measurement>
+    void update(const Measurement& prediction,
+      const Eigen::Matrix<double, traits<Measurement>::dimension, n>& H,
+      const Measurement& z, const Matrix& R) {
+      // Innovation z \ominus prediction
+      Vector innovation = traits<Measurement>::Local(z, prediction);
+
+      // Innovation covariance and Kalman Gain
+      auto S = H * P_ * H.transpose() + R; // S is m x m
+      Matrix K = P_ * H.transpose() * S.inverse(); // K = P H^T S^-1 (size n x m)
+
+      // Correction vector in tangent space
+      TangentVector delta_xi = -K * innovation; // delta_xi is n x 1
+
+      // Update state using retract
+      X_ = traits<M>::Retract(X_, delta_xi);
+
+      // Update covariance using Joseph form for numerical stability
+      MatrixN I_KH = I_n - K * H; // I_KH is n x n
+      P_ = I_KH * P_ * I_KH.transpose() + K * R * K.transpose();
+    }
+
+    /**
      * Measurement update: Corrects the state and covariance using a measurement.
-     *   z_pred, H = h(X)
-     *   y = z - z_pred   (innovation, or z_pred - z depending on convention)
-     *   S = H P H^T + R  (innovation covariance)
-     *   K = P H^T S^{-1} (Kalman gain)
-     *   delta_xi = -K * y (correction in tangent space)
-     *   X <- X.retract(delta_xi)
-     *   P <- (I - K H) P
      *
      * @tparam Measurement Type of the measurement vector (e.g., VectorN<m>)
-     * @tparam Prediction Functor signature: Measurement h(const M&,
-     * OptionalJacobian<m,n>&)
-     *                    where m is the measurement dimension.
-     *
-     * @param h Measurement model functor returning predicted measurement z_pred
+     * @tparam Prediction Functor signature: Measurement h(const M&, OptionalJacobian<m,n>&)
+     * @param h Measurement model functor returning predicted measurement prediction
      *          and its Jacobian H = d(h)/d(local(X)).
      * @param z Observed measurement.
      * @param R Measurement noise covariance (size m x m).
@@ -115,28 +138,10 @@ namespace gtsam {
     template <typename Measurement, typename Prediction>
     void update(Prediction&& h, const Measurement& z, const Matrix& R) {
       constexpr int m = traits<Measurement>::dimension;
-      Eigen::Matrix<double, m, n> H;
-
       // Predict measurement and get Jacobian H = dh/dlocal(X)
-      Measurement z_pred = h(X_, H);
-
-      // Innovation
-      // Ensure consistent subtraction for manifold types if Measurement is one
-      Vector innovation = traits<Measurement>::Local(z, z_pred); // y = z_pred (-) z (in tangent space)
-
-      // Innovation covariance and Kalman Gain
-      auto S = H * P_ * H.transpose() + R;
-      Matrix K = P_ * H.transpose() * S.inverse(); // K = P H^T S^-1 (size n x m)
-
-      // Correction vector in tangent space
-      TangentVector delta_xi = -K * innovation; // delta_xi = - K * y
-
-      // Update state using retract
-      X_ = traits<M>::Retract(X_, delta_xi); // X <- X.retract(delta_xi)
-
-      // Update covariance using Joseph form:
-      MatrixN I_KH = I_n - K * H;
-      P_ = I_KH * P_ * I_KH.transpose() + K * R * K.transpose();
+      Eigen::Matrix<double, m, n> H;
+      Measurement prediction = h(X_, H);
+      update(prediction, H, z, R); // Call the other update function
     }
 
   protected:
