@@ -95,7 +95,15 @@ namespace gtsam {
      * @param Q Process noise covariance matrix.
      */
     void predict(const TangentVector& u, double dt, const Covariance& Q) {
-      const G U = traits<G>::Expmap(u * dt);
+      G U;
+      if constexpr (std::is_same_v<G, Matrix>) {
+        const Matrix& X = static_cast<const Matrix&>(this->X_);
+        U.resize(X.rows(), X.cols());
+        Eigen::Map<Vector>(static_cast<Matrix&>(U).data(), U.size()) = u * dt;
+      }
+      else {
+        U = traits<G>::Expmap(u * dt);
+      }
       predict(U, Q); // Call the group composition predict
     }
 

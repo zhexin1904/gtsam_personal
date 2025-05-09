@@ -92,15 +92,30 @@ namespace gtsam {
     G predictMean(Dynamics&& f, double dt, OptionalJacobian<Dim, Dim> A = {}) const {
       Jacobian Df, Dexp; // Eigen::Matrix<double, Dim, Dim>
 
-      TangentVector xi = f(this->X_, Df); // xi and Df = d(xi)/d(localX)
-      G U = traits<G>::Expmap(xi * dt, Dexp); // U and Dexp = d(Log(Exp(v)))/dv | v=xi*dt
-      G X_next = this->X_.compose(U);
-
-      if (A) {
-        // State transition Jacobian for left-invariant EKF:
-        *A = traits<G>::Inverse(U).AdjointMap() + Dexp * Df * dt;
+      if constexpr (std::is_same_v<G, Matrix>) {
+        std::cout << "We are here" << std::endl;
+        Jacobian Df; // Eigen::Matrix<double, Dim, Dim>
+        TangentVector xi = f(this->X_, Df);
+        const Matrix& X = static_cast<const Matrix&>(this->X_);
+        G U = Matrix(X.rows(), X.cols());
+        Eigen::Map<Vector>(static_cast<Matrix&>(U).data(), U.size()) = xi * dt;
+        if (A) {
+          const Matrix I_n = Matrix::Identity(this->n_, this->n_);
+          const Matrix& Dexp = I_n;
+          *A = I_n + Dexp * Df * dt; // AdjointMap is always identity for Matrix
+        }
+        return this->X_ + U; // Matrix addition
       }
-      return X_next;
+      else {
+        Jacobian Df, Dexp; // Eigen::Matrix<double, Dim, Dim>
+        TangentVector xi = f(this->X_, A ? &Df : nullptr); // xi and Df = d(xi)/d(localX)
+        G U = traits<G>::Expmap(xi * dt, A ? &Dexp : nullptr);
+        if (A) {
+          // State transition Jacobian for left-invariant EKF:
+          *A = traits<G>::Inverse(U).AdjointMap() + Dexp * Df * dt;
+        }
+        return this->X_.compose(U);
+      }
     }
 
 
