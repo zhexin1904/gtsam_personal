@@ -43,7 +43,8 @@ namespace gtsam {
    *
    * The state-dependent prediction methods from LieGroupEKF are hidden.
    * The update step remains the same as in ManifoldEKF/LieGroupEKF.
-   * Covariances (P, Q) are `Eigen::Matrix<double, Dim, Dim>`.
+   * For details on how static and dynamic dimensions are handled, please refer to
+   * the `ManifoldEKF` class documentation.
    */
   template <typename G>
   class InvariantEKF : public LieGroupEKF<G> {
@@ -59,9 +60,9 @@ namespace gtsam {
     /**
      * Constructor: forwards to LieGroupEKF constructor.
      * @param X0 Initial state on Lie group G.
-     * @param P0_input Initial covariance in the tangent space at X0 (dynamic gtsam::Matrix).
+     * @param P0 Initial covariance in the tangent space at X0.
      */
-    InvariantEKF(const G& X0, const Matrix& P0_input) : Base(X0, P0_input) {}
+    InvariantEKF(const G& X0, const Covariance& P0) : Base(X0, P0) {}
 
     // We hide state-dependent predict methods from LieGroupEKF by only providing the
     // invariant predict methods below.
@@ -73,7 +74,7 @@ namespace gtsam {
      * where Ad_{U^{-1}} is the Adjoint map of U^{-1}.
      *
      * @param U Lie group element representing the motion increment.
-     * @param Q Process noise covariance (Eigen::Matrix<double, Dim, Dim>).
+     * @param Q Process noise covariance.
      */
     void predict(const G& U, const Covariance& Q) {
       this->X_ = this->X_.compose(U);
@@ -91,7 +92,7 @@ namespace gtsam {
      *
      * @param u Tangent space control vector.
      * @param dt Time interval.
-     * @param Q Process noise covariance matrix (Eigen::Matrix<double, Dim, Dim>).
+     * @param Q Process noise covariance matrix.
      */
     void predict(const TangentVector& u, double dt, const Covariance& Q) {
       const G U = traits<G>::Expmap(u * dt);

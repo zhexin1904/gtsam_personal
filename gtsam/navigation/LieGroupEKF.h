@@ -37,12 +37,13 @@ namespace gtsam {
    * @class LieGroupEKF
    * @brief Extended Kalman Filter on a Lie group G, derived from ManifoldEKF
    *
-   * @tparam G Lie group type providing group operations and Expmap/AdjointMap.
-   *       Must satisfy LieGroup concept (`IsLieGroup<G>::value`).
+   * @tparam G Lie group type (must satisfy LieGroup concept).
    *
    * This filter specializes ManifoldEKF for Lie groups, offering predict methods
    * with state-dependent dynamics functions.
    * Use the InvariantEKF class for prediction via group composition.
+   * For details on how static and dynamic dimensions are handled, please refer to
+   * the `ManifoldEKF` class documentation.
    */
   template <typename G>
   class LieGroupEKF : public ManifoldEKF<G> {
@@ -57,9 +58,9 @@ namespace gtsam {
     /**
      * Constructor: initialize with state and covariance.
      * @param X0 Initial state on Lie group G.
-     * @param P0 Initial covariance in the tangent space at X0 (dynamic gtsam::Matrix).
+     * @param P0 Initial covariance in the tangent space at X0.
      */
-    LieGroupEKF(const G& X0, const Matrix& P0) : Base(X0, P0) {
+    LieGroupEKF(const G& X0, const Covariance& P0) : Base(X0, P0) {
       static_assert(IsLieGroup<G>::value, "Template parameter G must be a GTSAM Lie Group");
     }
 
@@ -96,8 +97,7 @@ namespace gtsam {
       G X_next = this->X_.compose(U);
 
       if (A) {
-        // Full state transition Jacobian for left-invariant EKF:
-        // AdjointMap returns Jacobian (Eigen::Matrix<double,Dim,Dim>)
+        // State transition Jacobian for left-invariant EKF:
         *A = traits<G>::Inverse(U).AdjointMap() + Dexp * Df * dt;
       }
       return X_next;
@@ -113,11 +113,11 @@ namespace gtsam {
      * @tparam Dynamics Functor signature: TangentVector f(const G&, OptionalJacobian<Dim,Dim>&)
      * @param f Dynamics functor.
      * @param dt Time step.
-     * @param Q Process noise covariance (Eigen::Matrix<double, Dim, Dim>).
+     * @param Q Process noise covariance.
      */
     template <typename Dynamics, typename = enable_if_dynamics<Dynamics>>
     void predict(Dynamics&& f, double dt, const Covariance& Q) {
-      Jacobian A; // Eigen::Matrix<double, Dim, Dim>
+      Jacobian A;
       if constexpr (Dim == Eigen::Dynamic) {
         A.resize(this->n_, this->n_);
       }
@@ -163,13 +163,10 @@ namespace gtsam {
      * @param f Dynamics functor.
      * @param u Control input.
      * @param dt Time step.
-     * @param Q Process noise covariance (Eigen::Matrix<double, Dim, Dim>).
+     * @param Q Process noise covariance.
      */
     template <typename Control, typename Dynamics, typename = enable_if_full_dynamics<Control, Dynamics>>
     void predict(Dynamics&& f, const Control& u, double dt, const Covariance& Q) {
-      // Note: The lambda below captures f by reference. Ensure f's lifetime.
-      // If f is an rvalue, std::forward or std::move might be needed if the lambda is stored.
-      // Here, the lambda is temporary, so [&] is fine.
       return predict([&](const G& X, OptionalJacobian<Dim, Dim> Df) { return f(X, u, Df); }, dt, Q);
     }
 
