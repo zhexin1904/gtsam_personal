@@ -93,21 +93,16 @@ namespace gtsam {
       Jacobian Df, Dexp; // Eigen::Matrix<double, Dim, Dim>
 
       if constexpr (std::is_same_v<G, Matrix>) {
-        std::cout << "We are here" << std::endl;
-        Jacobian Df; // Eigen::Matrix<double, Dim, Dim>
-        TangentVector xi = f(this->X_, Df);
-        const Matrix& X = static_cast<const Matrix&>(this->X_);
-        G U = Matrix(X.rows(), X.cols());
-        Eigen::Map<Vector>(static_cast<Matrix&>(U).data(), U.size()) = xi * dt;
+        // Specialize to Matrix case as its Expmap is not defined.
+        TangentVector xi = f(this->X_, A ? &Df : nullptr);
+        const Matrix nextX = traits<Matrix>::Retract(this->X_, xi * dt, A ? &Dexp : nullptr); // just addition
         if (A) {
           const Matrix I_n = Matrix::Identity(this->n_, this->n_);
-          const Matrix& Dexp = I_n;
           *A = I_n + Dexp * Df * dt; // AdjointMap is always identity for Matrix
         }
-        return this->X_ + U; // Matrix addition
+        return nextX;
       }
       else {
-        Jacobian Df, Dexp; // Eigen::Matrix<double, Dim, Dim>
         TangentVector xi = f(this->X_, A ? &Df : nullptr); // xi and Df = d(xi)/d(localX)
         G U = traits<G>::Expmap(xi * dt, A ? &Dexp : nullptr);
         if (A) {

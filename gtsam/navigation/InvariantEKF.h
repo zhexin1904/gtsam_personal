@@ -97,6 +97,7 @@ namespace gtsam {
     void predict(const TangentVector& u, double dt, const Covariance& Q) {
       G U;
       if constexpr (std::is_same_v<G, Matrix>) {
+        // Specialize to Matrix case as its Expmap is not defined.
         const Matrix& X = static_cast<const Matrix&>(this->X_);
         U.resize(X.rows(), X.cols());
         Eigen::Map<Vector>(static_cast<Matrix&>(U).data(), U.size()) = u * dt;
