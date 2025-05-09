@@ -77,9 +77,9 @@ namespace gtsam {
      * @param Q Process noise covariance.
      */
     void predict(const G& U, const Covariance& Q) {
-      this->X_ = this->X_.compose(U);
-      // TODO(dellaert): traits<G>::AdjointMap should exist
-      const Jacobian A = traits<G>::Inverse(U).AdjointMap();
+      this->X_ = traits<G>::Compose(this->X_, U);
+      const G U_inv = traits<G>::Inverse(U);
+      const Jacobian A = traits<G>::AdjointMap(U_inv);
       // P_ is Covariance. A is Jacobian. Q is Covariance.
       // All are Eigen::Matrix<double,Dim,Dim>.
       this->P_ = A * this->P_ * A.transpose() + Q;
