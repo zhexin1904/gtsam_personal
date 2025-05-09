@@ -36,14 +36,14 @@ namespace exampleUnit3 {
 
   // Define a measurement model: measure the z-component of the Unit3 direction
   // H is the Jacobian dh/d(local(p))
-  Vector1 measureZ(const Unit3& p, OptionalJacobian<1, 2> H) {
+  double measureZ(const Unit3& p, OptionalJacobian<1, 2> H) {
     if (H) {
       // H = d(p.point3().z()) / d(local(p))
       // Calculate numerically for simplicity in test
-      auto h = [](const Unit3& p_) { return Vector1(p_.point3().z()); };
-      *H = numericalDerivative11<Vector1, Unit3, 2>(h, p);
+      auto h = [](const Unit3& p_) { return p_.point3().z(); };
+      *H = numericalDerivative11<double, Unit3, 2>(h, p);
     }
-    return Vector1(p.point3().z());
+    return p.point3().z();
   }
 
 } // namespace exampleUnit3
@@ -116,8 +116,8 @@ TEST(ManifoldEKF_Unit3, Update) {
   ManifoldEKF<Unit3> ekf(p_start, P_start);
 
   // Simulate a measurement (e.g., true value + noise)
-  Vector1 z_true = exampleUnit3::measureZ(p_start, {});
-  Vector1 z_observed = z_true + Vector1(0.02); // Add some noise
+  double z_true = exampleUnit3::measureZ(p_start, {});
+  double z_observed = z_true + 0.02; // Add some noise
 
   // --- Perform EKF update ---
   ekf.update(exampleUnit3::measureZ, z_observed, data.R);
@@ -125,10 +125,10 @@ TEST(ManifoldEKF_Unit3, Update) {
   // --- Verification (Manual Kalman Update Steps) ---
   // 1. Predict measurement and get Jacobian H
   Matrix12 H; // Note: Jacobian is 1x2 for Unit3
-  Vector1 z_pred = exampleUnit3::measureZ(p_start, H);
+  double z_pred = exampleUnit3::measureZ(p_start, H);
 
   // 2. Innovation and Covariance
-  Vector1 y = z_pred - z_observed; // Innovation (using vector subtraction for z)
+  double y = z_pred - z_observed; // Innovation (using vector subtraction for z)
   Matrix1 S = H * P_start * H.transpose() + data.R; // 1x1 matrix
 
   // 3. Kalman Gain K
@@ -156,16 +156,15 @@ namespace exampleDynamicMatrix {
   }
 
   // Define a measurement model: measure the trace of the Matrix (assumed 2x2 here)
-  Vector1 measureTrace(const Matrix& p, OptionalJacobian<-1, -1> H = {}) {
+  double measureTrace(const Matrix& p, OptionalJacobian<-1, -1> H = {}) {
     if (H) {
       // p_flat (col-major for Eigen) for a 2x2 matrix p = [[p00,p01],[p10,p11]] is [p00, p10, p01, p11]
       // trace = p(0,0) + p(1,1)
       // H = d(trace)/d(p_flat) = [1, 0, 0, 1]
       // The Jacobian H will be 1x4 for a 2x2 matrix.
-      H->resize(1, 4);
       *H << 1.0, 0.0, 0.0, 1.0;
     }
-    return Vector1(p(0, 0) + p(1, 1));
+    return p(0, 0) + p(1, 1);
   }
 
 } // namespace exampleDynamicMatrix
@@ -223,8 +222,8 @@ TEST(ManifoldEKF_DynamicMatrix, Update) {
   EXPECT_LONGS_EQUAL(4, ekf.state().size());
 
   // Simulate a measurement (true trace of pStartMatrix is 1.5 + 2.5 = 4.0)
-  Vector1 zTrue = exampleDynamicMatrix::measureTrace(pStartMatrix); // No Jacobian needed here
-  Vector1 zObserved = zTrue - Vector1(0.03); // Add some "error"
+  double zTrue = exampleDynamicMatrix::measureTrace(pStartMatrix); // No Jacobian needed here
+  double zObserved = zTrue - 0.03; // Add some "error"
 
   // --- Perform EKF update ---
   ekf.update(exampleDynamicMatrix::measureTrace, zObserved, data.measurementNoiseCovariance);
@@ -232,12 +231,12 @@ TEST(ManifoldEKF_DynamicMatrix, Update) {
   // --- Verification (Manual Kalman Update Steps) ---
   // 1. Predict measurement and get Jacobian H
   Matrix H(1, 4); // This will be 1x4 for a 2x2 matrix measurement
-  Vector1 zPredictionManual = exampleDynamicMatrix::measureTrace(pStartMatrix, H);
+  double zPredictionManual = exampleDynamicMatrix::measureTrace(pStartMatrix, H);
 
   // 2. Innovation and Innovation Covariance
   // EKF calculates innovation_tangent = traits<Measurement>::Local(prediction, zObserved)
-  // For Vector1 (a VectorSpace), Local(A,B) is B-A. So, zObserved - zPredictionManual.
-  Vector1 innovationY = zObserved - zPredictionManual;
+  // For double (a VectorSpace), Local(A,B) is B-A. So, zObserved - zPredictionManual.
+  double innovationY = zObserved - zPredictionManual;
   Matrix innovationCovarianceS = H * pStartCovariance * H.transpose() + data.measurementNoiseCovariance;
 
   // 3. Kalman Gain K

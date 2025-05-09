@@ -19,7 +19,7 @@
   * localCoordinates operations.
   *
   * Works with manifolds M that may have fixed or dynamic tangent space dimensions.
-  * Covariances and Jacobians are handled as `Matrix` (dynamic-size Eigen matrices).
+  * Covariances and Jacobians leverage Eigen's static or dynamic matrices for efficiency.
   *
   * @date    April 24, 2025
   * @authors Scott Baker, Matt Kielo, Frank Dellaert
@@ -51,33 +51,41 @@ namespace gtsam {
      *             must be provided by traits.
      *
      * This filter maintains a state X in the manifold M and covariance P in the
-     * tangent space at X. The covariance P is always stored as a gtsam::Matrix.
+     * tangent space at X. The covariance P is `Eigen::Matrix<double, Dim, Dim>`,
+     * where Dim is the compile-time dimension of M (or Eigen::Dynamic).
      * Prediction requires providing the predicted next state and the state transition Jacobian F.
      * Updates apply a measurement function h and correct the state using the tangent space error.
      */
   template <typename M>
   class ManifoldEKF {
   public:
-    /// Tangent vector type for the manifold M, as defined by its traits.
+    /// Compile-time dimension of the manifold M.
+    static constexpr int Dim = traits<M>::dimension;
+
+    /// Tangent vector type for the manifold M.
     using TangentVector = typename traits<M>::TangentVector;
+    /// Covariance matrix type (P, Q).
+    using Covariance = Eigen::Matrix<double, Dim, Dim>;
+    /// State transition Jacobian type (F).
+    using Jacobian = Eigen::Matrix<double, Dim, Dim>;
+
 
     /**
      * Constructor: initialize with state and covariance.
      * @param X0 Initial state on manifold M.
-     * @param P0 Initial covariance in the tangent space at X0. Must be a square
-     *           Matrix whose dimensions match the tangent space dimension of X0.
+     * @param P0 Initial covariance in the tangent space at X0.
+     *                 Provided as a dynamic gtsam::Matrix for flexibility,
+     *                 but will be stored internally as Covariance.
      */
-    ManifoldEKF(const M& X0, const Matrix& P0) : X_(X0), P_(P0) {
+    ManifoldEKF(const M& X0, const Matrix& P0) : X_(X0) {
       static_assert(IsManifold<M>::value,
         "Template parameter M must be a GTSAM Manifold.");
 
-      // Determine tangent space dimension n_ at runtime.
-      if constexpr (traits<M>::dimension == Eigen::Dynamic) {
-        // If M::dimension is dynamic, traits<M>::GetDimension(M) must exist.
-        n_ = traits<M>::GetDimension(X0);
+      if constexpr (Dim == Eigen::Dynamic) {
+        n_ = traits<M>::GetDimension(X0); // Runtime dimension for dynamic case
       }
       else {
-        n_ = traits<M>::dimension;
+        n_ = Dim; // Runtime dimension is fixed compile-time dimension
       }
 
       // Validate dimensions of initial covariance P0.
@@ -88,6 +96,7 @@ namespace gtsam {
           ") do not match state's tangent space dimension (" +
           std::to_string(n_) + ").");
       }
+      P_ = P0; // Assigns MatrixXd to Eigen::Matrix<double,Dim,Dim>
     }
 
     virtual ~ManifoldEKF() = default;
@@ -95,8 +104,11 @@ namespace gtsam {
     /// @return current state estimate on manifold M.
     const M& state() const { return X_; }
 
-    /// @return current covariance estimate in the tangent space (always a Matrix).
-    const Matrix& covariance() const { return P_; }
+    /// @return current covariance estimate (Eigen::Matrix<double, Dim, Dim>).
+    const Covariance& covariance() const { return P_; }
+
+    /// @return runtime dimension of the tangent space.
+    int dimension() const { return n_; }
 
     /**
      * Basic predict step: Updates state and covariance given the predicted
@@ -107,22 +119,19 @@ namespace gtsam {
      * state transition in local coordinates around X_k.
      *
      * @param X_next The predicted state at time k+1 on manifold M.
-     * @param F The state transition Jacobian (size nxn).
-     * @param Q Process noise covariance matrix in the tangent space (size nxn).
+     * @param F The state transition Jacobian (Eigen::Matrix<double, Dim, Dim>).
+     * @param Q Process noise covariance matrix (Eigen::Matrix<double, Dim, Dim>).
      */
-    void predict(const M& X_next, const Matrix& F, const Matrix& Q) {
-      if (F.rows() != n_ || F.cols() != n_) {
-        throw std::invalid_argument(
-          "ManifoldEKF::predict: Jacobian F dimensions (" +
-          std::to_string(F.rows()) + "x" + std::to_string(F.cols()) +
-          ") must be " + std::to_string(n_) + "x" + std::to_string(n_) + ".");
+    void predict(const M& X_next, const Jacobian& F, const Covariance& Q) {
+      if constexpr (Dim == Eigen::Dynamic) {
+        if (F.rows() != n_ || F.cols() != n_ || Q.rows() != n_ || Q.cols() != n_) {
+          throw std::invalid_argument(
+            "ManifoldEKF::predict: Dynamic F/Q dimensions must match state dimension " +
+            std::to_string(n_) + ".");
+        }
       }
-      if (Q.rows() != n_ || Q.cols() != n_) {
-        throw std::invalid_argument(
-          "ManifoldEKF::predict: Noise Q dimensions (" +
-          std::to_string(Q.rows()) + "x" + std::to_string(Q.cols()) +
-          ") must be " + std::to_string(n_) + "x" + std::to_string(n_) + ".");
-      }
+      // For fixed Dim, types enforce dimensions.
+
       X_ = X_next;
       P_ = F * P_ * F.transpose() + Q;
     }
@@ -134,64 +143,75 @@ namespace gtsam {
      * @tparam Measurement Type of the measurement vector (e.g., VectorN<m>, Vector).
      * @param prediction Predicted measurement.
      * @param H Jacobian of the measurement function h w.r.t. local(X), H = dh/dlocal(X).
-     *          Its dimensions must be m x n.
+     *          Type: Eigen::Matrix<double, MeasDim, Dim>.
      * @param z Observed measurement.
-     * @param R Measurement noise covariance (size m x m).
+     * @param R Measurement noise covariance (Eigen::Matrix<double, MeasDim, MeasDim>).
      */
     template <typename Measurement>
     void update(const Measurement& prediction,
-      const Matrix& H,
+      const Eigen::Matrix<double, traits<Measurement>::dimension, Dim>& H,
       const Measurement& z,
-      const Matrix& R) {
+      const Eigen::Matrix<double, traits<Measurement>::dimension, traits<Measurement>::dimension>& R) {
 
       static_assert(IsManifold<Measurement>::value,
         "Template parameter Measurement must be a GTSAM Manifold for LocalCoordinates.");
 
-      int m; // Measurement dimension
-      if constexpr (traits<Measurement>::dimension == Eigen::Dynamic) {
-        m = traits<Measurement>::GetDimension(z);
-        if (traits<Measurement>::GetDimension(prediction) != m) {
+      static constexpr int MeasDim = traits<Measurement>::dimension;
+
+      int m_runtime; // Measurement dimension at runtime
+      if constexpr (MeasDim == Eigen::Dynamic) {
+        m_runtime = traits<Measurement>::GetDimension(z);
+        if (traits<Measurement>::GetDimension(prediction) != m_runtime) {
           throw std::invalid_argument(
             "ManifoldEKF::update: Dynamic measurement 'prediction' and 'z' have different dimensions.");
         }
+        // Runtime check for H and R if they involve dynamic dimensions
+        if (H.rows() != m_runtime || H.cols() != n_ || R.rows() != m_runtime || R.cols() != m_runtime) {
+          throw std::invalid_argument(
+            "ManifoldEKF::update: Jacobian H or Noise R dimensions mismatch for dynamic measurement.");
+        }
       }
       else {
-        m = traits<Measurement>::dimension;
-      }
-
-      if (H.rows() != m || H.cols() != n_) {
-        throw std::invalid_argument(
-          "ManifoldEKF::update: Jacobian H dimensions (" +
-          std::to_string(H.rows()) + "x" + std::to_string(H.cols()) +
-          ") must be " + std::to_string(m) + "x" + std::to_string(n_) + ".");
-      }
-      if (R.rows() != m || R.cols() != m) {
-        throw std::invalid_argument(
-          "ManifoldEKF::update: Noise R dimensions (" +
-          std::to_string(R.rows()) + "x" + std::to_string(R.cols()) +
-          ") must be " + std::to_string(m) + "x" + std::to_string(m) + ".");
+        m_runtime = MeasDim;
+        // Types enforce dimensions for H and R if MeasDim and Dim are fixed.
+        // If Dim is dynamic but MeasDim is fixed, H.cols() needs check.
+        if constexpr (Dim == Eigen::Dynamic) {
+          if (H.cols() != n_) {
+            throw std::invalid_argument(
+              "ManifoldEKF::update: Jacobian H columns must match state dimension " + std::to_string(n_) + ".");
+          }
+        }
       }
 
       // Innovation: y = z - h(x_pred). In tangent space: local(h(x_pred), z)
-      // This is `log(prediction.inverse() * z)` if Measurement is a Lie group.
       typename traits<Measurement>::TangentVector innovation =
         traits<Measurement>::Local(prediction, z);
 
       // Innovation covariance: S = H P H^T + R
-      const Matrix S = H * P_ * H.transpose() + R; // S is m x m
+      // S will be Eigen::Matrix<double, MeasDim, MeasDim>
+      Eigen::Matrix<double, MeasDim, MeasDim> S = H * P_ * H.transpose() + R;
 
       // Kalman Gain: K = P H^T S^-1
-      const Matrix K = P_ * H.transpose() * S.inverse(); // K is n_ x m
+      // K will be Eigen::Matrix<double, Dim, MeasDim>
+      Eigen::Matrix<double, Dim, MeasDim> K = P_ * H.transpose() * S.inverse();
 
       // Correction vector in tangent space of M: delta_xi = K * innovation
-      const TangentVector delta_xi = K * innovation; // delta_xi is n_ x 1
+      const TangentVector delta_xi = K * innovation; // delta_xi is Dim x 1 (or n_ x 1 if dynamic)
 
       // Update state using retract: X_new = retract(X_old, delta_xi)
       X_ = traits<M>::Retract(X_, delta_xi);
 
       // Update covariance using Joseph form for numerical stability
-      const auto I_n = Matrix::Identity(n_, n_);
-      const Matrix I_KH = I_n - K * H; // I_KH is n x n
+      Jacobian I_n; // Eigen::Matrix<double, Dim, Dim>
+      if constexpr (Dim == Eigen::Dynamic) {
+        I_n = Jacobian::Identity(n_, n_);
+      }
+      else {
+        I_n = Jacobian::Identity();
+      }
+
+      // I_KH will be Eigen::Matrix<double, Dim, Dim>
+      Jacobian I_KH = I_n - K * H;
       P_ = I_KH * P_ * I_KH.transpose() + K * R * K.transpose();
     }
 
@@ -202,37 +222,48 @@ namespace gtsam {
      * @tparam Measurement Type of the measurement vector (e.g., VectorN<m>, Vector).
      * @tparam MeasurementFunction Functor/lambda with signature compatible with:
      *        `Measurement h(const M& x, Jac& H_jacobian)`
-     *        where `Jac` can be `Matrix&` or `OptionalJacobian<m, n_>&`.
+     *        where `Jac` can be `Eigen::Matrix<double, MeasDim, Dim>&` or
+     *        `OptionalJacobian<MeasDim, Dim>&`.
      *        The Jacobian H should be d(h)/d(local(X)).
      * @param h Measurement model function.
      * @param z Observed measurement.
-     * @param R Measurement noise covariance (must be an m x m Matrix).
+     * @param R Measurement noise covariance (Eigen::Matrix<double, MeasDim, MeasDim>).
      */
     template <typename Measurement, typename MeasurementFunction>
-    void update(MeasurementFunction&& h, const Measurement& z, const Matrix& R) {
+    void update(MeasurementFunction&& h_func, const Measurement& z,
+      const Eigen::Matrix<double, traits<Measurement>::dimension, traits<Measurement>::dimension>& R) {
       static_assert(IsManifold<Measurement>::value,
         "Template parameter Measurement must be a GTSAM Manifold.");
 
-      int m; // Measurement dimension
-      if constexpr (traits<Measurement>::dimension == Eigen::Dynamic) {
-        m = traits<Measurement>::GetDimension(z);
+      static constexpr int MeasDim = traits<Measurement>::dimension;
+
+      int m_runtime; // Measurement dimension at runtime
+      if constexpr (MeasDim == Eigen::Dynamic) {
+        m_runtime = traits<Measurement>::GetDimension(z);
       }
       else {
-        m = traits<Measurement>::dimension;
+        m_runtime = MeasDim;
       }
 
+      // Prepare Jacobian H for the measurement function
+      Matrix H(m_runtime, n_);
+      if constexpr (MeasDim == Eigen::Dynamic || Dim == Eigen::Dynamic) {
+        // If H involves any dynamic dimension, it needs explicit resizing.
+        H.resize(m_runtime, n_);
+      }
+      // If H is fully fixed-size, its dimensions are set at compile time.
+
       // Predict measurement and get Jacobian H = dh/dlocal(X)
-      Matrix H(m, n_);
-      Measurement prediction = h(X_, H);
+      Measurement prediction = h_func(X_, H);
 
       // Call the other update function
       update(prediction, H, z, R);
     }
 
   protected:
-    M X_;      ///< Manifold state estimate.
-    Matrix P_; ///< Covariance in tangent space at X_ (always a dynamic Matrix).
-    int n_;    ///< Tangent space dimension of M, determined at construction.
+    M X_;              ///< Manifold state estimate.
+    Covariance P_;     ///< Covariance (Eigen::Matrix<double, Dim, Dim>).
+    int n_;            ///< Runtime tangent space dimension of M.
   };
 
 }  // namespace gtsam

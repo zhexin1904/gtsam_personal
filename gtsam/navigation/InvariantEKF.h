@@ -38,30 +38,32 @@ namespace gtsam {
    *
    * This filter inherits from LieGroupEKF but restricts the prediction interface
    * to only the left-invariant prediction methods:
-   * 1. Prediction via group composition: `predict(const G& U, const Matrix& Q)`
-   * 2. Prediction via tangent control vector: `predict(const TangentVector& u, double dt, const Matrix& Q)`
+   * 1. Prediction via group composition: `predict(const G& U, const Covariance& Q)`
+   * 2. Prediction via tangent control vector: `predict(const TangentVector& u, double dt, const Covariance& Q)`
    *
    * The state-dependent prediction methods from LieGroupEKF are hidden.
    * The update step remains the same as in ManifoldEKF/LieGroupEKF.
-   * Covariances (P, Q) are `Matrix`.
+   * Covariances (P, Q) are `Eigen::Matrix<double, Dim, Dim>`.
    */
   template <typename G>
   class InvariantEKF : public LieGroupEKF<G> {
   public:
     using Base = LieGroupEKF<G>; ///< Base class type
     using TangentVector = typename Base::TangentVector; ///< Tangent vector type
-    // Jacobian for group-specific operations like AdjointMap.
-    // Becomes Matrix if G has dynamic dimension.
+    /// Jacobian for group-specific operations like AdjointMap. Eigen::Matrix<double, Dim, Dim>.
     using Jacobian = typename Base::Jacobian;
+    /// Covariance matrix type. Eigen::Matrix<double, Dim, Dim>.
+    using Covariance = typename Base::Covariance;
+
 
     /**
      * Constructor: forwards to LieGroupEKF constructor.
      * @param X0 Initial state on Lie group G.
-     * @param P0 Initial covariance in the tangent space at X0 (must be Matrix).
+     * @param P0_input Initial covariance in the tangent space at X0 (dynamic gtsam::Matrix).
      */
-    InvariantEKF(const G& X0, const Matrix& P0) : Base(X0, P0) {}
+    InvariantEKF(const G& X0, const Matrix& P0_input) : Base(X0, P0_input) {}
 
-    // We hide state-dependent predict methods from LieGroupEKF by only providing the 
+    // We hide state-dependent predict methods from LieGroupEKF by only providing the
     // invariant predict methods below.
 
     /**
@@ -71,13 +73,14 @@ namespace gtsam {
      * where Ad_{U^{-1}} is the Adjoint map of U^{-1}.
      *
      * @param U Lie group element representing the motion increment.
-     * @param Q Process noise covariance in the tangent space (must be Matrix, size n_ x n_).
+     * @param Q Process noise covariance (Eigen::Matrix<double, Dim, Dim>).
      */
-    void predict(const G& U, const Matrix& Q) {
+    void predict(const G& U, const Covariance& Q) {
       this->X_ = this->X_.compose(U);
       // TODO(dellaert): traits<G>::AdjointMap should exist
       const Jacobian A = traits<G>::Inverse(U).AdjointMap();
-      // P_ is Matrix. A is Eigen::Matrix<double,n,n>. Q is Matrix.
+      // P_ is Covariance. A is Jacobian. Q is Covariance.
+      // All are Eigen::Matrix<double,Dim,Dim>.
       this->P_ = A * this->P_ * A.transpose() + Q;
     }
 
@@ -88,9 +91,9 @@ namespace gtsam {
      *
      * @param u Tangent space control vector.
      * @param dt Time interval.
-     * @param Q Process noise covariance matrix (Matrix, size n_ x n_).
+     * @param Q Process noise covariance matrix (Eigen::Matrix<double, Dim, Dim>).
      */
-    void predict(const TangentVector& u, double dt, const Matrix& Q) {
+    void predict(const TangentVector& u, double dt, const Covariance& Q) {
       const G U = traits<G>::Expmap(u * dt);
       predict(U, Q); // Call the group composition predict
     }
