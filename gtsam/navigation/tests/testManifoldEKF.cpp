@@ -151,110 +151,99 @@ TEST(ManifoldEKF_Unit3, Update) {
 namespace exampleDynamicMatrix {
 
   // Predicts the next state given current state (Matrix), tangent "velocity" (Vector), and dt.
+  // For Matrix (a VectorSpace type), Retract(M, v) is typically M + v.
   Matrix predictNextState(const Matrix& p, const Vector& vTangent, double dt) {
     return traits<Matrix>::Retract(p, vTangent * dt);
   }
 
   // Define a measurement model: measure the trace of the Matrix (assumed 2x2 here)
-  double measureTrace(const Matrix& p, OptionalJacobian<-1, -1> H = {}) {
-    if (H) {
-      // p_flat (col-major for Eigen) for a 2x2 matrix p = [[p00,p01],[p10,p11]] is [p00, p10, p01, p11]
-      // trace = p(0,0) + p(1,1)
-      // H = d(trace)/d(p_flat) = [1, 0, 0, 1]
-      // The Jacobian H will be 1x4 for a 2x2 matrix.
-      *H << 1.0, 0.0, 0.0, 1.0;
+  // H is the Jacobian dh/d(flatten(p))
+  double measureTrace(const Matrix& p, OptionalJacobian<-1, -1> H_opt = {}) {
+    if (H_opt) {
+      // The Jacobian H = d(trace)/d(flatten(p)) will be 1xN, where N is p.size().
+      // For a 2x2 matrix, N=4, so H is 1x4: [1, 0, 0, 1].
+      Matrix H = Matrix::Zero(1, p.size());
+      if (p.rows() >= 2 && p.cols() >= 2) { // Ensure it's at least 2x2 for trace definition
+        H(0, 0) = 1.0; // d(trace)/dp00
+        H(0, p.rows() * (p.cols() - 1) + (p.rows() - 1)) = 1.0; // d(trace)/dp11 (for col-major)
+        // For 2x2: H(0, 2*1 + 1) = H(0,3)
+      }
+      *H_opt = H;
     }
-    return p(0, 0) + p(1, 1);
+    if (p.rows() < 1 || p.cols() < 1) return 0.0; // Or throw error
+    double trace = 0.0;
+    for (DenseIndex i = 0; i < std::min(p.rows(), p.cols()); ++i) {
+      trace += p(i, i);
+    }
+    return trace;
   }
 
 } // namespace exampleDynamicMatrix
 
-// Test fixture for ManifoldEKF with a 2x2 Matrix state
-struct DynamicMatrixEKFTest {
-  Matrix p0Matrix;                 // Initial state (as 2x2 Matrix)
-  Matrix p0Covariance;             // Initial covariance (dynamic Matrix, 4x4)
-  Vector velocityTangent;          // Control input in tangent space (Vector4 for 2x2 matrix)
-  double dt;
-  Matrix processNoiseCovariance;   // Process noise covariance (dynamic Matrix, 4x4)
-  Matrix measurementNoiseCovariance; // Measurement noise covariance (dynamic Matrix, 1x1)
+TEST(ManifoldEKF_DynamicMatrix, CombinedPredictAndUpdate) {
+  Matrix p_initial = (Matrix(2, 2) << 1.0, 2.0, 3.0, 4.0).finished();
+  Matrix P_initial = I_4x4 * 0.01; // Covariance for 2x2 matrix (4x4)
+  Vector v_tangent = (Vector(4) << 0.5, 0.1, -0.1, -0.5).finished(); // [dp00, dp10, dp01, dp11]/sec
+  double dt = 0.1;
+  Matrix Q = I_4x4 * 0.001; // Process noise covariance (4x4)
+  Matrix R = Matrix::Identity(1, 1) * 0.005; // Measurement noise covariance (1x1)
 
-  DynamicMatrixEKFTest() :
-    p0Matrix((Matrix(2, 2) << 1.0, 2.0, 3.0, 4.0).finished()),
-    p0Covariance(I_4x4 * 0.01),
-    velocityTangent((Vector(4) << 0.5, 0.1, -0.1, -0.5).finished()), // [dp00, dp10, dp01, dp11]/sec
-    dt(0.1),
-    processNoiseCovariance(I_4x4 * 0.001),
-    measurementNoiseCovariance(Matrix::Identity(1, 1) * 0.005)
-  {
-  }
-};
-
-
-TEST(ManifoldEKF_DynamicMatrix, Predict) {
-  DynamicMatrixEKFTest data;
-
-  ManifoldEKF<Matrix> ekf(data.p0Matrix, data.p0Covariance);
+  ManifoldEKF<Matrix> ekf(p_initial, P_initial);
   // For a 2x2 Matrix, tangent space dimension is 2*2=4.
   EXPECT_LONGS_EQUAL(4, ekf.state().size());
-  EXPECT_LONGS_EQUAL(data.p0Matrix.rows() * data.p0Matrix.cols(), ekf.state().size());
+  EXPECT_LONGS_EQUAL(p_initial.rows() * p_initial.cols(), ekf.state().size());
 
-  // --- Prepare inputs for ManifoldEKF::predict ---
-  Matrix pNextExpected = exampleDynamicMatrix::predictNextState(data.p0Matrix, data.velocityTangent, data.dt);
+  // Predict Step
+  Matrix p_predicted_mean = exampleDynamicMatrix::predictNextState(p_initial, v_tangent, dt);
 
-  // For this linear prediction model (p_next = p_current + V*dt in tangent space), F is Identity.
-  Matrix jacobianF = I_4x4; // Jacobian of the state transition function
+  // For this linear prediction model (p_next = p_current + V*dt in tangent space),
+  // Derivative w.r.t delta_xi is Identity.
+  Matrix F = I_4x4;
 
-  // --- Perform EKF prediction ---
-  ekf.predict(pNextExpected, jacobianF, data.processNoiseCovariance);
+  ekf.predict(p_predicted_mean, F, Q);
 
-  // --- Verification ---
-  EXPECT(assert_equal(pNextExpected, ekf.state(), 1e-9));
-  Matrix pCovarianceExpected = jacobianF * data.p0Covariance * jacobianF.transpose() + data.processNoiseCovariance;
-  EXPECT(assert_equal(pCovarianceExpected, ekf.covariance(), 1e-9));
+  EXPECT(assert_equal(p_predicted_mean, ekf.state(), 1e-9));
+  Matrix P_predicted_expected = F * P_initial * F.transpose() + Q;
+  EXPECT(assert_equal(P_predicted_expected, ekf.covariance(), 1e-9));
+
+  // Update Step
+  Matrix p_current_for_update = ekf.state();
+  Matrix P_current_for_update = ekf.covariance();
+
+  // True trace of p_current_for_update (which is p_predicted_mean)
+  // p_predicted_mean = p_initial + v_tangent*dt
+  // = [1.0, 2.0; 3.0, 4.0] + [0.05, -0.01; 0.01, -0.05] (v_tangent reshaped to 2x2 col-major)
+  // Trace = 1.05 + 3.95 = 5.0
+  double z_true = exampleDynamicMatrix::measureTrace(p_current_for_update);
+  EXPECT_DOUBLES_EQUAL(5.0, z_true, 1e-9);
+  double z_observed = z_true - 0.03;
+
+  ekf.update(exampleDynamicMatrix::measureTrace, z_observed, R);
+
+  // Manual Kalman Update Steps for Verification
+  Matrix H(1, 4); // Measurement Jacobian H (1x4 for 2x2 matrix, trace measurement)
+  double z_prediction_manual = exampleDynamicMatrix::measureTrace(p_current_for_update, H);
+  Matrix H_expected = (Matrix(1, 4) << 1.0, 0.0, 0.0, 1.0).finished();
+  EXPECT(assert_equal(H_expected, H, 1e-9));
+
+
+  // Innovation: y = z_observed - z_prediction_manual (since measurement is double)
+  double y_innovation = z_observed - z_prediction_manual;
+  Matrix S = H * P_current_for_update * H.transpose() + R; // S is 1x1
+
+  Matrix K_gain = P_current_for_update * H.transpose() * S.inverse(); // K is 4x1
+
+  // State Correction (in tangent space of Matrix)
+  Vector delta_xi_tangent = K_gain * y_innovation; // delta_xi is 4x1 Vector
+
+  Matrix p_updated_manual_expected = traits<Matrix>::Retract(p_current_for_update, delta_xi_tangent);
+  Matrix P_updated_manual_expected = (I_4x4 - K_gain * H) * P_current_for_update;
+
+  EXPECT(assert_equal(p_updated_manual_expected, ekf.state(), 1e-9));
+  EXPECT(assert_equal(P_updated_manual_expected, ekf.covariance(), 1e-9));
 }
 
-TEST(ManifoldEKF_DynamicMatrix, Update) {
-  DynamicMatrixEKFTest data;
 
-  Matrix pStartMatrix = (Matrix(2, 2) << 1.5, -0.5, 0.8, 2.5).finished();
-  Matrix pStartCovariance = I_4x4 * 0.02;
-  ManifoldEKF<Matrix> ekf(pStartMatrix, pStartCovariance);
-  EXPECT_LONGS_EQUAL(4, ekf.state().size());
-
-  // Simulate a measurement (true trace of pStartMatrix is 1.5 + 2.5 = 4.0)
-  double zTrue = exampleDynamicMatrix::measureTrace(pStartMatrix); // No Jacobian needed here
-  double zObserved = zTrue - 0.03; // Add some "error"
-
-  // --- Perform EKF update ---
-  ekf.update(exampleDynamicMatrix::measureTrace, zObserved, data.measurementNoiseCovariance);
-
-  // --- Verification (Manual Kalman Update Steps) ---
-  // 1. Predict measurement and get Jacobian H
-  Matrix H(1, 4); // This will be 1x4 for a 2x2 matrix measurement
-  double zPredictionManual = exampleDynamicMatrix::measureTrace(pStartMatrix, H);
-
-  // 2. Innovation and Innovation Covariance
-  // EKF calculates innovation_tangent = traits<Measurement>::Local(prediction, zObserved)
-  // For double (a VectorSpace), Local(A,B) is B-A. So, zObserved - zPredictionManual.
-  double innovationY = zObserved - zPredictionManual;
-  Matrix innovationCovarianceS = H * pStartCovariance * H.transpose() + data.measurementNoiseCovariance;
-
-  // 3. Kalman Gain K
-  Matrix kalmanGainK = pStartCovariance * H.transpose() * innovationCovarianceS.inverse(); // K is 4x1
-
-  // 4. State Correction (in tangent space of Matrix)
-  Vector deltaXiTangent = kalmanGainK * innovationY; // deltaXi is 4x1 Vector
-
-  // 5. Expected Updated State and Covariance
-  Matrix pUpdatedExpected = traits<Matrix>::Retract(pStartMatrix, deltaXiTangent);
-
-  // Covariance update: P_new = (I - K H) P_old
-  Matrix pUpdatedCovarianceExpected = (I_4x4 - kalmanGainK * H) * pStartCovariance;
-
-  // --- Compare EKF result with manual calculation ---
-  EXPECT(assert_equal(pUpdatedExpected, ekf.state(), 1e-9));
-  EXPECT(assert_equal(pUpdatedCovarianceExpected, ekf.covariance(), 1e-9));
-}
 
 int main() {
   TestResult tr;
