@@ -151,27 +151,21 @@ TEST(ManifoldEKF_Unit3, Update) {
 namespace exampleDynamicMatrix {
 
   // Predicts the next state given current state (Matrix), tangent "velocity" (Vector), and dt.
-  // For Matrix (a VectorSpace type), Retract(M, v) is typically M + v.
   Matrix f(const Matrix& p, const Vector& vTangent, double dt) {
-    return traits<Matrix>::Retract(p, vTangent * dt);
+    return traits<Matrix>::Retract(p, vTangent * dt); // +
   }
 
   // Define a measurement model: measure the trace of the Matrix (assumed 2x2 here)
-  // H is the Jacobian dh/d(flatten(p))
   double h(const Matrix& p, OptionalJacobian<-1, -1> H = {}) {
+    // Specialized for a 2x2 matrix!
+    if (p.rows() != 2 || p.cols() != 2) {
+      throw std::invalid_argument("Matrix must be 2x2.");
+    }
     if (H) {
-      // The Jacobian H = d(trace)/d(flatten(p)) will be 1xN, where N is p.size().
-      // For a 2x2 matrix, N=4, so H is 1x4: [1, 0, 0, 1].
       H->resize(1, p.size());
-      (*H)(0, 0) = 1.0; // d(trace)/dp00
-      (*H)(0, p.rows() * (p.cols() - 1) + (p.rows() - 1)) = 1.0; // d(trace)/dp11 (for col-major)
+      *H << 1.0, 0.0, 0.0, 1.0; // d(trace)/dp00, d(trace)/dp01, d(trace)/dp10, d(trace)/dp11
     }
-    if (p.rows() < 1 || p.cols() < 1) return 0.0; // Or throw error
-    double trace = 0.0;
-    for (DenseIndex i = 0; i < std::min(p.rows(), p.cols()); ++i) {
-      trace += p(i, i);
-    }
-    return trace;
+    return p(0, 0) + p(1, 1); // Trace of the matrix
   }
 
 } // namespace exampleDynamicMatrix

@@ -126,19 +126,17 @@ namespace exampleLieGroupDynamicMatrix {
     return kFixedVelocityTangent;
   }
 
-  // Measurement function h(X, H_p)
-  // H_p is D(h)/D(X_local)
-  double h(const Matrix& p, OptionalJacobian<-1, -1> H_p = {}) {
-    if (p.size() == 0) {
-      if (H_p) H_p->resize(1, 0); // Jacobian dh/dX_local is 1x0
-      return 0.0; // Define trace of empty matrix as 0 for consistency
+  // Measurement function h(X, H)
+  double h(const Matrix& p, OptionalJacobian<-1, -1> H = {}) {
+    // Specialized for a 2x2 matrix!
+    if (p.rows() != 2 || p.cols() != 2) {
+      throw std::invalid_argument("Matrix must be 2x2.");
     }
-    // This test specifically uses 2x2 matrices (size 4)
-    if (H_p) {
-      H_p->resize(1, p.size()); // p.size() is 4
-      (*H_p) << 1.0, 0.0, 0.0, 1.0; // d(trace)/d(p_flat) for p_flat = [p00,p10,p01,p11]
+    if (H) {
+      H->resize(1, p.size());
+      *H << 1.0, 0.0, 0.0, 1.0; // d(trace)/dp00, d(trace)/dp01, d(trace)/dp10, d(trace)/dp11
     }
-    return p(0, 0) + p(1, 1); // trace
+    return p(0, 0) + p(1, 1); // Trace of the matrix
   }
 } // namespace exampleLieGroupDynamicMatrix
 
