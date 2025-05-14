@@ -21,9 +21,7 @@
 
 #pragma once
 
-#include <gtsam/base/Vector.h>
-#include <gtsam/discrete/DiscreteBayesTree.h>
-#include <gtsam/discrete/DiscreteFactorGraph.h>
+#include <gtsam/discrete/DiscreteMarginals.h>
 
 namespace gtsam {
 
