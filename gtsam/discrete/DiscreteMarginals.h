@@ -52,6 +52,10 @@ class DiscreteMarginals {
    *   @return Vector of marginal probabilities
    */
   Vector marginalProbabilities(const DiscreteKey& key) const;
+
+  /// Print details
+  void print(const std::string& s = "",
+             const KeyFormatter formatter = DefaultKeyFormatter) const;
 };
 
 } /* namespace gtsam */

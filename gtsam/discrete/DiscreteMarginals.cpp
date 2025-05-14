@@ -55,4 +55,12 @@ Vector DiscreteMarginals::marginalProbabilities(const DiscreteKey& key) const {
   return vResult;
 }
 
+/* ************************************************************************* */
+void DiscreteMarginals::print(
+    const std::string& s = "",
+    const KeyFormatter formatter = DefaultKeyFormatter) const {
+  std::cout << (s.empty() ? "Discrete Marginals of:" : s + " ") << std::endl;
+  bayesTree_.print("", formatter);
+}
+
 } /* namespace gtsam */
