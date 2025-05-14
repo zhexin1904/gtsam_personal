@@ -19,8 +19,6 @@
  * @date June 4, 2012
  */
 
-#pragma once
-
 #include <gtsam/discrete/DiscreteMarginals.h>
 
 namespace gtsam {
@@ -54,11 +52,10 @@ Vector DiscreteMarginals::marginalProbabilities(const DiscreteKey& key) const {
 }
 
 /* ************************************************************************* */
-void DiscreteMarginals::print(
-    const std::string& s = "",
-    const KeyFormatter formatter = DefaultKeyFormatter) const {
+void DiscreteMarginals::print(const std::string& s,
+                              const KeyFormatter formatter) const {
   std::cout << (s.empty() ? "Discrete Marginals of:" : s + " ") << std::endl;
-  bayesTree_.print("", formatter);
+  bayesTree_->print("", formatter);
 }
 
 } /* namespace gtsam */
