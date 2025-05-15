@@ -71,7 +71,7 @@ DiscreteValues DiscreteBayesNet::sample(DiscreteValues result) const {
 
 /* ************************************************************************* */
 // The implementation is: build the entire joint into one factor and then prune.
-// NOTE: This can be quite expensive *unless* the factors have already
+// NOTE(Frank): This can be quite expensive *unless* the factors have already
 // been pruned before. Another, possibly faster approach is branch and bound
 // search to find the K-best leaves and then create a single pruned conditional.
 DiscreteBayesNet DiscreteBayesNet::prune(
