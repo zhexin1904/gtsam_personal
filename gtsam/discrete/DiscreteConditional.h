@@ -27,6 +27,9 @@
 #include <string>
 #include <vector>
 
+// In wrappers we can access std::mt19937_64 via gtsam.MT19937
+static std::mt19937_64 kRandomNumberGenerator(42);
+
 namespace gtsam {
 
 /**
@@ -196,30 +199,22 @@ class GTSAM_EXPORT DiscreteConditional
   DecisionTreeFactor::shared_ptr likelihood(size_t frontal) const;
 
   /**
-   * sample
-   * @param parentsValues Known values of the parents
-   * @return sample from conditional
-   */
-  virtual size_t sample(const DiscreteValues& parentsValues) const;
-
-  /**
    * Sample from conditional, given missing variables
    * Example:
    *   std::mt19937_64 rng(42);
    *   DiscreteValues given = ...;
    *   size_t sample = dc.sample(given, &rng);
+   *
+   * @param parentsValues Known values of the parents
+   * @param rng Pseudo-Random Number Generator.
+   * @return sample from conditional
    */
-  size_t sample(const DiscreteValues& parentsValues,
-                std::mt19937_64* rng) const;
+  virtual size_t sample(const DiscreteValues& parentsValues,
+                        std::mt19937_64* rng = &kRandomNumberGenerator) const;
 
   /// Single parent version.
-  size_t sample(size_t parent_value) const;
-
-  /// Single parent version with PRNG
-  size_t sample(size_t parent_value, std::mt19937_64* rng) const;
-
-  /// Zero parent version.
-  size_t sample() const;
+  size_t sample(size_t parent_value,
+                std::mt19937_64* rng = &kRandomNumberGenerator) const;
 
   /**
    * Sample from conditional, zero parent version
@@ -227,7 +222,7 @@ class GTSAM_EXPORT DiscreteConditional
    *   std::mt19937_64 rng(42);
    *   auto sample = dc.sample(&rng);
    */
-  size_t sample(std::mt19937_64* rng) const;
+  size_t sample(std::mt19937_64* rng = &kRandomNumberGenerator) const;
 
   /**
    * @brief Return assignment for single frontal variable that maximizes value.
@@ -249,8 +244,9 @@ class GTSAM_EXPORT DiscreteConditional
   /// @name Advanced Interface
   /// @{
 
-  /// sample in place, stores result in partial solution
-  void sampleInPlace(DiscreteValues* parentsValues) const;
+  /// Sample in place with optional PRNG, stores result in partial solution
+  void sampleInPlace(DiscreteValues* parentsValues,
+                     std::mt19937_64* rng = &kRandomNumberGenerator) const;
 
   /// Return all assignments for frontal variables.
   std::vector<DiscreteValues> frontalAssignments() const;

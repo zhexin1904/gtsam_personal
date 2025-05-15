@@ -32,9 +32,6 @@
 #include <utility>
 #include <vector>
 
-// In wrappers we can access std::mt19937_64 via gtsam.MT19937
-static std::mt19937_64 kRandomNumberGenerator(2);
-
 using namespace std;
 using std::pair;
 using std::stringstream;
@@ -271,7 +268,8 @@ size_t DiscreteConditional::argmax(const DiscreteValues& parentsValues) const {
 }
 
 /* ************************************************************************** */
-void DiscreteConditional::sampleInPlace(DiscreteValues* values) const {
+void DiscreteConditional::sampleInPlace(DiscreteValues* values,
+                                        std::mt19937_64* rng) const {
   // throw if more than one frontal:
   if (nrFrontals() != 1) {
     throw std::invalid_argument(
@@ -284,13 +282,8 @@ void DiscreteConditional::sampleInPlace(DiscreteValues* values) const {
     throw std::invalid_argument(
         "DiscreteConditional::sampleInPlace: values already contains j");
   }
-  size_t sampled = sample(*values);  // Sample variable given parents
-  (*values)[j] = sampled;            // store result in partial solution
-}
-
-/* ************************************************************************** */
-size_t DiscreteConditional::sample(const DiscreteValues& parentsValues) const {
-  return sample(parentsValues, &kRandomNumberGenerator);
+  size_t sampled = sample(*values, rng);  // Sample variable given parents
+  (*values)[j] = sampled;                 // store result in partial solution
 }
 
 /* ************************************************************************** */
@@ -321,11 +314,6 @@ size_t DiscreteConditional::sample(const DiscreteValues& parentsValues,
 }
 
 /* ************************************************************************** */
-size_t DiscreteConditional::sample(size_t parent_value) const {
-  return sample(parent_value, &kRandomNumberGenerator);
-}
-
-/* ************************************************************************** */
 size_t DiscreteConditional::sample(size_t parent_value,
                                    std::mt19937_64* rng) const {
   if (nrParents() != 1)
@@ -335,11 +323,6 @@ size_t DiscreteConditional::sample(size_t parent_value,
   DiscreteValues values;
   values.emplace(keys_.back(), parent_value);
   return sample(values, rng);
-}
-
-/* ************************************************************************** */
-size_t DiscreteConditional::sample() const {
-  return sample(&kRandomNumberGenerator);
 }
 
 /* ************************************************************************** */

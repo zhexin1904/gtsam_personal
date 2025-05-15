@@ -143,9 +143,12 @@ class GTSAM_EXPORT TableDistribution : public DiscreteConditional {
   /**
    * sample
    * @param parentsValues Known values of the parents
+   * @param rng Pseudo random number generator
    * @return sample from conditional
    */
-  virtual size_t sample(const DiscreteValues& parentsValues) const override;
+  virtual size_t sample(
+      const DiscreteValues& parentsValues,
+      std::mt19937_64* rng = &kRandomNumberGenerator) const override;
 
   /// @}
   /// @name Advanced Interface
