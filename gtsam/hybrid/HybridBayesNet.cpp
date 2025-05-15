@@ -25,9 +25,6 @@
 
 #include <memory>
 
-// In Wrappers we have no access to this so have a default ready
-static std::mt19937_64 kRandomNumberGenerator(42);
-
 namespace gtsam {
 
 /* ************************************************************************* */
