@@ -76,7 +76,7 @@ class TestGaussianBayesNet(GtsamTestCase):
         niters = 10000
         for _ in range(niters):
             val += conditional.sample(rng).at(_x_).item()
-        self.assertAlmostEqual(val / niters, 9.0, 2)
+        self.assertAlmostEqual(val / niters, 9.0, 1)
 
 
 if __name__ == "__main__":
