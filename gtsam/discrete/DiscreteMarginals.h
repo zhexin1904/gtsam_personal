@@ -31,7 +31,7 @@ namespace gtsam {
  * A class for computing marginals of variables in a DiscreteFactorGraph
  * @ingroup discrete
  */
-class DiscreteMarginals {
+class GTSAM_EXPORT DiscreteMarginals {
  protected:
   DiscreteBayesTree::shared_ptr bayesTree_;
 
