@@ -32,6 +32,9 @@
 #include <utility>
 #include <vector>
 
+// In wrappers we can access std::mt19937_64 via gtsam.MT19937
+static std::mt19937_64 kRandomNumberGenerator(2);
+
 using namespace std;
 using std::pair;
 using std::stringstream;
@@ -287,8 +290,6 @@ void DiscreteConditional::sampleInPlace(DiscreteValues* values) const {
 
 /* ************************************************************************** */
 size_t DiscreteConditional::sample(const DiscreteValues& parentsValues) const {
-  static mt19937 rng(2);  // random number generator
-
   // Get the correct conditional distribution
   ADT pFS = choose(parentsValues, true);  // P(F|S=parentsValues)
 
@@ -310,7 +311,7 @@ size_t DiscreteConditional::sample(const DiscreteValues& parentsValues) const {
     }
   }
   std::discrete_distribution<size_t> distribution(p.begin(), p.end());
-  return distribution(rng);
+  return distribution(kRandomNumberGenerator);
 }
 
 /* ************************************************************************** */
