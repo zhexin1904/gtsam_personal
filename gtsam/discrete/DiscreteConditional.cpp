@@ -290,6 +290,12 @@ void DiscreteConditional::sampleInPlace(DiscreteValues* values) const {
 
 /* ************************************************************************** */
 size_t DiscreteConditional::sample(const DiscreteValues& parentsValues) const {
+  return sample(parentsValues, &kRandomNumberGenerator);
+}
+
+/* ************************************************************************** */
+size_t DiscreteConditional::sample(const DiscreteValues& parentsValues,
+                                   std::mt19937_64* rng) const {
   // Get the correct conditional distribution
   ADT pFS = choose(parentsValues, true);  // P(F|S=parentsValues)
 
@@ -311,27 +317,38 @@ size_t DiscreteConditional::sample(const DiscreteValues& parentsValues) const {
     }
   }
   std::discrete_distribution<size_t> distribution(p.begin(), p.end());
-  return distribution(kRandomNumberGenerator);
+  return distribution(*rng);
 }
 
 /* ************************************************************************** */
 size_t DiscreteConditional::sample(size_t parent_value) const {
+  return sample(parent_value, &kRandomNumberGenerator);
+}
+
+/* ************************************************************************** */
+size_t DiscreteConditional::sample(size_t parent_value,
+                                   std::mt19937_64* rng) const {
   if (nrParents() != 1)
     throw std::invalid_argument(
         "Single value sample() can only be invoked on single-parent "
         "conditional");
   DiscreteValues values;
   values.emplace(keys_.back(), parent_value);
-  return sample(values);
+  return sample(values, rng);
 }
 
 /* ************************************************************************** */
 size_t DiscreteConditional::sample() const {
+  return sample(&kRandomNumberGenerator);
+}
+
+/* ************************************************************************** */
+size_t DiscreteConditional::sample(std::mt19937_64* rng) const {
   if (nrParents() != 0)
     throw std::invalid_argument(
         "sample() can only be invoked on no-parent prior");
   DiscreteValues values;
-  return sample(values);
+  return sample(values, rng);
 }
 
 /* ************************************************************************* */

@@ -23,6 +23,7 @@
 #include <gtsam/inference/Conditional-inst.h>
 
 #include <memory>
+#include <random>  // for std::mt19937_64
 #include <string>
 #include <vector>
 
@@ -201,11 +202,32 @@ class GTSAM_EXPORT DiscreteConditional
    */
   virtual size_t sample(const DiscreteValues& parentsValues) const;
 
+  /**
+   * Sample from conditional, given missing variables
+   * Example:
+   *   std::mt19937_64 rng(42);
+   *   DiscreteValues given = ...;
+   *   size_t sample = dc.sample(given, &rng);
+   */
+  size_t sample(const DiscreteValues& parentsValues,
+                std::mt19937_64* rng) const;
+
   /// Single parent version.
   size_t sample(size_t parent_value) const;
 
+  /// Single parent version with PRNG
+  size_t sample(size_t parent_value, std::mt19937_64* rng) const;
+
   /// Zero parent version.
   size_t sample() const;
+
+  /**
+   * Sample from conditional, zero parent version
+   * Example:
+   *   std::mt19937_64 rng(42);
+   *   auto sample = dc.sample(&rng);
+   */
+  size_t sample(std::mt19937_64* rng) const;
 
   /**
    * @brief Return assignment for single frontal variable that maximizes value.
