@@ -309,6 +309,10 @@ size_t DiscreteConditional::sample(const DiscreteValues& parentsValues,
       return value;  // shortcut exit
     }
   }
+
+  // Check if rng is nullptr, then assign default
+  rng = (rng == nullptr) ? &kRandomNumberGenerator : rng;
+
   std::discrete_distribution<size_t> distribution(p.begin(), p.end());
   return distribution(*rng);
 }
