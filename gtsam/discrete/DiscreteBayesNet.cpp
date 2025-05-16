@@ -52,7 +52,7 @@ double DiscreteBayesNet::evaluate(const DiscreteValues& values) const {
 /* ************************************************************************* */
 DiscreteValues DiscreteBayesNet::sample(std::mt19937_64* rng) const {
   DiscreteValues result;
-  return sample(result);
+  return sample(result, rng);
 }
 
 DiscreteValues DiscreteBayesNet::sample(DiscreteValues result,
