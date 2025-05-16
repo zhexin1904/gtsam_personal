@@ -167,20 +167,6 @@ class GTSAM_EXPORT Gal3 : public LieGroup<Gal3, 10> {
   /// @name Lie Group Static Functions
   /// @{
 
-  /// The type of the Lie algebra (matrix representation)
-  using LieAlgebra = Matrix5;
-
-  // Helper functions for accessing tangent vector components
-  static Eigen::Block<Vector10, 3, 1> rho(Vector10& v) { return v.block<3, 1>(0, 0); }
-  static Eigen::Block<Vector10, 3, 1> nu(Vector10& v) { return v.block<3, 1>(3, 0); }
-  static Eigen::Block<Vector10, 3, 1> theta(Vector10& v) { return v.block<3, 1>(6, 0); }
-  static Eigen::Block<Vector10, 1, 1> t_tan(Vector10& v) { return v.block<1, 1>(9, 0); }
-  // Const versions
-  static Eigen::Block<const Vector10, 3, 1> rho(const Vector10& v) { return v.block<3, 1>(0, 0); }
-  static Eigen::Block<const Vector10, 3, 1> nu(const Vector10& v) { return v.block<3, 1>(3, 0); }
-  static Eigen::Block<const Vector10, 3, 1> theta(const Vector10& v) { return v.block<3, 1>(6, 0); }
-  static Eigen::Block<const Vector10, 1, 1> t_tan(const Vector10& v) { return v.block<1, 1>(9, 0); }
-
   /// Exponential map at identity: tangent vector xi -> manifold element g
   static Gal3 Expmap(const Vector10& xi, OptionalJacobian<10, 10> Hxi = {});
 
