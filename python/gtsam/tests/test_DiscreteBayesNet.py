@@ -49,6 +49,7 @@ class TestDiscreteConditional(GtsamTestCase):
 
         # Sample with only 1 variable
         conditional = DiscreteConditional(self.key, "7/3")
+        # Sample multiple times and average to get mean
         p = 0
         for _ in range(niters):
             p += conditional.sample(rng)
@@ -57,6 +58,7 @@ class TestDiscreteConditional(GtsamTestCase):
 
         # Sample with variable and parent
         conditional = DiscreteConditional(self.key, self.parents, "7/3 2/8")
+        # Sample multiple times and average to get mean
         p = 0
         parentValues = gtsam.DiscreteValues()
         parentValues[self.parent[0]] = 1

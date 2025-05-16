@@ -71,7 +71,7 @@ class TestGaussianBayesNet(GtsamTestCase):
         # Sample with rng
         rng = gtsam.MT19937(42)
         conditional = GaussianConditional(_x_, [9.0], I_1x1)
-        # Sample multiple times and average to gey mean
+        # Sample multiple times and average to get mean
         val = 0
         niters = 10000
         for _ in range(niters):
