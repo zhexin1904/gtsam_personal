@@ -347,6 +347,10 @@ namespace gtsam {
 
     VectorValues solution = solve(parentsValues);
     Key key = firstFrontalKey();
+
+    // Check if rng is nullptr, then assign default
+    rng = (rng == nullptr) ? &kRandomNumberGenerator : rng;
+
     // The vector of sigma values for sampling.
     // If no model, initialize sigmas to 1, else to model sigmas
     const Vector& sigmas = (!model_) ? Vector::Ones(rows()) : model_->sigmas();
@@ -359,16 +363,7 @@ namespace gtsam {
       throw std::invalid_argument(
           "sample() can only be invoked on no-parent prior");
     VectorValues values;
-    return sample(values);
-  }
-
-  /* ************************************************************************ */
-  VectorValues GaussianConditional::sample() const {
-    return sample(&kRandomNumberGenerator);
-  }
-
-  VectorValues GaussianConditional::sample(const VectorValues& given) const {
-    return sample(given, &kRandomNumberGenerator);
+    return sample(values, rng);
   }
 
   /* ************************************************************************ */
