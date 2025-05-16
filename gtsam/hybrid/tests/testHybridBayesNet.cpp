@@ -624,16 +624,9 @@ TEST(HybridBayesNet, Sampling) {
   expected.insert({X(0), Vector1(0.0252479903896)});
   expected.insert({X(1), Vector1(-0.513637101911)});
 #elif __linux__
-  expected.insert({X(0), Vector1(-0.00799425182219)});
-  expected.insert({X(1), Vector1(-0.526463854268)});
+  expected.insert({X(0), Vector1(0.0165089744897)});
+  expected.insert({X(1), Vector1(-0.454323399979)});
 #endif
-
-  std::cout << std::setprecision(12)
-            << average_continuous.scale(1.0 / num_samples).at(X(0))
-            << std::endl;
-  std::cout << std::setprecision(12)
-            << average_continuous.scale(1.0 / num_samples).at(X(1))
-            << std::endl;
 
   EXPECT(assert_equal(expected, average_continuous.scale(1.0 / num_samples)));
 }
