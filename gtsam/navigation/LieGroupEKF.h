@@ -26,9 +26,6 @@
 
 #include <gtsam/navigation/ManifoldEKF.h> // Include the base class
 #include <gtsam/base/Lie.h> // Include for Lie group traits and operations
-// #include "gtsam/base/Matrix.h"
-#include "gtsam/base/lieProxies.h"
-
 
 #include <Eigen/Dense>
 #include <type_traits>
