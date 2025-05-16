@@ -210,11 +210,10 @@ class GTSAM_EXPORT DiscreteConditional
    * @return sample from conditional
    */
   virtual size_t sample(const DiscreteValues& parentsValues,
-                        std::mt19937_64* rng = &kRandomNumberGenerator) const;
+                        std::mt19937_64* rng = nullptr) const;
 
   /// Single parent version.
-  size_t sample(size_t parent_value,
-                std::mt19937_64* rng = &kRandomNumberGenerator) const;
+  size_t sample(size_t parent_value, std::mt19937_64* rng = nullptr) const;
 
   /**
    * Sample from conditional, zero parent version
@@ -222,7 +221,7 @@ class GTSAM_EXPORT DiscreteConditional
    *   std::mt19937_64 rng(42);
    *   auto sample = dc.sample(&rng);
    */
-  size_t sample(std::mt19937_64* rng = &kRandomNumberGenerator) const;
+  size_t sample(std::mt19937_64* rng = nullptr) const;
 
   /**
    * @brief Return assignment for single frontal variable that maximizes value.
@@ -246,7 +245,7 @@ class GTSAM_EXPORT DiscreteConditional
 
   /// Sample in place with optional PRNG, stores result in partial solution
   void sampleInPlace(DiscreteValues* parentsValues,
-                     std::mt19937_64* rng = &kRandomNumberGenerator) const;
+                     std::mt19937_64* rng = nullptr) const;
 
   /// Return all assignments for frontal variables.
   std::vector<DiscreteValues> frontalAssignments() const;

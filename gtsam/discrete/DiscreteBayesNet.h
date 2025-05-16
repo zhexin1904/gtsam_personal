@@ -112,7 +112,7 @@ class GTSAM_EXPORT DiscreteBayesNet: public BayesNet<DiscreteConditional> {
      *
      * @return a sampled value for all variables.
      */
-    DiscreteValues sample(std::mt19937_64* rng = &kRandomNumberGenerator) const;
+    DiscreteValues sample(std::mt19937_64* rng = nullptr) const;
 
     /**
      * @brief do ancestral sampling, given certain variables.
@@ -123,7 +123,7 @@ class GTSAM_EXPORT DiscreteBayesNet: public BayesNet<DiscreteConditional> {
      * @return given values extended with sampled value for all other variables.
      */
     DiscreteValues sample(DiscreteValues given,
-                          std::mt19937_64* rng = &kRandomNumberGenerator) const;
+                          std::mt19937_64* rng = nullptr) const;
 
     /**
      * @brief Prune the Bayes net
