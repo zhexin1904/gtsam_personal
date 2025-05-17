@@ -15,11 +15,12 @@
  * @author Christian Potthast, Frank Dellaert
  */
 
+#include <gtsam/base/utilities.h>
+#include <gtsam/hybrid/HybridValues.h>
 #include <gtsam/linear/GaussianConditional.h>
 #include <gtsam/linear/Sampler.h>
 #include <gtsam/linear/VectorValues.h>
 #include <gtsam/linear/linearExceptions.h>
-#include <gtsam/hybrid/HybridValues.h>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -33,9 +34,6 @@
 #include <list>
 #include <string>
 #include <cmath>
-
-// In wrappers we can access std::mt19937_64 via gtsam.MT19937
-static std::mt19937_64 kRandomNumberGenerator(42);
 
 using namespace std;
 
