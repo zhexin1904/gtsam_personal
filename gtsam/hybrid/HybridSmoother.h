@@ -98,8 +98,6 @@ class GTSAM_EXPORT HybridSmoother {
   Ordering getOrdering(const HybridGaussianFactorGraph& factors,
                        const KeySet& newFactorKeys);
 
-  Ordering getOrdering(const HybridGaussianFactorGraph& newFactors);
-
   /**
    * @brief Add conditionals from previous timestep as part of liquefication.
    *

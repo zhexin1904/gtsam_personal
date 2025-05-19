@@ -301,9 +301,6 @@ class DiscreteBayesTree {
   double evaluate(const gtsam::DiscreteValues& values) const;
   double operator()(const gtsam::DiscreteValues& values) const;
 
-  double evaluate(const gtsam::DiscreteValues& values) const;
-  double operator()(const gtsam::DiscreteValues& values) const;
-
   string dot(const gtsam::KeyFormatter& keyFormatter =
                  gtsam::DefaultKeyFormatter) const;
   void saveGraph(string s,
