@@ -304,7 +304,6 @@ Diagonal::shared_ptr Diagonal::Precisions(const Vector& precisions,
                                           bool smart) {
   return Variances(precisions.array().inverse(), smart);
 }
-
 /* ************************************************************************* */
 void Diagonal::print(const string& name) const {
   gtsam::print(sigmas_, name + "diagonal sigmas ");
