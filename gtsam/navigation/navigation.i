@@ -46,7 +46,7 @@ class NavState {
 
   // Testable
   void print(string s = "") const;
-  bool equals(const gtsam::NavState& expected, double tol) const;
+  bool equals(const gtsam::NavState& other, double tol) const;
 
   // Access
   gtsam::Rot3 attitude() const;
@@ -55,22 +55,22 @@ class NavState {
   gtsam::Pose3 pose() const;
 
   // Manifold
-  gtsam::NavState retract(const gtsam::Vector& x) const;
+  gtsam::NavState retract(const gtsam::Vector& v) const;
   gtsam::Vector localCoordinates(const gtsam::NavState& g) const;
 
   // Lie Group
   static gtsam::NavState Expmap(gtsam::Vector v);
   static gtsam::Vector Logmap(const gtsam::NavState& p);
-  static gtsam::NavState Expmap(gtsam::Vector v, Eigen::Ref<Eigen::MatrixXd> H);
-  static gtsam::Vector Logmap(const gtsam::NavState& p, Eigen::Ref<Eigen::MatrixXd> H);
+  static gtsam::NavState Expmap(gtsam::Vector xi, Eigen::Ref<Eigen::MatrixXd> Hxi);
+  static gtsam::Vector Logmap(const gtsam::NavState& pose, Eigen::Ref<Eigen::MatrixXd> Hpose);
   gtsam::NavState expmap(gtsam::Vector v);
   gtsam::NavState expmap(gtsam::Vector v, Eigen::Ref<Eigen::MatrixXd> H1, Eigen::Ref<Eigen::MatrixXd> H2);
   gtsam::Vector logmap(const gtsam::NavState& p);
   gtsam::Vector logmap(const gtsam::NavState& p, Eigen::Ref<Eigen::MatrixXd> H1, Eigen::Ref<Eigen::MatrixXd> H2);
   gtsam::Matrix AdjointMap() const;
-  gtsam::Vector Adjoint(gtsam::Vector xi) const;
+  gtsam::Vector Adjoint(gtsam::Vector xi_b) const;
   static gtsam::Matrix Hat(const gtsam::Vector& xi);
-  static gtsam::Vector Vee(const gtsam::Matrix& xi);
+  static gtsam::Vector Vee(const gtsam::Matrix& X);
 
   // enabling serialization functionality
   void serialize() const;
@@ -82,7 +82,7 @@ virtual class PreintegratedRotationParams {
 
   // Testable
   void print(string s = "") const;
-  bool equals(const gtsam::PreintegratedRotationParams& expected, double tol);
+  bool equals(const gtsam::PreintegratedRotationParams& other, double tol);
 
   void setGyroscopeCovariance(gtsam::Matrix cov);
   void setOmegaCoriolis(gtsam::Vector omega);
@@ -92,6 +92,29 @@ virtual class PreintegratedRotationParams {
 
   std::optional<gtsam::Vector> getOmegaCoriolis() const;
   std::optional<gtsam::Pose3> getBodyPSensor() const;
+
+  // enabling serialization functionality
+  void serialize() const;
+};
+
+class PreintegratedRotation {
+  // Constructors
+  PreintegratedRotation(const gtsam::PreintegratedRotationParams* params);
+
+  // Standard Interface
+  void resetIntegration();
+  void integrateGyroMeasurement(const gtsam::Vector&  measuredOmega, const gtsam::Vector& biasHat, double deltaT);
+  gtsam::Rot3 biascorrectedDeltaRij(const gtsam::Vector& biasOmegaIncr) const;
+  gtsam::Vector integrateCoriolis(const gtsam::Rot3& rot_i) const;
+
+  // Access instance variables
+  double deltaTij() const;
+  gtsam::Rot3 deltaRij() const;
+  gtsam::Matrix delRdelBiasOmega() const;
+
+  // Testable
+  void print(string s = "") const;
+  bool equals(const gtsam::PreintegratedRotation& other, double tol) const;
 
   // enabling serialization functionality
   void serialize() const;
@@ -110,7 +133,7 @@ virtual class PreintegrationParams : gtsam::PreintegratedRotationParams {
 
   // Testable
   void print(string s = "") const;
-  bool equals(const gtsam::PreintegrationParams& expected, double tol);
+  bool equals(const gtsam::PreintegrationParams& other, double tol);
 
   void setAccelerometerCovariance(gtsam::Matrix cov);
   void setIntegrationCovariance(gtsam::Matrix cov);
@@ -198,7 +221,7 @@ virtual class PreintegrationCombinedParams : gtsam::PreintegrationParams {
 
   // Testable
   void print(string s = "") const;
-  bool equals(const gtsam::PreintegrationCombinedParams& expected, double tol);
+  bool equals(const gtsam::PreintegrationCombinedParams& other, double tol);
 
   void setBiasAccCovariance(gtsam::Matrix cov);
   void setBiasOmegaCovariance(gtsam::Matrix cov);
@@ -291,10 +314,7 @@ class PreintegratedAhrsMeasurements {
 
 virtual class AHRSFactor : gtsam::NonlinearFactor {
   AHRSFactor(size_t rot_i, size_t rot_j,size_t bias,
-      const gtsam::PreintegratedAhrsMeasurements& preintegratedMeasurements, gtsam::Vector omegaCoriolis);
-  AHRSFactor(size_t rot_i, size_t rot_j, size_t bias,
-      const gtsam::PreintegratedAhrsMeasurements& preintegratedMeasurements, gtsam::Vector omegaCoriolis,
-      const gtsam::Pose3& body_P_sensor);
+    const gtsam::PreintegratedAhrsMeasurements& preintegratedMeasurements);
 
   // Standard Interface
   gtsam::PreintegratedAhrsMeasurements preintegratedMeasurements() const;
@@ -306,6 +326,13 @@ virtual class AHRSFactor : gtsam::NonlinearFactor {
 
   // enable serialization functionality
   void serialize() const;
+
+  // deprecated:
+  AHRSFactor(size_t rot_i, size_t rot_j,size_t bias,
+    const gtsam::PreintegratedAhrsMeasurements& preintegratedMeasurements, gtsam::Vector omegaCoriolis);
+  AHRSFactor(size_t rot_i, size_t rot_j, size_t bias,
+    const gtsam::PreintegratedAhrsMeasurements& preintegratedMeasurements, gtsam::Vector omegaCoriolis,
+    const gtsam::Pose3& body_P_sensor);
 };
 
 #include <gtsam/navigation/AttitudeFactor.h>
@@ -319,6 +346,7 @@ virtual class Rot3AttitudeFactor : gtsam::NoiseModelFactor {
   bool equals(const gtsam::NonlinearFactor& expected, double tol) const;
   gtsam::Unit3 nRef() const;
   gtsam::Unit3 bMeasured() const;
+  gtsam::Vector evaluateError(const gtsam::Rot3& nRb);
 
   // enable serialization functionality
   void serialize() const;
@@ -336,6 +364,7 @@ virtual class Pose3AttitudeFactor : gtsam::NoiseModelFactor {
   bool equals(const gtsam::NonlinearFactor& expected, double tol) const;
   gtsam::Unit3 nRef() const;
   gtsam::Unit3 bMeasured() const;
+  gtsam::Vector evaluateError(const gtsam::Pose3& nTb);
 
   // enable serialization functionality
   void serialize() const;
@@ -353,6 +382,42 @@ virtual class GPSFactor : gtsam::NonlinearFactor{
 
   // Standard Interface
   gtsam::Point3 measurementIn() const;
+  gtsam::Vector evaluateError(const gtsam::Pose3& nTb);
+
+  // enable serialization functionality
+  void serialize() const;
+};
+
+virtual class GPSFactorArm : gtsam::NonlinearFactor{
+  GPSFactorArm(size_t key, const gtsam::Point3& gpsIn,
+            const gtsam::Point3& leverArm, 
+            const gtsam::noiseModel::Base* model);
+
+  // Testable
+  void print(string s = "", const gtsam::KeyFormatter& keyFormatter =
+                                gtsam::DefaultKeyFormatter) const;
+  bool equals(const gtsam::NonlinearFactor& expected, double tol);
+
+  // Standard Interface
+  gtsam::Point3 measurementIn() const;
+  gtsam::Vector evaluateError(const gtsam::Pose3& nTb);
+
+  // enable serialization functionality
+  void serialize() const;
+};
+
+virtual class GPSFactorArmCalib : gtsam::NonlinearFactor{
+  GPSFactorArmCalib(size_t key1, size_t key2, const gtsam::Point3& gpsIn,
+            const gtsam::noiseModel::Base* model);
+
+  // Testable
+  void print(string s = "", const gtsam::KeyFormatter& keyFormatter =
+                                gtsam::DefaultKeyFormatter) const;
+  bool equals(const gtsam::NonlinearFactor& expected, double tol);
+
+  // Standard Interface
+  gtsam::Point3 measurementIn() const;
+  gtsam::Vector evaluateError(const gtsam::Pose3& nTb, const gtsam::Point3& leverArm);
 
   // enable serialization functionality
   void serialize() const;
@@ -369,6 +434,42 @@ virtual class GPSFactor2 : gtsam::NonlinearFactor {
 
   // Standard Interface
   gtsam::Point3 measurementIn() const;
+  gtsam::Vector evaluateError(const gtsam::NavState& nTb);
+
+  // enable serialization functionality
+  void serialize() const;
+};
+
+virtual class GPSFactor2Arm : gtsam::NonlinearFactor{
+  GPSFactor2Arm(size_t key, const gtsam::Point3& gpsIn,
+            const gtsam::Point3& leverArm, 
+            const gtsam::noiseModel::Base* model);
+
+  // Testable
+  void print(string s = "", const gtsam::KeyFormatter& keyFormatter =
+                                gtsam::DefaultKeyFormatter) const;
+  bool equals(const gtsam::NonlinearFactor& expected, double tol);
+
+  // Standard Interface
+  gtsam::Point3 measurementIn() const;
+  gtsam::Vector evaluateError(const gtsam::NavState& nTb);
+
+  // enable serialization functionality
+  void serialize() const;
+};
+
+virtual class GPSFactor2ArmCalib : gtsam::NonlinearFactor{
+  GPSFactor2ArmCalib(size_t key1, size_t key2, const gtsam::Point3& gpsIn,
+            const gtsam::noiseModel::Base* model);
+
+  // Testable
+  void print(string s = "", const gtsam::KeyFormatter& keyFormatter =
+                                gtsam::DefaultKeyFormatter) const;
+  bool equals(const gtsam::NonlinearFactor& expected, double tol);
+
+  // Standard Interface
+  gtsam::Point3 measurementIn() const;
+  gtsam::Vector evaluateError(const gtsam::NavState& nTb, const gtsam::Point3& leverArm);
 
   // enable serialization functionality
   void serialize() const;
@@ -389,9 +490,47 @@ virtual class BarometricFactor : gtsam::NonlinearFactor {
   const double& measurementIn() const;
   double heightOut(double n) const;
   double baroOut(const double& meters) const;
+  gtsam::Vector evaluateError(const gtsam::Pose3& p, double b);
 
   // enable serialization functionality
   void serialize() const;
+};
+
+#include <gtsam/navigation/ConstantVelocityFactor.h>
+class ConstantVelocityFactor : gtsam::NonlinearFactor {
+  ConstantVelocityFactor(size_t i, size_t j, double dt, const gtsam::noiseModel::Base* model);
+  gtsam::Vector evaluateError(const gtsam::NavState &x1, const gtsam::NavState &x2) const;
+};
+
+#include <gtsam/navigation/MagFactor.h>
+
+class MagFactor: gtsam::NonlinearFactor {
+  MagFactor(size_t key, const gtsam::Point3& measured, double scale,
+      const gtsam::Unit3& direction, const gtsam::Point3& bias,
+      const gtsam::noiseModel::Base* model);
+  Vector evaluateError(const gtsam::Rot2& nRb);
+};
+
+class MagFactor1: gtsam::NonlinearFactor {
+  MagFactor1(size_t key, const gtsam::Point3& measured, double scale,
+      const gtsam::Unit3& direction, const gtsam::Point3& bias,
+      const gtsam::noiseModel::Base* model);
+  Vector evaluateError(const gtsam::Rot3& nRb);
+};
+
+#include <gtsam/geometry/Pose2.h>
+#include <gtsam/navigation/MagPoseFactor.h>
+template <POSE = {gtsam::Pose2, gtsam::Pose3}>
+virtual class MagPoseFactor : gtsam::NoiseModelFactor {
+  MagPoseFactor(size_t pose_key,
+    const POSE::Translation& measured, double scale,
+    const POSE::Translation& direction, const POSE::Translation& bias,
+    const gtsam::noiseModel::Base* noiseModel);
+    MagPoseFactor(size_t pose_key,
+      const POSE::Translation& measured, double scale,
+      const POSE::Translation& direction, const POSE::Translation& bias,
+      const gtsam::noiseModel::Base* noiseModel, const POSE& body_P_sensor);
+    Vector evaluateError(const POSE& nRb);
 };
 
 #include <gtsam/navigation/Scenario.h>

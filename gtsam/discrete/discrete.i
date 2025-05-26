@@ -45,7 +45,7 @@ virtual class DiscreteFactor : gtsam::Factor {
   void print(string s = "DiscreteFactor\n",
              const gtsam::KeyFormatter& keyFormatter =
                  gtsam::DefaultKeyFormatter) const;
-  bool equals(const gtsam::DiscreteFactor& other, double tol = 1e-9) const;
+  bool equals(const gtsam::DiscreteFactor& lf, double tol = 1e-9) const;
   double operator()(const gtsam::DiscreteValues& values) const;
 };
 
@@ -138,11 +138,14 @@ virtual class DiscreteConditional : gtsam::DecisionTreeFactor {
   gtsam::DecisionTreeFactor* likelihood(
       const gtsam::DiscreteValues& frontalValues) const;
   gtsam::DecisionTreeFactor* likelihood(size_t value) const;
-  size_t sample(const gtsam::DiscreteValues& parentsValues) const;
-  size_t sample(size_t value) const;
-  size_t sample() const;
-  void sampleInPlace(gtsam::DiscreteValues @parentsValues) const;
-  size_t argmax(const gtsam::DiscreteValues& parents) const;
+  size_t sample(const gtsam::DiscreteValues& parentsValues,
+                std::mt19937_64 @rng = nullptr) const;
+  size_t sample(size_t value,
+                std::mt19937_64 @rng = nullptr) const;
+  size_t sample(std::mt19937_64 @rng = nullptr) const;
+  void sampleInPlace(gtsam::DiscreteValues @parentsValues,
+                     std::mt19937_64 @rng = nullptr) const;
+  size_t argmax(const gtsam::DiscreteValues& parentsValues) const;
 
   // Markdown and HTML
   string markdown(const gtsam::KeyFormatter& keyFormatter =
@@ -226,15 +229,18 @@ class DiscreteBayesNet {
   void print(string s = "DiscreteBayesNet\n",
              const gtsam::KeyFormatter& keyFormatter =
                  gtsam::DefaultKeyFormatter) const;
-  bool equals(const gtsam::DiscreteBayesNet& other, double tol = 1e-9) const;
+  bool equals(const gtsam::DiscreteBayesNet& bn, double tol = 1e-9) const;
 
   // Standard interface.
   double logProbability(const gtsam::DiscreteValues& values) const;
   double evaluate(const gtsam::DiscreteValues& values) const;
   double operator()(const gtsam::DiscreteValues& values) const;
 
-  gtsam::DiscreteValues sample() const;
-  gtsam::DiscreteValues sample(gtsam::DiscreteValues given) const;
+  gtsam::DiscreteValues sample(std::mt19937_64
+                               @rng = nullptr) const;
+  gtsam::DiscreteValues sample(gtsam::DiscreteValues given,
+                               std::mt19937_64
+                               @rng = nullptr) const;
 
   string dot(
       const gtsam::KeyFormatter& keyFormatter = gtsam::DefaultKeyFormatter,
@@ -288,7 +294,7 @@ class DiscreteBayesTree {
   const DiscreteBayesTreeClique* clique(size_t j) const;
   size_t numCachedSeparatorMarginals() const;
 
-  gtsam::DiscreteConditional marginalFactor(size_t key) const;
+  gtsam::DiscreteConditional* marginalFactor(size_t key) const;
   gtsam::DiscreteFactorGraph* joint(size_t j1, size_t j2) const;
   gtsam::DiscreteBayesNet* jointBayesNet(size_t j1, size_t j2) const;
 
@@ -369,7 +375,7 @@ class DiscreteFactorGraph {
   void print(string s = "") const;
   bool equals(const gtsam::DiscreteFactorGraph& fg, double tol = 1e-9) const;
 
-  gtsam::DecisionTreeFactor product() const;
+  gtsam::DiscreteFactor* product() const;
   double operator()(const gtsam::DiscreteValues& values) const;
   gtsam::DiscreteValues optimize() const;
 
@@ -492,6 +498,20 @@ class DiscreteSearch {
   double lowerBound() const;
 
   std::vector<gtsam::DiscreteSearchSolution> run(size_t K = 1) const;
+};
+
+#include <gtsam/discrete/DiscreteMarginals.h>
+
+class DiscreteMarginals {
+  DiscreteMarginals();
+  DiscreteMarginals(const gtsam::DiscreteFactorGraph& graph);
+
+  gtsam::DiscreteFactor* operator()(gtsam::Key variable) const;
+  gtsam::Vector marginalProbabilities(const gtsam::DiscreteKey& key) const;
+
+  void print(const std::string& s = "",
+             const gtsam::KeyFormatter& keyFormatter =
+                 gtsam::DefaultKeyFormatter) const;
 };
 
 }  // namespace gtsam

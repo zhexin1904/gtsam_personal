@@ -162,7 +162,7 @@ class BearingS2 {
   void serializable() const; // enabling serialization functionality
 };
 
-  
+
 #include <gtsam_unstable/geometry/SimWall2D.h>
 class SimWall2D {
   SimWall2D();
@@ -379,17 +379,6 @@ virtual class RangeFactor : gtsam::NoiseModelFactor {
 
 typedef gtsam::RangeFactor<gtsam::PoseRTV, gtsam::PoseRTV> RangeFactorRTV;
 
-#include <gtsam_unstable/geometry/Event.h>
-class Event {
-  Event();
-  Event(double t, const gtsam::Point3& p);
-  Event(double t, double x, double y, double z);
-  double time() const;
-  gtsam::Point3 location() const;
-  double height() const;
-  void print(string s) const;
-};
-
 class TimeOfArrival {
   TimeOfArrival();
   TimeOfArrival(double speed);
@@ -532,19 +521,6 @@ virtual class DiscreteEulerPoincareHelicopter : gtsam::NoiseModelFactor {
 // nonlinear
 //*************************************************************************
 #include <gtsam/nonlinear/FixedLagSmoother.h>
-#include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
-virtual class IncrementalFixedLagSmoother : gtsam::FixedLagSmoother {
-  IncrementalFixedLagSmoother();
-  IncrementalFixedLagSmoother(double smootherLag);
-  IncrementalFixedLagSmoother(double smootherLag, const gtsam::ISAM2Params& params);
-
-  void print(string s = "IncrementalFixedLagSmoother:\n") const;
-
-  gtsam::ISAM2Params params() const;
-
-  gtsam::NonlinearFactorGraph getFactors() const;
-  gtsam::ISAM2 getISAM2() const;
-};
 
 #include <gtsam_unstable/nonlinear/ConcurrentFilteringAndSmoothing.h>
 virtual class ConcurrentFilter {
