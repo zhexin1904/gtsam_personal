@@ -34,9 +34,12 @@ namespace gtsam {
 class HybridValues {
   gtsam::VectorValues continuous() const;
   gtsam::DiscreteValues discrete() const;
+  gtsam::Values& nonlinear() const;
 
   HybridValues();
   HybridValues(const gtsam::VectorValues& cv, const gtsam::DiscreteValues& dv);
+  HybridValues(const gtsam::VectorValues& cv, const gtsam::DiscreteValues& dv, const gtsam::Values& v);
+
   void print(string s = "HybridValues",
              const gtsam::KeyFormatter& keyFormatter =
                  gtsam::DefaultKeyFormatter) const;
@@ -44,6 +47,8 @@ class HybridValues {
 
   void insert(gtsam::Key j, int value);
   void insert(gtsam::Key j, const gtsam::Vector& value);
+  void insert_or_assign(gtsam::Key j, const gtsam::Vector& value);
+  void insert_or_assign(gtsam::Key j, size_t value);
   
   // Use same (important) order as in values.i
   void insertNonlinear(size_t j, gtsam::Vector vector);
@@ -88,15 +93,21 @@ class HybridValues {
 
   void insert(const gtsam::VectorValues& values);
   void insert(const gtsam::DiscreteValues& values);
+  void insert(const gtsam::Values& values);
   void insert(const gtsam::HybridValues& values);
 
-  void insert_or_assign(gtsam::Key j, const gtsam::Vector& value);
-  void insert_or_assign(gtsam::Key j, size_t value);
 
   void update(const gtsam::VectorValues& values);
   void update(const gtsam::DiscreteValues& values);
   void update(const gtsam::Values& values);
   void update(const gtsam::HybridValues& values);
+
+  bool existsVector(gtsam::Key j);
+  bool existsDiscrete(gtsam::Key j);
+  bool existsNonlinear(gtsam::Key j);
+  bool exists(gtsam::Key j);
+
+  gtsam::HybridValues retract(const gtsam::VectorValues& delta) const;
 
   size_t& atDiscrete(gtsam::Key j);
   gtsam::Vector& at(gtsam::Key j);
