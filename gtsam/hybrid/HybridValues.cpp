@@ -33,6 +33,10 @@ HybridValues::HybridValues(const VectorValues& cv, const DiscreteValues& dv,
     : continuous_(cv), discrete_(dv), nonlinear_(v) {}
 
 /* ************************************************************************* */
+HybridValues::HybridValues(const DiscreteValues& dv, const Values& v)
+    : discrete_(dv), nonlinear_(v) {}
+
+/* ************************************************************************* */
 void HybridValues::print(const std::string& s,
                          const KeyFormatter& keyFormatter) const {
   std::cout << s << ": \n";
