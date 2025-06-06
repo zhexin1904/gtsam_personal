@@ -112,10 +112,10 @@ Values OptimalValues() {
 }
 
 NonlinearFactorGraph costs = Cost();
-NonlinearEqualityConstraints e_constraints = EqConstraints();
-NonlinearInequalityConstraints i_constraints;
+NonlinearEqualityConstraints eqConstraints = EqConstraints();
+NonlinearInequalityConstraints ineqConstraints;
 Values init_values = InitValues();
-ConstrainedOptProblem problem(costs, e_constraints, i_constraints);
+ConstrainedOptProblem problem(costs, eqConstraints, ineqConstraints);
 Values optimal_values = OptimalValues();
 }  // namespace constrained_example1
 
@@ -168,10 +168,10 @@ Values OptimalValues() {
 }
 
 NonlinearFactorGraph costs = Cost();
-NonlinearEqualityConstraints e_constraints = EqConstraints();
-NonlinearInequalityConstraints i_constraints = IneqConstraints();
+NonlinearEqualityConstraints eqConstraints = EqConstraints();
+NonlinearInequalityConstraints ineqConstraints = IneqConstraints();
 Values init_values = InitValues();
-ConstrainedOptProblem problem(costs, e_constraints, i_constraints);
+ConstrainedOptProblem problem(costs, eqConstraints, ineqConstraints);
 Values optimal_values = OptimalValues();
 
 }  // namespace constrained_example2

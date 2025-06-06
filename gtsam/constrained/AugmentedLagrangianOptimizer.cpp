@@ -17,7 +17,6 @@
  */
 
 #include <gtsam/constrained/AugmentedLagrangianOptimizer.h>
-#include <gtsam/constrained/BiasedFactor.h>
 #include <gtsam/slam/AntiFactor.h>
 
 #include <iomanip>
@@ -26,90 +25,156 @@ using std::setw, std::cout, std::endl, std::setprecision;
 
 namespace gtsam {
 
+/** A factor that adds a constant bias term to the original factor.
+ * This factor is used in augmented Lagrangian optimizer to create biased cost
+ * functions.
+ * Note that the noise model is stored twice (both in original factor and the
+ * noisemodel of substitute factor. The noisemodel in the original factor will
+ * be ignored. */
+class GTSAM_EXPORT BiasedFactor : public NoiseModelFactor {
+ protected:
+  typedef NoiseModelFactor Base;
+  typedef BiasedFactor This;
+
+  // original factor
+  Base::shared_ptr originalFactor_;
+  Vector bias_;
+
+ public:
+  typedef std::shared_ptr<This> shared_ptr;
+
+  /** Default constructor for I/O only */
+  BiasedFactor() {}
+
+  /** Destructor */
+  ~BiasedFactor() override {}
+
+  /**
+   * Constructor
+   * @param originalFactor   original factor on X
+   * @param bias  the bias term
+   */
+  BiasedFactor(const Base::shared_ptr& originalFactor, const Vector& bias)
+      : Base(originalFactor->noiseModel(), originalFactor->keys()),
+        originalFactor_(originalFactor),
+        bias_(bias) {}
+
+  /**
+   * Error function *without* the NoiseModel, \f$ z-h(x) \f$.
+   * Override this method to finish implementing an N-way factor.
+   * If the optional arguments is specified, it should compute
+   * both the function evaluation and its derivative(s) in H.
+   */
+  virtual Vector unwhitenedError(
+      const Values& x,
+      gtsam::OptionalMatrixVecType H = nullptr) const override {
+    return originalFactor_->unwhitenedError(x, H) + bias_;
+  }
+
+  /** print */
+  void print(const std::string& s, const KeyFormatter& keyFormatter =
+                                       DefaultKeyFormatter) const override {
+    std::cout << s << "BiasedFactor " << bias_.transpose()
+              << " version of:" << std::endl;
+    originalFactor_->print(s, keyFormatter);
+  }
+
+  /** Return a deep copy of this factor. */
+  gtsam::NonlinearFactor::shared_ptr clone() const override {
+    return std::static_pointer_cast<gtsam::NonlinearFactor>(
+        gtsam::NonlinearFactor::shared_ptr(new This(*this)));
+  }
+
+};  // \class BiasedFactor
+
 /* ************************************************************************* */
 void AugmentedLagrangianState::initializeLagrangeMultipliers(
     const ConstrainedOptProblem& problem) {
-  lambda_e = std::vector<Vector>();
-  lambda_e.reserve(problem.eConstraints().size());
+  lambdaEq = std::vector<Vector>();
+  lambdaEq.reserve(problem.eConstraints().size());
   for (const auto& constraint : problem.eConstraints()) {
-    lambda_e.push_back(Vector::Zero(constraint->dim()));
+    lambdaEq.push_back(Vector::Zero(constraint->dim()));
   }
-  lambda_i = std::vector<double>(problem.iConstraints().size(), 0);
+  lambdaIneq = std::vector<double>(problem.iConstraints().size(), 0);
 }
 
 /* ************************************************************************* */
 std::tuple<AugmentedLagrangianOptimizer::State, double, double>
-AugmentedLagrangianOptimizer::iterate(const State& state, const double mu_e,
-                                      const double mu_i) const {
-  State new_state(state.iteration + 1);
-  new_state.mu_e = mu_e;
-  new_state.mu_i = mu_i;
+AugmentedLagrangianOptimizer::iterate(const State& state, const double muEq,
+                                      const double muIneq) const {
+  State newState(state.iteration + 1);
+  newState.muEq = muEq;
+  newState.muIneq = muIneq;
 
   // Update Lagrangian multipliers.
-  updateLagrangeMultiplier(state, new_state);
+  updateLagrangeMultiplier(state, &newState);
 
   // Construct merit function.
-  NonlinearFactorGraph dual_graph = LagrangeDualFunction(new_state);
+  const NonlinearFactorGraph augmentedLagrangian =
+      augmentedLagrangianFunction(newState);
 
   // Run unconstrained optimization.
-  auto optimizer = createUnconstrainedOptimizer(dual_graph, state.values);
-  new_state.setValues(optimizer->optimize(), problem_);
-  new_state.unconstrained_iters = optimizer->iterations();
+  auto optimizer =
+      createUnconstrainedOptimizer(augmentedLagrangian, state.values);
+  newState.setValues(optimizer->optimize(), problem_);
+  newState.unconstrainedIterationss = optimizer->iterations();
 
   // Update penalty parameters for next iteration.
-  double next_mu_e, next_mu_i;
-  std::tie(next_mu_e, next_mu_i) = updatePenaltyParameter(state, new_state);
+  double next_muEq, next_muIneq;
+  std::tie(next_muEq, next_muIneq) = updatePenaltyParameter(state, newState);
 
-  return {new_state, next_mu_e, next_mu_i};
+  return {newState, next_muEq, next_muIneq};
 }
 
 /* ************************************************************************* */
 Values AugmentedLagrangianOptimizer::optimize() const {
   /// Construct initial state
-  State prev_state;
-  State state(0, init_values_, problem_);
+  State previousState;
+  State state(0, initialValues_, problem_);
   state.initializeLagrangeMultipliers(problem_);
-  LogInit(state);
+  logInitialState(state);
 
   /// Set penalty parameters for the first iteration.
-  double mu_e = p_->initial_mu_e;
-  double mu_i = p_->initial_mu_i;
+  double muEq = p_->initialMuEq;
+  double muIneq = p_->initialMuIneq;
 
   /// iterates
   do {
-    prev_state = std::move(state);
-    std::tie(state, mu_e, mu_i) = iterate(prev_state, mu_e, mu_i);
-    LogIter(state);
-  } while (!checkConvergence(state, prev_state, *p_));
+    previousState = std::move(state);
+    std::tie(state, muEq, muIneq) = iterate(previousState, muEq, muIneq);
+    logIteration(state);
+  } while (!checkConvergence(state, previousState, *p_));
 
   return state.values;
 }
 
 /* ************************************************************************* */
-NonlinearFactorGraph AugmentedLagrangianOptimizer::LagrangeDualFunction(
+NonlinearFactorGraph AugmentedLagrangianOptimizer::augmentedLagrangianFunction(
     const State& state, const double epsilon) const {
   // Initialize by adding in cost factors.
   NonlinearFactorGraph graph = problem_.costs();
 
   // Create factors corresponding to equality constraints.
-  const NonlinearEqualityConstraints& e_constraints = problem_.eConstraints();
-  const double& mu_e = state.mu_e;
-  for (size_t i = 0; i < e_constraints.size(); i++) {
-    const auto& constraint = e_constraints.at(i);
-    Vector bias = state.lambda_e[i] / mu_e * constraint->sigmas();
-    auto penalty_l2 = constraint->penaltyFactor(mu_e);
+  const NonlinearEqualityConstraints& eqConstraints = problem_.eConstraints();
+  const double& muEq = state.muEq;
+  for (size_t i = 0; i < eqConstraints.size(); i++) {
+    const auto& constraint = eqConstraints.at(i);
+    Vector bias = state.lambdaEq[i] / muEq * constraint->sigmas();
+    auto penalty_l2 = constraint->penaltyFactor(muEq);
     graph.emplace_shared<BiasedFactor>(penalty_l2, bias);
   }
 
   // Create factors corresponding to penalty terms of inequality constraints.
-  const NonlinearInequalityConstraints& i_constraints = problem_.iConstraints();
-  const double& mu_i = state.mu_i;
-  graph.add(i_constraints.penaltyGraphCustom(p_->i_penalty_function, mu_i));
+  const NonlinearInequalityConstraints& ineqConstraints =
+      problem_.iConstraints();
+  const double& muIneq = state.muIneq;
+  graph.add(ineqConstraints.penaltyGraphCustom(
+      p_->ineqConstraintPenaltyFunction, muIneq));
 
   // Create factors corresponding to Lagrange multiplier terms of i-constraints.
-  for (size_t i = 0; i < i_constraints.size(); i++) {
-    const auto& constraint = i_constraints.at(i);
-    Vector bias = state.lambda_i[i] / epsilon * constraint->sigmas();
+  for (size_t i = 0; i < ineqConstraints.size(); i++) {
+    const auto& constraint = ineqConstraints.at(i);
+    Vector bias = state.lambdaIneq[i] / epsilon * constraint->sigmas();
     auto penalty_l2 = constraint->penaltyFactorEquality(epsilon);
     graph.emplace_shared<BiasedFactor>(penalty_l2, bias);
     graph.emplace_shared<AntiFactor>(penalty_l2);
@@ -120,48 +185,52 @@ NonlinearFactorGraph AugmentedLagrangianOptimizer::LagrangeDualFunction(
 
 /* ************************************************************************* */
 void AugmentedLagrangianOptimizer::updateLagrangeMultiplier(
-    const State& prev_state, State& state) const {
+    const State& previousState, State* state) const {
   // Perform dual ascent on Lagrange multipliers for e-constriants.
-  const NonlinearEqualityConstraints& e_constraints = problem_.eConstraints();
-  state.lambda_e.resize(e_constraints.size());
-  for (size_t i = 0; i < e_constraints.size(); i++) {
-    const auto& constraint = e_constraints.at(i);
+  const NonlinearEqualityConstraints& eqConstraints = problem_.eConstraints();
+  state->lambdaEq.resize(eqConstraints.size());
+  for (size_t i = 0; i < eqConstraints.size(); i++) {
+    const auto& constraint = eqConstraints.at(i);
     // Compute constraint violation as the gradient of the dual function.
-    Vector violation = constraint->whitenedError(prev_state.values);
-    double step_size = std::min(p_->max_dual_step_size_e,
-                                prev_state.mu_e * p_->dual_step_size_factor_e);
-    state.lambda_e[i] = prev_state.lambda_e[i] + step_size * violation;
+    Vector violation = constraint->whitenedError(previousState.values);
+    double step_size = std::min(p_->maxDualStepSizeEq,
+                                previousState.muEq * p_->dualStepSizeFactorEq);
+    state->lambdaEq[i] = previousState.lambdaEq[i] + step_size * violation;
   }
 
   // Perform dual ascent on Lagrange multipliers for i-constriants.
-  const NonlinearInequalityConstraints& i_constraints = problem_.iConstraints();
-  state.lambda_i.resize(i_constraints.size());
+  const NonlinearInequalityConstraints& ineqConstraints =
+      problem_.iConstraints();
+  state->lambdaIneq.resize(ineqConstraints.size());
   // Update Lagrangian multipliers.
-  for (size_t i = 0; i < i_constraints.size(); i++) {
-    const auto& constraint = i_constraints.at(i);
-    double violation = constraint->whitenedExpr(prev_state.values)(0);
-    double step_size = std::min(p_->max_dual_step_size_i,
-                                prev_state.mu_i * p_->dual_step_size_factor_i);
-    state.lambda_i[i] =
-        std::max(0.0, prev_state.lambda_i[i] + step_size * violation);
+  for (size_t i = 0; i < ineqConstraints.size(); i++) {
+    const auto& constraint = ineqConstraints.at(i);
+    double violation = constraint->whitenedExpr(previousState.values)(0);
+    double step_size =
+        std::min(p_->maxDualStepSizeIneq,
+                 previousState.muIneq * p_->dualStepSizeFactorIneq);
+    state->lambdaIneq[i] =
+        std::max(0.0, previousState.lambdaIneq[i] + step_size * violation);
   }
 }
 
 /* ************************************************************************* */
 std::pair<double, double> AugmentedLagrangianOptimizer::updatePenaltyParameter(
-    const State& prev_state, const State& state) const {
-  double mu_e = state.mu_e;
+    const State& previousState, const State& state) const {
+  double muEq = state.muEq;
   if (problem_.eConstraints().size() > 0 &&
-      state.violation_e >= p_->mu_increase_threshold * prev_state.violation_e) {
-    mu_e *= p_->mu_e_increase_rate;
+      state.eqConstraintViolation >=
+          p_->muIncreaseThreshold * previousState.eqConstraintViolation) {
+    muEq *= p_->muEqIncreaseRate;
   }
 
-  double mu_i = state.mu_i;
+  double muIneq = state.muIneq;
   if (problem_.iConstraints().size() > 0 &&
-      state.violation_i >= p_->mu_increase_threshold * prev_state.violation_i) {
-    mu_i *= p_->mu_i_increase_rate;
+      state.ineqConstraintViolation >=
+          p_->muIncreaseThreshold * previousState.ineqConstraintViolation) {
+    muIneq *= p_->muIneqIncreaseRate;
   }
-  return {mu_e, mu_i};
+  return {muEq, muIneq};
 }
 
 /* ************************************************************************* */
@@ -174,12 +243,12 @@ AugmentedLagrangianOptimizer::createUnconstrainedOptimizer(
 }
 
 /* ************************************************************************* */
-void AugmentedLagrangianOptimizer::LogInit(const State& state) const {
+void AugmentedLagrangianOptimizer::logInitialState(const State& state) const {
   if (p_->verbose) {
     // Log title line.
     cout << setw(10) << "Iter"
-         << "|" << setw(10) << "mu_e"
-         << "|" << setw(10) << "mu_i"
+         << "|" << setw(10) << "muEq"
+         << "|" << setw(10) << "muIneq"
          << "|" << setw(10) << "cost"
          << "|" << setw(10) << "vio_e"
          << "|" << setw(10) << "vio_i"
@@ -192,35 +261,35 @@ void AugmentedLagrangianOptimizer::LogInit(const State& state) const {
     cout << "|" << setw(10) << "-";
     cout << "|" << setw(10) << "-";
     cout << "|" << setw(10) << setprecision(4) << state.cost;
-    cout << "|" << setw(10) << setprecision(4) << state.violation_e;
-    cout << "|" << setw(10) << setprecision(4) << state.violation_i;
+    cout << "|" << setw(10) << setprecision(4) << state.eqConstraintViolation;
+    cout << "|" << setw(10) << setprecision(4) << state.ineqConstraintViolation;
     cout << "|" << setw(10) << "-";
     cout << "|" << setw(10) << "-";
     cout << "|" << endl;
   }
 
   // Store state
-  if (p_->store_opt_progress) {
+  if (p_->storeOptProgress) {
     progress_.emplace_back(state);
   }
 }
 
 /* ************************************************************************* */
-void AugmentedLagrangianOptimizer::LogIter(const State& state) const {
+void AugmentedLagrangianOptimizer::logIteration(const State& state) const {
   if (p_->verbose) {
     cout << setw(10) << state.iteration;
-    cout << "|" << setw(10) << state.mu_e;
-    cout << "|" << setw(10) << state.mu_i;
+    cout << "|" << setw(10) << state.muEq;
+    cout << "|" << setw(10) << state.muIneq;
     cout << "|" << setw(10) << setprecision(4) << state.cost;
-    cout << "|" << setw(10) << setprecision(4) << state.violation_e;
-    cout << "|" << setw(10) << setprecision(4) << state.violation_i;
-    cout << "|" << setw(10) << state.unconstrained_iters;
+    cout << "|" << setw(10) << setprecision(4) << state.eqConstraintViolation;
+    cout << "|" << setw(10) << setprecision(4) << state.ineqConstraintViolation;
+    cout << "|" << setw(10) << state.unconstrainedIterationss;
     cout << "|" << setw(10) << state.time;
     cout << "|" << endl;
   }
 
   // Store state
-  if (p_->store_opt_progress) {
+  if (p_->storeOptProgress) {
     progress_.emplace_back(state);
   }
 }

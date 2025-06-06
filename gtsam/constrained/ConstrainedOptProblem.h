@@ -38,8 +38,8 @@ class GTSAM_EXPORT ConstrainedOptProblem {
 
  protected:
   NonlinearFactorGraph costs_;                    // cost function, ||f(X)||^2
-  NonlinearEqualityConstraints e_constraints_;    // equality constraints, h(X)=0
-  NonlinearInequalityConstraints i_constraints_;  // inequality constraints, g(X)<=0
+  NonlinearEqualityConstraints eqConstraints_;    // equality constraints, h(X)=0
+  NonlinearInequalityConstraints ineqConstraints_;  // inequality constraints, g(X)<=0
 
  public:
   /** Default constructor. */
@@ -50,20 +50,20 @@ class GTSAM_EXPORT ConstrainedOptProblem {
 
   /** Constructor with both equality and inequality constraints. */
   ConstrainedOptProblem(const NonlinearFactorGraph& costs,
-                        const NonlinearEqualityConstraints& e_constraints,
-                        const NonlinearInequalityConstraints& i_constraints);
+                        const NonlinearEqualityConstraints& eqConstraints,
+                        const NonlinearInequalityConstraints& ineqConstraints);
 
   /** Constructor with equality constraints only. */
   static ConstrainedOptProblem EqConstrainedOptProblem(
       const NonlinearFactorGraph& costs,
-      const NonlinearEqualityConstraints& e_constraints) {
-    return ConstrainedOptProblem(costs, e_constraints, NonlinearInequalityConstraints());
+      const NonlinearEqualityConstraints& eqConstraints) {
+    return ConstrainedOptProblem(costs, eqConstraints, NonlinearInequalityConstraints());
   }
 
   /** Member variable access functions. */
   const NonlinearFactorGraph& costs() const { return costs_; }
-  const NonlinearEqualityConstraints& eConstraints() const { return e_constraints_; }
-  const NonlinearInequalityConstraints& iConstraints() const { return i_constraints_; }
+  const NonlinearEqualityConstraints& eConstraints() const { return eqConstraints_; }
+  const NonlinearInequalityConstraints& iConstraints() const { return ineqConstraints_; }
 
   /** Evaluate cost and constraint violations.
    * Return a tuple representing (cost, e-constraint violation, i-constraint violation).

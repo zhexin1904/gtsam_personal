@@ -63,7 +63,7 @@ double ComputeBias(const std::vector<double>& lambdas, double epsilon) {
 }
 
 /* ********************************************************************************************* */
-TEST(LagrangeDualFunction, constrained_example1) {
+TEST(AugmentedLagrangian, constrained_example1) {
   using namespace constrained_example1;
 
   // Construct optimizer
@@ -71,21 +71,21 @@ TEST(LagrangeDualFunction, constrained_example1) {
   AugmentedLagrangianOptimizer optimizer(problem, init_values, params);
 
   AugmentedLagrangianState state;
-  state.lambda_e.emplace_back(Vector1(0.3));
-  state.mu_e = 0.2;
-  NonlinearFactorGraph dual_graph = optimizer.LagrangeDualFunction(state);
+  state.lambdaEq.emplace_back(Vector1(0.3));
+  state.muEq = 0.2;
+  NonlinearFactorGraph augmentedLagrangian = optimizer.augmentedLagrangianFunction(state);
 
   const Values& values = init_values;
   double expected_cost = costs.error(values);
-  double expected_l2_penalty = e_constraints.penaltyGraph(state.mu_e).error(values);
-  double expected_lagrange_term = EvaluateLagrangeTerm(state.lambda_e, e_constraints, values);
-  double bias = ComputeBias(state.lambda_e, state.mu_e);
+  double expected_l2_penalty = eqConstraints.penaltyGraph(state.muEq).error(values);
+  double expected_lagrange_term = EvaluateLagrangeTerm(state.lambdaEq, eqConstraints, values);
+  double bias = ComputeBias(state.lambdaEq, state.muEq);
   double expected_error = expected_cost + expected_l2_penalty + expected_lagrange_term + bias;
-  EXPECT_DOUBLES_EQUAL(expected_error, dual_graph.error(values), 1e-6);
+  EXPECT_DOUBLES_EQUAL(expected_error, augmentedLagrangian.error(values), 1e-6);
 }
 
 /* ********************************************************************************************* */
-TEST(LagrangeDualFunction, constrained_example2) {
+TEST(AugmentedLagrangian, constrained_example2) {
   using namespace constrained_example2;
 
   // Construct optimizer
@@ -93,37 +93,25 @@ TEST(LagrangeDualFunction, constrained_example2) {
   AugmentedLagrangianOptimizer optimizer(problem, init_values, params);
 
   AugmentedLagrangianState state;
-  state.lambda_e.emplace_back(Vector1(0.3));
-  state.lambda_i.emplace_back(-2.0);
-  state.mu_e = 0.2;
-  state.mu_i = 0.3;
+  state.lambdaEq.emplace_back(Vector1(0.3));
+  state.lambdaIneq.emplace_back(-2.0);
+  state.muEq = 0.2;
+  state.muIneq = 0.3;
   double epsilon = 1.0;
-  NonlinearFactorGraph dual_graph = optimizer.LagrangeDualFunction(state, epsilon);
+  NonlinearFactorGraph augmentedLagrangian = optimizer.augmentedLagrangianFunction(state, epsilon);
 
   const Values& values = init_values;
   double expected_cost = costs.error(values);
-  double expected_l2_penalty_e = e_constraints.penaltyGraph(state.mu_e).error(values);
-  double expected_lagrange_term_e = EvaluateLagrangeTerm(state.lambda_e, e_constraints, values);
-  double bias_e = ComputeBias(state.lambda_e, state.mu_e);
-  double expected_penalty_i = i_constraints.penaltyGraph(state.mu_i).error(values);
-  double expected_lagrange_term_i = EvaluateLagrangeTerm(state.lambda_i, i_constraints, values);
-  double bias_i = ComputeBias(state.lambda_i, epsilon);
-  // std::cout << expected_cost << "\n";
-  // std::cout << expected_l2_penalty_e << "\n";
-  // std::cout << expected_penalty_i << "\n";
-  // std::cout << expected_lagrange_term_e << "\n";
-  // std::cout << "lag_i:\t" << expected_lagrange_term_i << "\n";
-  // std::cout << "bias_e:\t" << bias_e << "\n";
-  // std::cout << "bias_i:\t" << bias_i << "\n";
+  double expected_l2_penalty_e = eqConstraints.penaltyGraph(state.muEq).error(values);
+  double expected_lagrange_term_e = EvaluateLagrangeTerm(state.lambdaEq, eqConstraints, values);
+  double bias_e = ComputeBias(state.lambdaEq, state.muEq);
+  double expected_penalty_i = ineqConstraints.penaltyGraph(state.muIneq).error(values);
+  double expected_lagrange_term_i = EvaluateLagrangeTerm(state.lambdaIneq, ineqConstraints, values);
+  double bias_i = ComputeBias(state.lambdaIneq, epsilon);
   double expected_error = expected_cost + expected_l2_penalty_e + expected_penalty_i +
                           expected_lagrange_term_e + expected_lagrange_term_i + bias_e + bias_i;
 
-  // for (const auto& factor : dual_graph) {
-  //   factor->print();
-  //   std::cout << "error: " << factor->error(values) << "\n";
-  // }
-
-  EXPECT_DOUBLES_EQUAL(expected_error, dual_graph.error(values), 1e-6);
+  EXPECT_DOUBLES_EQUAL(expected_error, augmentedLagrangian.error(values), 1e-6);
 }
 
 /* ********************************************************************************************* */

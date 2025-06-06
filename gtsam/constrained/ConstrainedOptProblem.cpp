@@ -20,7 +20,7 @@
 
 namespace gtsam {
 
-/* ********************************************************************************************* */
+/* ************************************************************************* */
 size_t GraphDimension(const NonlinearFactorGraph& graph) {
   size_t total_dim = 0;
   for (const auto& factor : graph) {
@@ -29,10 +29,11 @@ size_t GraphDimension(const NonlinearFactorGraph& graph) {
   return total_dim;
 }
 
-/* ********************************************************************************************* */
+/* ************************************************************************* */
 bool CheckPureCost(const NonlinearFactorGraph& graph) {
   for (const auto& factor : graph) {
-    if (NoiseModelFactor::shared_ptr f = std::dynamic_pointer_cast<NoiseModelFactor>(factor)) {
+    if (NoiseModelFactor::shared_ptr f =
+            std::dynamic_pointer_cast<NoiseModelFactor>(factor)) {
       if (f->noiseModel()->isConstrained()) {
         return false;
       }
@@ -41,66 +42,72 @@ bool CheckPureCost(const NonlinearFactorGraph& graph) {
   return true;
 }
 
-/* ********************************************************************************************* */
-ConstrainedOptProblem::ConstrainedOptProblem(const NonlinearFactorGraph& costs,
-                                             const NonlinearEqualityConstraints& e_constraints,
-                                             const NonlinearInequalityConstraints& i_constraints)
-    : costs_(costs), e_constraints_(e_constraints), i_constraints_(i_constraints) {
+/* ************************************************************************* */
+ConstrainedOptProblem::ConstrainedOptProblem(
+    const NonlinearFactorGraph& costs,
+    const NonlinearEqualityConstraints& eqConstraints,
+    const NonlinearInequalityConstraints& ineqConstraints)
+    : costs_(costs),
+      eqConstraints_(eqConstraints),
+      ineqConstraints_(ineqConstraints) {
   if (!CheckPureCost(costs)) {
     throw std::runtime_error(
-        "Cost contains factors with constrained noise model. They should be moved to constraints.");
+        "Cost contains factors with constrained noise model. They should be "
+        "moved to constraints.");
   }
 }
 
-ConstrainedOptProblem::ConstrainedOptProblem(const NonlinearFactorGraph& graph) {
-  for (const auto& factor: graph) {
-    if (NonlinearEqualityConstraint::shared_ptr f = std::dynamic_pointer_cast<NonlinearEqualityConstraint>(factor)) {
-      e_constraints_.push_back(f);
-    }
-    else if (NonlinearInequalityConstraint::shared_ptr f = std::dynamic_pointer_cast<NonlinearInequalityConstraint>(factor)) {
-      i_constraints_.push_back(f);
-    }
-    else {
+ConstrainedOptProblem::ConstrainedOptProblem(
+    const NonlinearFactorGraph& graph) {
+  for (const auto& factor : graph) {
+    if (NonlinearEqualityConstraint::shared_ptr f =
+            std::dynamic_pointer_cast<NonlinearEqualityConstraint>(factor)) {
+      eqConstraints_.push_back(f);
+    } else if (NonlinearInequalityConstraint::shared_ptr f =
+                   std::dynamic_pointer_cast<NonlinearInequalityConstraint>(
+                       factor)) {
+      ineqConstraints_.push_back(f);
+    } else {
       costs_.push_back(factor);
     }
   }
-
 }
 
-/* ********************************************************************************************* */
+/* ************************************************************************* */
 std::tuple<size_t, size_t, size_t> ConstrainedOptProblem::dim() const {
-  return {
-      GraphDimension(costs()), eConstraints().dim(), iConstraints().dim()};
+  return {GraphDimension(costs()), eConstraints().dim(), iConstraints().dim()};
 }
 
-/* ********************************************************************************************* */
-std::tuple<double, double, double> ConstrainedOptProblem::evaluate(const Values& values) const {
-  return {costs().error(values),
-          eConstraints().violationNorm(values),
+/* ************************************************************************* */
+std::tuple<double, double, double> ConstrainedOptProblem::evaluate(
+    const Values& values) const {
+  return {costs().error(values), eConstraints().violationNorm(values),
           iConstraints().violationNorm(values)};
 }
 
-/* ********************************************************************************************* */
-std::pair<ConstrainedOptProblem, Values> ConstrainedOptProblem::auxiliaryProblem(
+/* ************************************************************************* */
+std::pair<ConstrainedOptProblem, Values>
+ConstrainedOptProblem::auxiliaryProblem(
     const Values& values, const AuxiliaryKeyGenerator& generator) const {
   if (iConstraints().size() == 0) {
     return {*this, values};
   }
 
-  NonlinearEqualityConstraints new_e_constraints = eConstraints();
+  NonlinearEqualityConstraints newEqConstraints = eConstraints();
   Values new_values = values;
 
   size_t k = 0;
   for (const auto& i_constraint : iConstraints()) {
     if (ScalarExpressionInequalityConstraint::shared_ptr p =
-            std::dynamic_pointer_cast<ScalarExpressionInequalityConstraint>(i_constraint)) {
+            std::dynamic_pointer_cast<ScalarExpressionInequalityConstraint>(
+                i_constraint)) {
       // Generate next available auxiliary key.
       Key aux_key = generator.generate(k, new_values);
 
       // Construct auxiliary equality constraint.
       Double_ aux_expr(aux_key);
       Double_ equality_expr = p->expression() + aux_expr * aux_expr;
-      new_e_constraints.emplace_shared<ExpressionEqualityConstraint<double>>(
+      newEqConstraints.emplace_shared<ExpressionEqualityConstraint<double>>(
           equality_expr, 0.0, p->noiseModel()->sigmas());
 
       // Compute initial value for auxiliary key.
@@ -112,9 +119,11 @@ std::pair<ConstrainedOptProblem, Values> ConstrainedOptProblem::auxiliaryProblem
       }
     }
   }
-  return {ConstrainedOptProblem::EqConstrainedOptProblem(costs_, new_e_constraints), new_values};
+  return {
+      ConstrainedOptProblem::EqConstrainedOptProblem(costs_, newEqConstraints),
+      new_values};
 }
 
-/* ********************************************************************************************* */
+/* ************************************************************************* */
 
 }  // namespace gtsam

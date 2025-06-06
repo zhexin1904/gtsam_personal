@@ -26,18 +26,16 @@ namespace gtsam {
 /// Parameters for penalty method
 class GTSAM_EXPORT PenaltyOptimizerParams : public ConstrainedOptimizerParams {
  public:
-  typedef ConstrainedOptimizerParams Base;
-  typedef PenaltyOptimizerParams This;
-  typedef std::shared_ptr<This> shared_ptr;
+  using Base = ConstrainedOptimizerParams;
+  using This = PenaltyOptimizerParams;
+  using shared_ptr = std::shared_ptr<This>;
 
-  double initial_mu_e = 1.0;      // initial penalty parameter
-  double initial_mu_i = 1.0;      // initial penalty parameter
-  double mu_e_increase_rate = 2;  // increase rate of penalty parameter
-  double mu_i_increase_rate = 2;
-  InequalityPenaltyFunction::shared_ptr i_penalty_function = nullptr;
+  double initialMuEq = 1.0;     // initial penalty parameter
+  double initialMuIneq = 1.0;   // initial penalty parameter
+  double muEqIncreaseRate = 2;  // increase rate of penalty parameter
+  double muIneqIncreaseRate = 2;
+  InequalityPenaltyFunction::shared_ptr ineqConstraintPenaltyFunction = nullptr;
   LevenbergMarquardtParams lm_params;
-  std::vector<LevenbergMarquardtParams>
-      iters_lm_params;  // use different lm parameters for different iterations.
 
   /** Constructor. */
   PenaltyOptimizerParams() : Base() {}
@@ -46,27 +44,36 @@ class GTSAM_EXPORT PenaltyOptimizerParams : public ConstrainedOptimizerParams {
 /// Details for each iteration.
 class GTSAM_EXPORT PenaltyOptimizerState : public ConstrainedOptimizerState {
  public:
-  typedef ConstrainedOptimizerState Base;
-  typedef PenaltyOptimizerState This;
-  typedef std::shared_ptr<This> shared_ptr;
+  using Base = ConstrainedOptimizerState;
+  using This = PenaltyOptimizerState;
+  using shared_ptr = std::shared_ptr<This>;
 
-  double mu_e = 0.0;
-  double mu_i = 0.0;
-  size_t unconstrained_iters = 0;
+  double muEq = 0.0;
+  double muIneq = 0.0;
+  size_t unconstrainedIterationss = 0;
 
   using Base::Base;
 };
 
-/// Penalty method only considering equality constraints.
+/** Penalty method optimizer for solving constrained nonlinear optimization
+ * problems. In each iteration, it solves an unconstrained nonlinear
+ * optimization problem that minimize a merit function. The merit function is
+ * constructed as the sum of the cost function and penalty functions for
+ * constraints.
+ * Example problem: 
+ * argmin_x  0.5 * ||x1-1||^2 + 0.5 * ||x2-1||^2 
+ *      s.t.  x1^2 + x2^2 - 1 = 0
+ *      s.t.  4*x1^2 + 0.25*x2^2 - 1 <= 0
+ */
 class GTSAM_EXPORT PenaltyOptimizer : public ConstrainedOptimizer {
  public:
-  typedef ConstrainedOptimizer Base;
-  typedef PenaltyOptimizer This;
-  typedef std::shared_ptr<This> shared_ptr;
+  using Base = ConstrainedOptimizer;
+  using This = PenaltyOptimizer;
+  using shared_ptr = std::shared_ptr<This>;
 
-  typedef PenaltyOptimizerParams Params;
-  typedef PenaltyOptimizerState State;
-  typedef std::vector<PenaltyOptimizerState> Progress;
+  using Params = PenaltyOptimizerParams;
+  using State = PenaltyOptimizerState;
+  using Progress = std::vector<PenaltyOptimizerState>;
 
  protected:
   Params::shared_ptr p_;
@@ -75,15 +82,15 @@ class GTSAM_EXPORT PenaltyOptimizer : public ConstrainedOptimizer {
  public:
   /// Constructor.
   PenaltyOptimizer(const ConstrainedOptProblem& problem,
-                   const Values& init_values,
+                   const Values& initialValues,
                    Params::shared_ptr p = std::make_shared<Params>())
-      : Base(problem, init_values), p_(p), progress_() {}
+      : Base(problem, initialValues), p_(p), progress_() {}
 
   /// Constructor that packs costs and constraints into a single factor graph.
   PenaltyOptimizer(const NonlinearFactorGraph& graph,
-                   const Values& init_values,
+                   const Values& initialValues,
                    Params::shared_ptr p = std::make_shared<Params>())
-      : Base(graph, init_values), p_(p), progress_() {}
+      : Base(graph, initialValues), p_(p), progress_() {}
 
   /// Run optimization with equality constraints only.
   Values optimize() const override;
@@ -95,15 +102,19 @@ class GTSAM_EXPORT PenaltyOptimizer : public ConstrainedOptimizer {
 
  protected:
   /// Merit function in the form
-  ///  m(x) = f(x) + 0.5 mu_e * ||h(x)||^2 + 0.5 mu_i ||g(x)_+||^2
-  NonlinearFactorGraph meritFunction(const double mu_e, const double mu_i) const;
+  ///  m(x) = f(x) + 0.5 muEq * ||h(x)||^2 + 0.5 * muIneq * ||g(x)_+||^2
+  NonlinearFactorGraph meritFunction(const double muEq, const double muIneq) const;
 
-  SharedOptimizer createUnconstrainedOptimizer(const NonlinearFactorGraph& graph,
-                                               const Values& values) const;
+  /// Create an unconstrained optimizer that solves the merit function (cost +
+  /// penalty functions).
+  SharedOptimizer createUnconstrainedOptimizer(
+      const NonlinearFactorGraph& graph, const Values& values) const;
 
-  void LogInit(const State& state) const;
+  /// Store and log the initial state of the optimization.
+  void logInitialState(const State& state) const;
 
-  void LogIter(const State& state) const;
+  /// Store and log the state after any iteration of the optimization.
+  void logIteration(const State& state) const;
 };
 
 }  // namespace gtsam
