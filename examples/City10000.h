@@ -17,7 +17,9 @@
  */
 
 #include <gtsam/geometry/Pose2.h>
-
+#include "gtsam/inference/Symbol.h"
+#include <gtsam/nonlinear/Values.h>
+#include <gtsam/linear/NoiseModel.h>
 #include <fstream>
 
 using namespace gtsam;

@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
     }
 
     Values currentEstimate = isam.calculateEstimate();
-    currentEstimate.print("Current estimate: ");
+//    currentEstimate.print("Current estimate: ");
 
     auto pointEstimate = smartFactor->point(currentEstimate);
     if (pointEstimate) {

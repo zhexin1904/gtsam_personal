@@ -94,6 +94,7 @@ int main(int argc, char* argv[]) {
   Values::shared_ptr posesInFile;
   Values poses;
   auto lmParams = LevenbergMarquardtParams::CeresDefaults();
+  lmParams.verbosityLM = LevenbergMarquardtParams::SUMMARY;
   if (d == 2) {
     cout << "Running Shonan averaging for SO(2) on " << inputFile << endl;
     ShonanAveraging2::Parameters parameters(lmParams);

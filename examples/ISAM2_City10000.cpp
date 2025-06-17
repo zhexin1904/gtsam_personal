@@ -204,7 +204,7 @@ void parseArguments(int argc, char* argv[], size_t& maxLoopCount,
 
 /* ************************************************************************* */
 int main(int argc, char* argv[]) {
-  Experiment experiment(findExampleDataFile("T1_City10000_04.txt"));
+  Experiment experiment(findExampleDataFile("/home/jason/DPGO/gtsam_personal/examples/Data/T1_city10000_04.txt"));
   // Experiment experiment("../data/mh_T1_City10000_04.txt"); //Type #1 only
   // Experiment experiment("../data/mh_T3b_City10000_10.txt"); //Type #3 only
   // Experiment experiment("../data/mh_T1_T3_City10000_04.txt"); //Type #1 +

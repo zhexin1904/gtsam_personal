@@ -897,8 +897,15 @@ std::pair<Values, double> ShonanAveraging<d>::run(const Values &initialEstimate,
   Values Qstar;
   Values initialSOp = LiftTo<Rot>(pMin, initialEstimate);  // lift to pMin!
   for (size_t p = pMin; p <= pMax; p++) {
+    std::cout << "Starting optimization at rank = " << p <<std::endl;
     // Optimize until convergence at this level
     Qstar = tryOptimizingAt(p, initialSOp);
+
+    auto nonlinear_graph = buildGraphAt(p);
+    auto linear_graph = nonlinear_graph.linearize(Qstar);
+    auto grad_norm = linear_graph->gradientAtZero();
+    std::cout << "Gradient norm at level p = " << p << " is : " << grad_norm.norm() << std::endl;
+
     if (parameters_.getUseHuber() || !parameters_.getCertifyOptimality()) {
       // in this case, there is no optimality certification
       if (pMin != pMax) {
