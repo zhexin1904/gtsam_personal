@@ -157,7 +157,7 @@ int main() {
     // Important!!!!!! Key parameter to ensure old factors are released after marginalization
     isamParameters.findUnusedFactorSlots = true;
     // Initialize fixed-lag smoother with a 1-second lag window
-    const double lag = 1.0;
+    const double lag = 10.0;
     IncrementalFixedLagSmoother smoother(lag, isamParameters);
     // Print the iSAM2 parameters (optional)
     isamParameters.print();

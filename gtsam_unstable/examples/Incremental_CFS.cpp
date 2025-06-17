@@ -22,7 +22,8 @@
 #include "gtsam/slam/BetweenFactor.h"
 #include "gtsam_unstable/nonlinear/ConcurrentBatchFilter.h"
 #include "gtsam_unstable/nonlinear/ConcurrentBatchSmoother.h"
-
+#include "gtsam_unstable/nonlinear/ConcurrentIncrementalFilter.h"
+#include "gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h"
 #include <gtsam/nonlinear/ISAM2.h>
 #include <gtsam/slam/dataset.h>
 #include <time.h>
@@ -52,11 +53,30 @@ int main(int argc, char** argv) {
   // Parameters
   const double lag = 10.0;
   const size_t maxLoopCount = 10000;
+  LevenbergMarquardtParams params;
+  // Print one line per iteration: iteration number, error, lambda, etc.
+  params.setVerbosity("SUMMARY");
+  // Also print details of each attempted λ‐adjustment
+  params.setVerbosityLM("TRYLAMBDA");
 
+  // (Optional) tweak other settings:
+  params.setMaxIterations(50);
+  params.setRelativeErrorTol(1e-3);
+  params.setAbsoluteErrorTol(1e-3);
   // Create the concurrent filter and smoother
-  ConcurrentBatchFilter concurrentFilter;
+//  ConcurrentBatchFilter concurrentFilter(params);
+  ConcurrentIncrementalFilter concurrentFilter;
   ConcurrentBatchSmoother concurrentSmoother;
-  BatchFixedLagSmoother batchSmoother(1000.0);
+//  BatchFixedLagSmoother batchSmoother(1000.0);
+
+  // Test on incremental fix lag smoother
+  ISAM2Params isamParameters;
+//  isamParameters.relinearizeThreshold = 0.1;
+//  isamParameters.relinearizeSkip = 1;
+  // Important!!!!!! Key parameter to ensure old factors are released after marginalization
+  isamParameters.findUnusedFactorSlots = true;
+  // Initialize fixed-lag smoother with a 1-second lag window
+  IncrementalFixedLagSmoother FixLagSmoother(lag, isamParameters);
 
   // Load dataset
   City10000Dataset dataset(findExampleDataFile(
@@ -77,15 +97,6 @@ int main(int argc, char** argv) {
   newValues.insert(X(0), priorPose);
   newTimestamps[X(0)] = 0.0;
 
-  // Process initial update
-  concurrentFilter.update(newFactors, newValues, FastList<Key>());
-  batchSmoother.update(newFactors, newValues, newTimestamps);
-
-  // Clear containers
-  newFactors.resize(0);
-  newValues.clear();
-  newTimestamps.clear();
-
   // Main loop
   size_t index = 0;
   std::vector<Pose2> poseArray;
@@ -96,7 +107,49 @@ int main(int argc, char** argv) {
     size_t keyT = keys.second;
     Pose2 odomPose = poseArray[0];
 
+//    if (keyT % 10 == 0) {
+//      concurrentSmoother.update();
+//      synchronize(concurrentFilter, concurrentSmoother);
+//    }
+
     if (keyS == keyT - 1) {  // Sequential measurement
+
+      // Periodic synchronization
+      if (keyT % 100 == 0) {
+        const Values& smootherValues = concurrentSmoother.getLinearizationPoint();
+        // Update the exsisting loop closure firstly
+        // Process pending queue
+        size_t size = pendingLoopClosures.size();
+        for (size_t i = 0; i < size; ++i) {
+          auto& pendingLoop = pendingLoopClosures.front();
+          if (smootherValues.exists(pendingLoop.keyFrom) &&
+              smootherValues.exists(pendingLoop.keyTo)) {
+            // Add to the smoother if valid
+            newFactors.push_back(BetweenFactor<Pose2>(
+                pendingLoop.keyFrom, pendingLoop.keyTo,
+                pendingLoop.measurement, pendingLoop.noise));
+            cout << "Processed queued loop closure between poses "
+                 << pendingLoop.keyFrom << " and " << pendingLoop.keyTo << endl;
+          } else {
+            // If not valid, re-add it to the back of the queue
+            pendingLoopClosures.push(pendingLoop);
+          }
+          // Remove the current element from the front
+          pendingLoopClosures.pop();
+        }
+
+        if (!newFactors.empty()) {
+          concurrentSmoother.update(newFactors, Values());
+          synchronize(concurrentFilter, concurrentSmoother);
+          newFactors.resize(0);
+        }
+        else {
+          concurrentSmoother.update();
+          synchronize(concurrentFilter, concurrentSmoother);
+        }
+
+      }
+
       // Add new values
       newValues.insert(X(keyT), odomPose);
       newTimestamps[X(keyT)] = double(keyT);
@@ -114,73 +167,12 @@ int main(int argc, char** argv) {
 
       // Update filter and smoothers
       concurrentFilter.update(newFactors, newValues, oldKeys);
-      batchSmoother.update(newFactors, newValues, newTimestamps);
-
-      // Periodic synchronization
-      if (keyT % 100 == 0) {
-        // First update the smoother with any new factors
-          concurrentSmoother.update();
-          // Then perform synchronization
-          synchronize(concurrentFilter, concurrentSmoother);
-
-
-
-//        // Process pending queue
-//        NonlinearFactorGraph pendingFactors;
-//        const Values& smootherValues = concurrentSmoother.getLinearizationPoint();
-//        while (!pendingLoopClosures.empty()) {
-//          auto& pendingLoop = pendingLoopClosures.front();
-//          if (smootherValues.exists(pendingLoop.keyFrom) &&
-//              smootherValues.exists(pendingLoop.keyTo)) {
-//            // Add to the smoother
-//            pendingFactors.push_back(BetweenFactor<Pose2>(
-//                pendingLoop.keyFrom, pendingLoop.keyTo,
-//                pendingLoop.measurement, pendingLoop.noise));
-//            pendingLoopClosures.pop();
-//            cout << "Processed queued loop closure between poses "
-//                 << pendingLoop.keyFrom << " and " << pendingLoop.keyTo << endl;
-//          } else {
-//            break;
-//          }
-//        }
-//        if (!pendingFactors.empty()) {
-//          concurrentSmoother.update(pendingFactors, Values());
-//        }
-      }
 
       newFactors.resize(0);
       newValues.clear();
       newTimestamps.clear();
     } else {  // Loop closure detected
-
-
       const Values& smootherValues = concurrentSmoother.getLinearizationPoint();
-      // Update the exsisting loop closure firstly
-      // Process pending queue
-      size_t size = pendingLoopClosures.size();
-      for (size_t i = 0; i < size; ++i) {
-        auto& pendingLoop = pendingLoopClosures.front();
-        if (smootherValues.exists(pendingLoop.keyFrom) &&
-            smootherValues.exists(pendingLoop.keyTo)) {
-          // Add to the smoother if valid
-          newFactors.push_back(BetweenFactor<Pose2>(
-              pendingLoop.keyFrom, pendingLoop.keyTo,
-              pendingLoop.measurement, pendingLoop.noise));
-          cout << "Processed queued loop closure between poses "
-               << pendingLoop.keyFrom << " and " << pendingLoop.keyTo << endl;
-        } else {
-          // If not valid, re-add it to the back of the queue
-          pendingLoopClosures.push(pendingLoop);
-        }
-        // Remove the current element from the front
-        pendingLoopClosures.pop();
-      }
-
-      if (!newFactors.empty()) {
-        concurrentSmoother.update(newFactors, Values());
-        newFactors.resize(0);
-      }
-
       // Create loop closure factor but don't add it immediately
       auto loopNoise = noiseModel::Diagonal::Sigmas(Vector3(0.5, 0.5, 0.25));
       const PendingLoopClosure loop(X(keyS), X(keyT), odomPose, loopNoise);
