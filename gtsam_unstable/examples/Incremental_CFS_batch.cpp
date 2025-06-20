@@ -1,3 +1,6 @@
+//
+// Created by jason on 6/17/25.
+//
 /* ----------------------------------------------------------------------------
  * GTSAM Copyright 2010, Georgia Tech Research Corporation,
  * Atlanta, Georgia 30332-0415
@@ -40,40 +43,24 @@ using symbol_shorthand::X;
 
 // Structure to store pending loop closures
 struct PendingLoopClosure {
-    Key keyFrom;
-    Key keyTo;
-    Pose2 measurement;
-    SharedNoiseModel noise;
+  Key keyFrom;
+  Key keyTo;
+  Pose2 measurement;
+  SharedNoiseModel noise;
 
-    PendingLoopClosure(Key from, Key to, const Pose2& meas, const SharedNoiseModel& n)
-        : keyFrom(from), keyTo(to), measurement(meas), noise(n) {}
+  PendingLoopClosure(Key from, Key to, const Pose2& meas, const SharedNoiseModel& n)
+      : keyFrom(from), keyTo(to), measurement(meas), noise(n) {}
 };
 
 int main(int argc, char** argv) {
   // Parameters
-  const double lag = 1000.0;
+  const double lag = 10.0;
   const size_t maxLoopCount = 10000;
-  LevenbergMarquardtParams params;
-  // Print one line per iteration: iteration number, error, lambda, etc.
-  params.setVerbosity("SUMMARY");
-  // Also print details of each attempted λ‐adjustment
-  params.setVerbosityLM("TRYLAMBDA");
 
-  // (Optional) tweak other settings:
-  params.setMaxIterations(50);
-  params.setRelativeErrorTol(1e-3);
-  params.setAbsoluteErrorTol(1e-3);
   // Create the concurrent filter and smoother
-//  ConcurrentBatchFilter concurrentFilter(params);
-  ISAM2Params isamParameters;
-//    isamParameters.relinearizeThreshold = 0.01;
-//    isamParameters.relinearizeSkip = 3;
-  // Important!!!!!! Key parameter to ensure old factors are released after marginalization
-//  isamParameters.factorization=ISAM2Params::QR;
-//  isamParameters.findUnusedFactorSlots = true;
-  ConcurrentIncrementalFilter concurrentFilter(isamParameters);
+  ConcurrentBatchFilter concurrentFilter;
   ConcurrentBatchSmoother concurrentSmoother;
-//  BatchFixedLagSmoother batchSmoother(1000.0);
+  //  BatchFixedLagSmoother batchSmoother(1000.0);
 
   // Load dataset
   City10000Dataset dataset(findExampleDataFile(
@@ -89,8 +76,8 @@ int main(int argc, char** argv) {
 
   // Initialize with prior
   // EDGE2 0 1 1 0 1 0.974351 -0.014717 0.024917
-    Pose2 priorPose(0.974351, -0.014717, 0.024917);
-//  Pose2 priorPose(0, 0, 0);
+  Pose2 priorPose(0.974351, -0.014717, 0.024917);
+  //  Pose2 priorPose(0, 0, 0);
   auto priorNoise = noiseModel::Diagonal::Sigmas(Vector3(0.0001, 0.0001, 0.001));
   newFactors.addPrior<Pose2>(X(0), priorPose, priorNoise);
   newValues.insert(X(0), priorPose);
@@ -106,10 +93,10 @@ int main(int argc, char** argv) {
     size_t keyT = keys.second;
     Pose2 odomPose = poseArray[0];
 
-//    if (keyT % 10 == 0) {
-//      concurrentSmoother.update();
-//      synchronize(concurrentFilter, concurrentSmoother);
-//    }
+    //    if (keyT % 10 == 0) {
+    //      concurrentSmoother.update();
+    //      synchronize(concurrentFilter, concurrentSmoother);
+    //    }
 
     if (keyS == keyT - 1) {  // Sequential measurement
 
@@ -189,13 +176,14 @@ int main(int argc, char** argv) {
       newValues.clear();
       newTimestamps.clear();
     } else {  // Loop closure detected
+      // You should never process the loop closure in smoother when you running like a filter
       const Values& smootherValues = concurrentSmoother.getLinearizationPoint();
       // Create loop closure factor but don't add it immediately
       auto loopNoise = noiseModel::Diagonal::Sigmas(Vector3(0.5, 0.5, 0.25));
       const PendingLoopClosure loop(X(keyS), X(keyT), odomPose, loopNoise);
 
       // Update if in smoother, else queue
-//      const Values& smootherValues = concurrentSmoother.getLinearizationPoint();
+      //      const Values& smootherValues = concurrentSmoother.getLinearizationPoint();
       if (smootherValues.exists(loop.keyFrom) &&
           smootherValues.exists(loop.keyTo)) {
         NonlinearFactorGraph loopFactors;

@@ -52,9 +52,9 @@
 
 // We will use Pose2 variables (x, y, theta) to represent the robot positions
 #include <gtsam/geometry/Pose2.h>
-
 #include <iomanip>
-
+#include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
+#include <gtsam_unstable/nonlinear/ConcurrentIncrementalFilter.h>
 using namespace std;
 using namespace gtsam;
 
@@ -65,7 +65,9 @@ int main(int argc, char** argv) {
   double lag = 2.0;
 
   // Create a Concurrent Filter and Smoother
-  ConcurrentBatchFilter concurrentFilter;
+//  ConcurrentBatchFilter concurrentFilter;
+  ConcurrentIncrementalFilter concurrentFilter;
+
   ConcurrentBatchSmoother concurrentSmoother;
 
   // And a fixed lag smoother with a short lag
