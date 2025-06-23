@@ -13,17 +13,7 @@
  * -------------------------------------------------------------------------- */
 
  /**
- * @file ConcurrentFilteringAndSmoothingExample.cpp
- * @brief Demonstration of the concurrent filtering and smoothing architecture using
- * a planar robot example and multiple odometry-like sensors
- * @author Stephen Williams
-  */
-
- /**
- * A simple 2D pose slam example with multiple odometry-like measurements
- *  - The robot initially faces along the X axis (horizontal, to the right in 2D)
- *  - The robot moves forward at 2m/s
- *  - We have measurements between each pose from multiple odometry sensors
+* Not used, just for test, may be wrong
   */
 
  // This example demonstrates the use of the Concurrent Filtering and Smoothing architecture in GTSAM unstable
@@ -85,7 +75,13 @@ using namespace std;
    //  ConcurrentBatchFilter concurrentFilter;
    ConcurrentIncrementalFilter concurrentFilter;
 
-   ConcurrentBatchSmoother concurrentSmoother;
+   LevenbergMarquardtParams LMparams;
+   LMparams.absoluteErrorTol = 1e-10;
+   LMparams.relativeErrorTol = 1e-10;
+   LMparams.maxIterations = 50;
+   LMparams.verbosityLM = LevenbergMarquardtParams::TRYLAMBDA;
+   LMparams.lambdaUpperBound = 1e10;
+   ConcurrentBatchSmoother concurrentSmoother(LMparams);
 
    // And a fixed lag smoother with a short lag
    BatchFixedLagSmoother fixedlagSmoother(lag);
@@ -100,12 +96,16 @@ using namespace std;
    Values newValues;
    FixedLagSmoother::KeyTimestampMap newTimestamps;
 
+   NonlinearFactorGraph batchGraph;
+   Values batchValues;
+
    // Create a prior on the first pose, placing it at the origin
    Pose2 priorMean(0.0, 0.0, 0.0); // prior at origin
    auto priorNoise = noiseModel::Diagonal::Sigmas(Vector3(0.3, 0.3, 0.1));
    Key priorKey = 0;
    newFactors.addPrior(priorKey, priorMean, priorNoise);
    newValues.insert(priorKey, priorMean); // Initialize the first pose at the mean of the prior
+   batchValues.insert(priorKey, priorMean);
    newTimestamps[priorKey] = 0.0; // Set the timestamp associated with this key to 0.0 seconds;
 
    // Now, loop through several time steps, creating factors from different "sensors"
@@ -125,16 +125,16 @@ using namespace std;
      // {This is not a particularly good way to guess, but this is just an example}
      Pose2 currentPose(time * 2.0, 0.0, 0.0);
      newValues.insert(currentKey, currentPose);
-
+     batchValues.insert(currentKey, currentPose);
      // Add odometry factors from two different sources with different error stats
      Pose2 odometryMeasurement1 = Pose2(0.61, -0.08, 0.02);
      auto odometryNoise1 = noiseModel::Diagonal::Sigmas(Vector3(0.1, 0.1, 0.05));
      newFactors.push_back(BetweenFactor<Pose2>(previousKey, currentKey, odometryMeasurement1, odometryNoise1));
-
+     batchGraph.push_back(BetweenFactor<Pose2>(previousKey, currentKey, odometryMeasurement1, odometryNoise1));
      Pose2 odometryMeasurement2 = Pose2(0.47, 0.03, 0.01);
      auto odometryNoise2 = noiseModel::Diagonal::Sigmas(Vector3(0.05, 0.05, 0.05));
      newFactors.push_back(BetweenFactor<Pose2>(previousKey, currentKey, odometryMeasurement2, odometryNoise2));
-
+     batchGraph.push_back(BetweenFactor<Pose2>(previousKey, currentKey, odometryMeasurement2, odometryNoise2));
      // Unlike the fixed-lag versions, the concurrent filter implementation
      // requires the user to supply the specify which keys to move to the smoother
      FastList<Key> oldKeys;
@@ -172,6 +172,7 @@ using namespace std;
    // This measurement can never be added to the fixed-lag smoother, as one of the poses has been permanently marginalized out
    // This measurement can be incorporated into the full batch version though
    newFactors.push_back(loopFactor);
+   batchGraph.push_back(loopFactor);
    batchSmoother.update(newFactors, Values(), FixedLagSmoother::KeyTimestampMap());
    newFactors.resize(0);
 
@@ -192,16 +193,16 @@ using namespace std;
      // {This is not a particularly good way to guess, but this is just an example}
      Pose2 currentPose(time * 2.0, 0.0, 0.0);
      newValues.insert(currentKey, currentPose);
-
+     batchValues.insert(currentKey, currentPose);
      // Add odometry factors from two different sources with different error stats
      Pose2 odometryMeasurement1 = Pose2(0.61, -0.08, 0.02);
      auto odometryNoise1 = noiseModel::Diagonal::Sigmas(Vector3(0.1, 0.1, 0.05));
      newFactors.push_back(BetweenFactor<Pose2>(previousKey, currentKey, odometryMeasurement1, odometryNoise1));
-
+     batchGraph.push_back(BetweenFactor<Pose2>(previousKey, currentKey, odometryMeasurement1, odometryNoise1));
      Pose2 odometryMeasurement2 = Pose2(0.47, 0.03, 0.01);
      auto odometryNoise2 = noiseModel::Diagonal::Sigmas(Vector3(0.05, 0.05, 0.05));
      newFactors.push_back(BetweenFactor<Pose2>(previousKey, currentKey, odometryMeasurement2, odometryNoise2));
-
+     batchGraph.push_back(BetweenFactor<Pose2>(previousKey, currentKey, odometryMeasurement2, odometryNoise2));
      // Unlike the fixed-lag versions, the concurrent filter implementation
      // requires the user to supply the specify which keys to marginalize
      FastList<Key> oldKeys;
@@ -232,6 +233,7 @@ using namespace std;
 
    // The state at 5.0s should have been transferred to the concurrent smoother at this point. Add the loop closure.
    newFactors.push_back(loopFactor);
+   batchGraph.push_back(loopFactor);
    concurrentSmoother.update(newFactors, Values());
    newFactors.resize(0);
 
@@ -252,16 +254,16 @@ using namespace std;
      // {This is not a particularly good way to guess, but this is just an example}
      Pose2 currentPose(time * 2.0, 0.0, 0.0);
      newValues.insert(currentKey, currentPose);
-
+     batchValues.insert(currentKey, currentPose);
      // Add odometry factors from two different sources with different error stats
      Pose2 odometryMeasurement1 = Pose2(0.61, -0.08, 0.02);
      auto odometryNoise1 = noiseModel::Diagonal::Sigmas(Vector3(0.1, 0.1, 0.05));
      newFactors.push_back(BetweenFactor<Pose2>(previousKey, currentKey, odometryMeasurement1, odometryNoise1));
-
+     batchGraph.push_back(BetweenFactor<Pose2>(previousKey, currentKey, odometryMeasurement1, odometryNoise1));
      Pose2 odometryMeasurement2 = Pose2(0.47, 0.03, 0.01);
      auto odometryNoise2 = noiseModel::Diagonal::Sigmas(Vector3(0.05, 0.05, 0.05));
      newFactors.push_back(BetweenFactor<Pose2>(previousKey, currentKey, odometryMeasurement2, odometryNoise2));
-
+     batchGraph.push_back(BetweenFactor<Pose2>(previousKey, currentKey, odometryMeasurement2, odometryNoise2));
      // Unlike the fixed-lag versions, the concurrent filter implementation
      // requires the user to supply the specify which keys to marginalize
      FastList<Key> oldKeys;
@@ -399,6 +401,10 @@ using namespace std;
      cout << setprecision(5) << "    Key: " << key << endl;
    }
 
+
+   LevenbergMarquardtParams params2;
+   params2.verbosityLM = LevenbergMarquardtParams::SUMMARY;
+   auto result = LevenbergMarquardtOptimizer(batchGraph, batchValues, params2).optimize();
 
 
    return 0;

@@ -12,6 +12,10 @@
 /**
  * @file Incremental_CFS.cpp
  * @brief Incremental Concurrent Filtering and Smoothing with proper loop closure handling
+ *
+ *
+ * Not used, just for test, may be wrong
+ *
  */
 
 #include <queue>
@@ -92,11 +96,6 @@ int main(int argc, char** argv) {
     size_t keyS = keys.first;
     size_t keyT = keys.second;
     Pose2 odomPose = poseArray[0];
-
-    //    if (keyT % 10 == 0) {
-    //      concurrentSmoother.update();
-    //      synchronize(concurrentFilter, concurrentSmoother);
-    //    }
 
     if (keyS == keyT - 1) {  // Sequential measurement
 

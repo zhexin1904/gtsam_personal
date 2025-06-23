@@ -9,6 +9,11 @@
 /**
  * @file Incremental_CFS.cpp
  * @brief Incremental Concurrent Filtering and Smoothing with proper loop closure handling
+ *
+ *
+ * Not used, just for test, may be wrong
+ *
+ *
  */
 
 #include <queue>
@@ -51,7 +56,7 @@ struct PendingLoopClosure {
 
 int main(int argc, char** argv) {
   // Parameters
-  const double lag = 1000.0;
+  const double lag = 50.0;
   const size_t maxLoopCount = 10000;
   LevenbergMarquardtParams params;
   // Print one line per iteration: iteration number, error, lambda, etc.
@@ -65,13 +70,7 @@ int main(int argc, char** argv) {
   params.setAbsoluteErrorTol(1e-3);
   // Create the concurrent filter and smoother
 //  ConcurrentBatchFilter concurrentFilter(params);
-  ISAM2Params isamParameters;
-//    isamParameters.relinearizeThreshold = 0.01;
-//    isamParameters.relinearizeSkip = 3;
-  // Important!!!!!! Key parameter to ensure old factors are released after marginalization
-//  isamParameters.factorization=ISAM2Params::QR;
-//  isamParameters.findUnusedFactorSlots = true;
-  ConcurrentIncrementalFilter concurrentFilter(isamParameters);
+  ConcurrentIncrementalFilter concurrentFilter;
   ConcurrentBatchSmoother concurrentSmoother;
 //  BatchFixedLagSmoother batchSmoother(1000.0);
 
@@ -106,15 +105,10 @@ int main(int argc, char** argv) {
     size_t keyT = keys.second;
     Pose2 odomPose = poseArray[0];
 
-//    if (keyT % 10 == 0) {
-//      concurrentSmoother.update();
-//      synchronize(concurrentFilter, concurrentSmoother);
-//    }
-
     if (keyS == keyT - 1) {  // Sequential measurement
 
       // Periodic synchronization
-      if (keyT % 5 == 0) {
+      if (keyT % 50 == 0) {
         const Values& smootherValues = concurrentSmoother.getLinearizationPoint();
         // Update the exsisting loop closure firstly
         // Process pending queue
@@ -183,32 +177,18 @@ int main(int argc, char** argv) {
 
       }
 
-
-
       newFactors.resize(0);
       newValues.clear();
       newTimestamps.clear();
     } else {  // Loop closure detected
-      const Values& smootherValues = concurrentSmoother.getLinearizationPoint();
       // Create loop closure factor but don't add it immediately
       auto loopNoise = noiseModel::Diagonal::Sigmas(Vector3(0.5, 0.5, 0.25));
       const PendingLoopClosure loop(X(keyS), X(keyT), odomPose, loopNoise);
 
-      // Update if in smoother, else queue
-//      const Values& smootherValues = concurrentSmoother.getLinearizationPoint();
-      if (smootherValues.exists(loop.keyFrom) &&
-          smootherValues.exists(loop.keyTo)) {
-        NonlinearFactorGraph loopFactors;
-        loopFactors.push_back(BetweenFactor<Pose2>(
-            loop.keyFrom, loop.keyTo, loop.measurement, loop.noise));
-        concurrentSmoother.update(loopFactors, Values());
-        cout << "Loop closure added between poses " << keyS << " and " << keyT
-             << endl;
-      } else {
-        pendingLoopClosures.push(loop);
-        cout << "Loop closure queued between poses " << keyS << " and " << keyT
-             << " (waiting for variables)" << endl;
-      }
+      pendingLoopClosures.push(loop);
+      cout << "Loop closure queued between poses " << keyS << " and " << keyT
+           << " (waiting for variables)" << endl;
+
       index++;
     }
   }
